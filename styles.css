@@ -1,6 +1,6 @@
 /* ============================================ */
 /* HRPI - SISTEMA DE CONTROLE DE RECEPÇÃO */
-/* CSS UNIFICADO - DESIGN PROFISSIONAL */
+/* CSS OFICIAL - DESIGN LIMPO E PROFISSIONAL */
 /* ============================================ */
 
 :root {
@@ -16,24 +16,22 @@
     --surface: #ffffff;
     --text: #2c3e50;
     --text-light: #5a6c7d;
-    --text-muted: #95a5a6;
+    --text-muted: #7d8c97;
     --border: #dde4e9;
     --border-light: #eef2f5;
     --shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
     --shadow-lg: 0 8px 32px rgba(0, 0, 0, 0.10);
-    --shadow-xl: 0 20px 60px rgba(0, 0, 0, 0.15);
+    --shadow-xl: 0 20px 60px rgba(0, 0, 0, 0.25);
     --radius: 10px;
     --radius-sm: 6px;
     --radius-lg: 16px;
-    --radius-full: 9999px;
+    --radius-full: 20px;
     --transition: 0.2s ease;
     --transition-slow: 0.3s ease;
     --sidebar-width: 260px;
 }
 
-/* ============================================ */
-/* TEMA ESCURO */
-/* ============================================ */
+/* Tema Escuro */
 body.dark-theme {
     --primary: #3498db;
     --primary-dark: #2980b9;
@@ -52,17 +50,10 @@ body.dark-theme {
     --border-light: #1a2634;
 }
 
-/* ============================================ */
-/* RESET E ESTILOS BASE */
-/* ============================================ */
-*, *::before, *::after {
+* {
     margin: 0;
     padding: 0;
     box-sizing: border-box;
-}
-
-html {
-    scroll-behavior: smooth;
 }
 
 body {
@@ -70,11 +61,10 @@ body {
     background: var(--bg);
     color: var(--text);
     min-height: 100vh;
+    display: flex;
     line-height: 1.5;
     -webkit-font-smoothing: antialiased;
-    -moz-osx-font-smoothing: grayscale;
-    transition: background var(--transition-slow), color var(--transition-slow);
-    overflow-x: hidden;
+    transition: background 0.3s ease, color 0.3s ease;
 }
 
 /* ============================================ */
@@ -90,16 +80,16 @@ body {
 }
 
 ::-webkit-scrollbar-thumb {
-    background: var(--text-muted);
+    background: #bdc3c7;
     border-radius: 3px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-    background: var(--text-light);
+    background: #95a5a6;
 }
 
 /* ============================================ */
-/* TELA DE LOGIN */
+/* LOGIN */
 /* ============================================ */
 .login-overlay {
     position: fixed;
@@ -125,10 +115,6 @@ body {
     z-index: 0;
 }
 
-.login-overlay.has-background::before {
-    opacity: 0.35;
-}
-
 .login-overlay.hidden {
     opacity: 0;
     visibility: hidden;
@@ -140,11 +126,11 @@ body {
     z-index: 1;
     background: rgba(255, 255, 255, 0.95);
     backdrop-filter: blur(10px);
-    border-radius: var(--radius-lg);
+    border-radius: 16px;
     padding: 40px 36px;
     width: 420px;
     max-width: 92vw;
-    box-shadow: var(--shadow-xl);
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.25);
     text-align: center;
     animation: loginSlideUp 0.5s ease;
 }
@@ -162,7 +148,7 @@ body {
 
 .logo-container {
     font-size: 48px;
-    color: var(--primary);
+    color: #1a6b7a;
     margin-bottom: 8px;
     max-width: 200px;
     max-height: 60px;
@@ -185,14 +171,14 @@ body {
 
 .login-card h2 {
     font-size: 24px;
-    color: var(--primary-dark);
+    color: #0f4c58;
     margin-bottom: 4px;
     font-weight: 700;
 }
 
 .login-card .subtitle {
     font-size: 12px;
-    color: var(--text-light);
+    color: #7d8c97;
     margin-bottom: 28px;
     letter-spacing: 0.3px;
     line-height: 1.4;
@@ -209,7 +195,7 @@ body {
     left: 14px;
     top: 50%;
     transform: translateY(-50%);
-    color: var(--text-muted);
+    color: #95a5a6;
     font-size: 15px;
     transition: var(--transition);
     pointer-events: none;
@@ -219,37 +205,33 @@ body {
 .login-card input {
     width: 100%;
     padding: 13px 14px 13px 42px;
-    border: 2px solid var(--border);
-    border-radius: var(--radius-sm);
+    border: 2px solid #dde4e9;
+    border-radius: 6px;
     font-size: 15px;
     transition: var(--transition);
     background: #fafbfc;
     outline: none;
-    color: var(--text);
+    color: #2c3e50;
     font-family: inherit;
 }
 
 .login-card input::placeholder {
-    color: var(--text-muted);
+    color: #95a5a6;
 }
 
 .login-card input:focus {
-    border-color: var(--secondary);
+    border-color: #2c9aaf;
     box-shadow: 0 0 0 3px rgba(44, 154, 175, 0.1);
     background: #fff;
-}
-
-.login-card input:focus + i {
-    color: var(--secondary);
 }
 
 .login-card .btn-login {
     width: 100%;
     padding: 13px;
-    background: var(--primary);
+    background: #1a6b7a;
     color: #fff;
     border: none;
-    border-radius: var(--radius-sm);
+    border-radius: 6px;
     font-size: 16px;
     font-weight: 600;
     cursor: pointer;
@@ -260,18 +242,12 @@ body {
     align-items: center;
     justify-content: center;
     gap: 8px;
-    position: relative;
-    overflow: hidden;
 }
 
 .login-card .btn-login:hover {
-    background: var(--primary-dark);
+    background: #0f4c58;
     transform: translateY(-1px);
     box-shadow: 0 6px 20px rgba(26, 107, 122, 0.3);
-}
-
-.login-card .btn-login:active {
-    transform: translateY(0);
 }
 
 .login-card .btn-login:disabled {
@@ -281,12 +257,11 @@ body {
 }
 
 .login-error {
-    color: var(--danger);
+    color: #c0392b;
     font-size: 13px;
     margin-top: 8px;
     min-height: 20px;
     font-weight: 500;
-    text-align: center;
 }
 
 .login-hint {
@@ -305,7 +280,9 @@ body {
     width: 100%;
 }
 
-/* Spinner para botão de login */
+/* ============================================ */
+/* SPINNER */
+/* ============================================ */
 .spinner {
     display: inline-block;
     width: 18px;
@@ -329,7 +306,7 @@ body {
     min-height: 100vh;
     opacity: 0;
     visibility: hidden;
-    transition: opacity var(--transition-slow);
+    transition: opacity 0.3s ease;
 }
 
 .app-container.active {
@@ -352,7 +329,7 @@ body {
     bottom: 0;
     z-index: 100;
     box-shadow: var(--shadow);
-    transition: transform var(--transition-slow), background var(--transition-slow);
+    transition: transform 0.3s ease, background 0.3s ease;
 }
 
 .sidebar-header {
@@ -361,7 +338,6 @@ body {
     display: flex;
     align-items: center;
     gap: 10px;
-    min-height: 64px;
 }
 
 .sidebar-logo {
@@ -396,12 +372,11 @@ body {
 
 .logo-text small {
     font-weight: 400;
-    font-size: 12px;
+    font-size: 15px;
     color: var(--text-light);
     display: block;
 }
 
-/* Navegação da Sidebar */
 .sidebar-nav {
     flex: 1;
     padding: 10px;
@@ -422,7 +397,7 @@ body {
     align-items: center;
     gap: 10px;
     padding: 11px 14px;
-    border-radius: var(--radius-sm);
+    border-radius: 6px;
     text-decoration: none;
     color: var(--text);
     font-weight: 500;
@@ -448,10 +423,8 @@ body {
     width: 20px;
     text-align: center;
     font-size: 15px;
-    flex-shrink: 0;
 }
 
-/* Rodapé da Sidebar */
 .sidebar-footer {
     padding: 14px 16px;
     border-top: 1px solid var(--border);
@@ -461,8 +434,7 @@ body {
     align-items: center;
     justify-content: space-between;
     flex-wrap: wrap;
-    gap: 8px;
-    background: var(--surface);
+    gap: 6px;
 }
 
 .user-info {
@@ -485,12 +457,12 @@ body {
 
 .btn-logout {
     background: none;
-    border: 1px solid var(--border);
+    border: 1px solid #e0e5ea;
     padding: 6px 12px;
-    border-radius: var(--radius-full);
+    border-radius: 20px;
     cursor: pointer;
     font-size: 11px;
-    color: var(--text-light);
+    color: #7d8c97;
     transition: var(--transition);
     font-weight: 500;
     display: flex;
@@ -518,29 +490,26 @@ body {
     display: flex;
     align-items: center;
     justify-content: center;
-    flex-shrink: 0;
 }
 
 .theme-toggle-btn:hover {
     background: var(--primary-light);
     color: var(--primary);
     border-color: var(--primary);
-    transform: rotate(30deg);
 }
 
 /* ============================================ */
-/* CONTEÚDO PRINCIPAL */
+/* MAIN CONTENT */
 /* ============================================ */
 .main-content {
     margin-left: var(--sidebar-width);
     flex: 1;
     padding: 24px 28px;
     min-height: 100vh;
-    width: 100%;
 }
 
 /* ============================================ */
-/* PÁGINAS E SEÇÕES */
+/* PÁGINAS */
 /* ============================================ */
 .page {
     display: none;
@@ -552,14 +521,8 @@ body {
 }
 
 @keyframes fadeSlideIn {
-    from {
-        opacity: 0;
-        transform: translateY(12px);
-    }
-    to {
-        opacity: 1;
-        transform: translateY(0);
-    }
+    from { opacity: 0; transform: translateY(12px); }
+    to { opacity: 1; transform: translateY(0); }
 }
 
 .page-header {
@@ -587,7 +550,7 @@ body {
 }
 
 /* ============================================ */
-/* CARDS DE ESTATÍSTICAS */
+/* CARDS */
 /* ============================================ */
 .cards-row {
     display: grid;
@@ -613,10 +576,10 @@ body {
     transform: translateY(-2px);
 }
 
-.stat-card.entrada { border-left-color: var(--success); }
-.stat-card.troca { border-left-color: var(--warning); }
-.stat-card.saida { border-left-color: var(--danger); }
-.stat-card.presente { border-left-color: var(--secondary); }
+.stat-card.entrada { border-left-color: #2d8b4e; }
+.stat-card.troca { border-left-color: #c7841a; }
+.stat-card.saida { border-left-color: #c0392b; }
+.stat-card.presente { border-left-color: #2c9aaf; }
 .stat-card.visita { border-left-color: #8e44ad; }
 
 .icon-circle {
@@ -630,14 +593,14 @@ body {
     flex-shrink: 0;
 }
 
-.stat-card.entrada .icon-circle { background: #e6f4ea; color: var(--success); }
-.stat-card.troca .icon-circle { background: #fef6ea; color: var(--warning); }
-.stat-card.saida .icon-circle { background: #fdeaea; color: var(--danger); }
-.stat-card.presente .icon-circle { background: #e8f4f7; color: var(--secondary); }
+.stat-card.entrada .icon-circle { background: #e6f4ea; color: #2d8b4e; }
+.stat-card.troca .icon-circle { background: #fef6ea; color: #c7841a; }
+.stat-card.saida .icon-circle { background: #fdeaea; color: #c0392b; }
+.stat-card.presente .icon-circle { background: #e8f4f7; color: #2c9aaf; }
 .stat-card.visita .icon-circle { background: #f3e8f7; color: #8e44ad; }
 
 body.dark-theme .stat-card.entrada .icon-circle { background: rgba(39, 174, 96, 0.15); }
-body.dark-theme .stat-card.troca .icon-circle { background: rgba(243, 156, 18, 0.15); }
+body.dark-theme .stat-card.troca .icon-circle { background: rgba(243, 156, 12, 0.15); }
 body.dark-theme .stat-card.saida .icon-circle { background: rgba(231, 76, 60, 0.15); }
 body.dark-theme .stat-card.presente .icon-circle { background: rgba(52, 152, 219, 0.15); }
 body.dark-theme .stat-card.visita .icon-circle { background: rgba(142, 68, 173, 0.15); }
@@ -655,9 +618,6 @@ body.dark-theme .stat-card.visita .icon-circle { background: rgba(142, 68, 173, 
     letter-spacing: 0.2px;
 }
 
-/* ============================================ */
-/* CARDS GENÉRICOS */
-/* ============================================ */
 .card {
     background: var(--surface);
     border-radius: var(--radius);
@@ -693,7 +653,7 @@ body.dark-theme .stat-card.visita .icon-circle { background: rgba(142, 68, 173, 
 /* ============================================ */
 .table-container {
     overflow-x: auto;
-    border-radius: var(--radius-sm);
+    border-radius: 6px;
     border: 1px solid var(--border);
 }
 
@@ -719,21 +679,15 @@ table thead th {
     font-size: 11px;
     text-transform: uppercase;
     letter-spacing: 0.5px;
-    color: var(--text-light);
+    color: #5a6c7d;
     border-bottom: 2px solid var(--border);
     white-space: nowrap;
-    background: #f7f9fb;
-}
-
-body.dark-theme table thead th {
-    background: #1a2634;
 }
 
 table tbody td {
     padding: 11px 14px;
-    border-bottom: 1px solid var(--border-light);
+    border-bottom: 1px solid #eef2f5;
     vertical-align: middle;
-    color: var(--text);
 }
 
 table tbody tr:last-child td {
@@ -754,7 +708,7 @@ body.dark-theme table tbody tr:hover {
 .badge {
     display: inline-block;
     padding: 5px 10px;
-    border-radius: var(--radius-full);
+    border-radius: 20px;
     font-size: 11px;
     font-weight: 600;
     letter-spacing: 0.3px;
@@ -768,7 +722,7 @@ body.dark-theme table tbody tr:hover {
 .badge-visita { background: #f3e8f7; color: #6c1a8b; }
 
 body.dark-theme .badge-success { background: rgba(39, 174, 96, 0.2); color: #2ecc71; }
-body.dark-theme .badge-warning { background: rgba(243, 156, 18, 0.2); color: #f1c40f; }
+body.dark-theme .badge-warning { background: rgba(243, 156, 12, 0.2); color: #f1c40f; }
 body.dark-theme .badge-danger { background: rgba(231, 76, 60, 0.2); color: #e74c3c; }
 body.dark-theme .badge-info { background: rgba(52, 152, 219, 0.2); color: #3498db; }
 body.dark-theme .badge-visita { background: rgba(142, 68, 173, 0.2); color: #9b59b6; }
@@ -778,7 +732,7 @@ body.dark-theme .badge-visita { background: rgba(142, 68, 173, 0.2); color: #9b5
 /* ============================================ */
 .btn {
     padding: 9px 18px;
-    border-radius: var(--radius-full);
+    border-radius: 20px;
     border: none;
     cursor: pointer;
     font-weight: 600;
@@ -790,7 +744,6 @@ body.dark-theme .badge-visita { background: rgba(142, 68, 173, 0.2); color: #9b5
     gap: 6px;
     white-space: nowrap;
     font-family: inherit;
-    text-decoration: none;
 }
 
 .btn-primary {
@@ -847,7 +800,7 @@ body.dark-theme .badge-visita { background: rgba(142, 68, 173, 0.2); color: #9b5
 .btn-sm {
     padding: 5px 12px;
     font-size: 11px;
-    border-radius: var(--radius-full);
+    border-radius: 15px;
 }
 
 .btn-icon {
@@ -873,20 +826,20 @@ body.dark-theme .badge-visita { background: rgba(142, 68, 173, 0.2); color: #9b5
 
 .btn-icon.btn-edit:hover {
     background: #e8f4f7;
-    color: var(--secondary);
-    border-color: var(--secondary);
+    color: #2c9aaf;
+    border-color: #2c9aaf;
 }
 
 .btn-icon.btn-delete:hover {
     background: #fdeaea;
-    color: var(--danger);
-    border-color: var(--danger);
+    color: #c0392b;
+    border-color: #c0392b;
 }
 
 .btn-icon.btn-key:hover {
     background: #fef6ea;
-    color: var(--warning);
-    border-color: var(--warning);
+    color: #c7841a;
+    border-color: #c7841a;
 }
 
 /* ============================================ */
@@ -913,8 +866,7 @@ body.dark-theme .badge-visita { background: rgba(142, 68, 173, 0.2); color: #9b5
 }
 
 .form-group label .required {
-    color: var(--danger);
-    font-weight: 700;
+    color: #c0392b;
 }
 
 .form-group input,
@@ -922,14 +874,13 @@ body.dark-theme .badge-visita { background: rgba(142, 68, 173, 0.2); color: #9b5
 .form-group textarea {
     padding: 10px 12px;
     border: 1.5px solid var(--border);
-    border-radius: var(--radius-sm);
+    border-radius: 6px;
     font-size: 14px;
     transition: var(--transition);
     background: #fafcfd;
     outline: none;
     font-family: inherit;
     color: var(--text);
-    width: 100%;
 }
 
 .form-group textarea {
@@ -944,8 +895,7 @@ body.dark-theme .badge-visita { background: rgba(142, 68, 173, 0.2); color: #9b5
 }
 
 .form-group input[type="file"]:hover {
-    border-color: var(--secondary);
-    background: var(--primary-light);
+    border-color: #2c9aaf;
 }
 
 body.dark-theme .form-group input,
@@ -965,7 +915,7 @@ body.dark-theme .form-group textarea {
 
 .form-group input::placeholder,
 .form-group textarea::placeholder {
-    color: var(--text-muted);
+    color: #95a5a6;
 }
 
 .form-actions {
@@ -1007,6 +957,7 @@ body.dark-theme .form-group textarea {
     max-height: 85vh;
     overflow-y: auto;
     box-shadow: var(--shadow-lg);
+    position: relative;
     animation: modalSlideIn 0.3s ease;
 }
 
@@ -1042,7 +993,7 @@ body.dark-theme .form-group textarea {
     border: none;
     font-size: 20px;
     cursor: pointer;
-    color: var(--text-muted);
+    color: #95a5a6;
     transition: var(--transition);
     width: 32px;
     height: 32px;
@@ -1054,7 +1005,7 @@ body.dark-theme .form-group textarea {
 
 .modal-close:hover {
     background: #fdeaea;
-    color: var(--danger);
+    color: #c0392b;
 }
 
 /* ============================================ */
@@ -1065,15 +1016,15 @@ body.dark-theme .form-group textarea {
     top: 20px;
     right: 20px;
     z-index: 999;
-    background: var(--success);
+    background: #2d8b4e;
     color: #fff;
     padding: 14px 20px;
-    border-radius: var(--radius-sm);
+    border-radius: 8px;
     font-weight: 600;
     font-size: 14px;
     box-shadow: var(--shadow-lg);
     transform: translateX(120%);
-    transition: transform var(--transition-slow);
+    transition: transform 0.3s ease;
     display: flex;
     align-items: center;
     gap: 8px;
@@ -1085,7 +1036,7 @@ body.dark-theme .form-group textarea {
 }
 
 .toast.error {
-    background: var(--danger);
+    background: #c0392b;
 }
 
 .toast i {
@@ -1107,7 +1058,7 @@ body.dark-theme .form-group textarea {
 .filter-row select {
     padding: 8px 12px;
     border: 1.5px solid var(--border);
-    border-radius: var(--radius-full);
+    border-radius: 20px;
     font-size: 13px;
     outline: none;
     font-family: inherit;
@@ -1124,11 +1075,16 @@ body.dark-theme .form-group textarea {
 /* INFO BOX */
 /* ============================================ */
 .info-box {
-    background: var(--primary-light);
+    background: #e8f4f7;
     padding: 14px 18px;
-    border-radius: var(--radius-sm);
+    border-radius: 6px;
     margin: 14px 0;
-    border-left: 4px solid var(--primary);
+    border-left: 4px solid #1a6b7a;
+}
+
+body.dark-theme .info-box {
+    background: #1a2634;
+    border-left-color: #3498db;
 }
 
 .info-box p {
@@ -1145,12 +1101,12 @@ body.dark-theme .form-group textarea {
 /* ERROR MESSAGE */
 /* ============================================ */
 .error-message {
-    color: var(--danger);
+    color: #c0392b;
     font-size: 13px;
     margin-top: 8px;
     padding: 10px 14px;
     background: #fdeaea;
-    border-radius: var(--radius-sm);
+    border-radius: 6px;
     border: 1px solid rgba(192, 57, 43, 0.2);
     font-weight: 500;
 }
@@ -1213,7 +1169,7 @@ body.dark-theme .error-message {
 .report-card input[type="date"] {
     padding: 8px 12px;
     border: 1.5px solid var(--border);
-    border-radius: var(--radius-full);
+    border-radius: 20px;
     font-size: 12px;
     margin: 4px;
     outline: none;
@@ -1264,6 +1220,13 @@ body.dark-theme .error-message {
 }
 
 /* ============================================ */
+/* ADMIN ONLY */
+/* ============================================ */
+.admin-only {
+    display: none;
+}
+
+/* ============================================ */
 /* MOBILE MENU BUTTON */
 /* ============================================ */
 .mobile-menu-btn {
@@ -1282,18 +1245,46 @@ body.dark-theme .error-message {
     cursor: pointer;
     box-shadow: var(--shadow-lg);
     transition: var(--transition);
+    align-items: center;
+    justify-content: center;
 }
 
 .mobile-menu-btn:hover {
     background: var(--primary-dark);
-    transform: scale(1.05);
 }
 
 /* ============================================ */
-/* ADMIN ONLY */
+/* SIDEBAR OVERLAY (MOBILE) */
 /* ============================================ */
-.admin-only {
+.sidebar-overlay {
     display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.4);
+    z-index: 99;
+}
+
+@media (max-width: 768px) {
+    .sidebar-overlay.active {
+        display: block;
+    }
+}
+
+/* ============================================ */
+/* TABELA VAZIA */
+/* ============================================ */
+.empty-table-message {
+    text-align: center;
+    padding: 32px 16px;
+    color: #95a5a6;
+    font-size: 14px;
+}
+
+.empty-table-message i {
+    font-size: 32px;
+    margin-bottom: 8px;
+    display: block;
+    opacity: 0.5;
 }
 
 /* ============================================ */
@@ -1331,18 +1322,17 @@ body.dark-theme .error-message {
 }
 
 /* ============================================ */
-/* RESPONSIVIDADE - TABLET PEQUENO / MOBILE GRANDE */
+/* RESPONSIVIDADE - MOBILE */
 /* ============================================ */
 @media (max-width: 768px) {
     .sidebar {
         transform: translateX(-100%);
-        width: var(--sidebar-width);
+        width: 260px;
         box-shadow: var(--shadow-lg);
     }
     
     .sidebar.open {
         transform: translateX(0);
-        box-shadow: 8px 0 32px rgba(0, 0, 0, 0.2);
     }
     
     .main-content {
@@ -1380,9 +1370,7 @@ body.dark-theme .error-message {
     }
     
     .mobile-menu-btn {
-        display: flex !important;
-        align-items: center;
-        justify-content: center;
+        display: flex;
     }
     
     .page-header h1 {
@@ -1517,7 +1505,7 @@ body.dark-theme .error-message {
     
     .login-card {
         padding: 24px 16px;
-        border-radius: var(--radius);
+        border-radius: 12px;
     }
     
     .login-card h2 {
@@ -1542,56 +1530,13 @@ body.dark-theme .error-message {
         padding: 10px 12px;
         font-size: 13px;
     }
-}
-
-/* ============================================ */
-/* OVERLAY PARA MOBILE (FECHAR SIDEBAR) */
-/* ============================================ */
-.sidebar-overlay {
-    display: none;
-    position: fixed;
-    inset: 0;
-    background: rgba(0, 0, 0, 0.4);
-    z-index: 99;
-}
-
-@media (max-width: 768px) {
-    .sidebar-overlay.active {
-        display: block;
+    
+    .logo-container {
+        font-size: 36px;
+        max-height: 50px;
     }
-}
-
-/* ============================================ */
-/* GARANTIR QUE O FUNDO DO LOGIN FUNCIONE */
-/* ============================================ */
-.login-overlay {
-    background-size: cover;
-    background-position: center;
-    background-repeat: no-repeat;
-}
-
-.login-overlay.has-background {
-    background-image: var(--login-bg-image);
-}
-
-.login-overlay.has-background::before {
-    background: rgba(0, 0, 0, 0.5);
-    opacity: 1;
-}
-
-/* ============================================ */
-/* MENSAGEM DE TABELA VAZIA */
-/* ============================================ */
-.empty-table-message {
-    text-align: center;
-    padding: 32px 16px;
-    color: var(--text-muted);
-    font-size: 14px;
-}
-
-.empty-table-message i {
-    font-size: 32px;
-    margin-bottom: 8px;
-    display: block;
-    opacity: 0.5;
+    
+    .logo-container img {
+        max-height: 50px;
+    }
 }
