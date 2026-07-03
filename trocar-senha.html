@@ -1,0 +1,468 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HRPI - Primeiro Acesso</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root {
+            --primary: #1a6b7a;
+            --primary-dark: #0f4c58;
+            --danger: #c0392b;
+            --success: #2d8b4e;
+            --bg: #f0f4f6;
+            --surface: #ffffff;
+            --text: #2c3e50;
+            --text-light: #5a6c7d;
+            --border: #dde4e9;
+            --shadow-xl: 0 20px 60px rgba(0, 0, 0, 0.25);
+            --radius: 10px;
+            --radius-sm: 6px;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', 'Inter', system-ui, sans-serif;
+            background: linear-gradient(135deg, #0d3b44 0%, #1a6b7a 40%, #1a7a8c 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .container {
+            background: rgba(255, 255, 255, 0.98);
+            border-radius: 16px;
+            padding: 40px 36px;
+            width: 460px;
+            max-width: 92vw;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.25);
+            text-align: center;
+        }
+
+        .logo {
+            font-size: 56px;
+            color: var(--primary);
+            margin-bottom: 12px;
+        }
+
+        .logo img {
+            max-width: 80px;
+            max-height: 80px;
+            object-fit: contain;
+        }
+
+        h1 {
+            font-size: 22px;
+            color: var(--primary-dark);
+            margin-bottom: 4px;
+            font-weight: 700;
+        }
+
+        .subtitle {
+            font-size: 13px;
+            color: var(--text-light);
+            margin-bottom: 28px;
+            line-height: 1.4;
+        }
+
+        .info-box {
+            background: #fff3cd;
+            border: 1px solid #ffc107;
+            border-radius: 8px;
+            padding: 14px 16px;
+            margin-bottom: 20px;
+            text-align: left;
+            font-size: 13px;
+            color: #856404;
+        }
+
+        .info-box i {
+            margin-right: 8px;
+            color: #f39c12;
+        }
+
+        .form-group {
+            margin-bottom: 16px;
+            text-align: left;
+        }
+
+        .form-group label {
+            display: block;
+            font-weight: 600;
+            font-size: 12px;
+            color: var(--text-light);
+            text-transform: uppercase;
+            letter-spacing: 0.3px;
+            margin-bottom: 6px;
+        }
+
+        .form-group label .required {
+            color: var(--danger);
+        }
+
+        .input-wrapper {
+            position: relative;
+        }
+
+        .input-wrapper i {
+            position: absolute;
+            left: 14px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #95a5a6;
+            font-size: 14px;
+        }
+
+        .input-wrapper input {
+            width: 100%;
+            padding: 12px 14px 12px 42px;
+            border: 2px solid var(--border);
+            border-radius: var(--radius-sm);
+            font-size: 14px;
+            transition: 0.2s;
+            background: #fafbfc;
+            outline: none;
+            font-family: inherit;
+        }
+
+        .input-wrapper input:focus {
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(26, 107, 122, 0.1);
+            background: #fff;
+        }
+
+        .password-strength {
+            height: 4px;
+            background: #e0e0e0;
+            border-radius: 2px;
+            margin-top: 6px;
+            overflow: hidden;
+        }
+
+        .password-strength .bar {
+            height: 100%;
+            width: 0%;
+            transition: width 0.3s, background 0.3s;
+            border-radius: 2px;
+        }
+
+        .strength-text {
+            font-size: 11px;
+            margin-top: 4px;
+            color: var(--text-light);
+        }
+
+        .btn-save {
+            width: 100%;
+            padding: 13px;
+            background: var(--primary);
+            color: #fff;
+            border: none;
+            border-radius: var(--radius-sm);
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: 0.2s;
+            margin-top: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        .btn-save:hover {
+            background: var(--primary-dark);
+            transform: translateY(-1px);
+            box-shadow: 0 6px 20px rgba(26, 107, 122, 0.3);
+        }
+
+        .btn-save:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .error-message {
+            color: var(--danger);
+            font-size: 13px;
+            margin-top: 10px;
+            padding: 10px 14px;
+            background: #fdeaea;
+            border-radius: 6px;
+            border: 1px solid rgba(192, 57, 43, 0.2);
+            display: none;
+            text-align: center;
+        }
+
+        .success-message {
+            color: var(--success);
+            font-size: 13px;
+            margin-top: 10px;
+            padding: 10px 14px;
+            background: #e6f4ea;
+            border-radius: 6px;
+            border: 1px solid rgba(45, 139, 78, 0.2);
+            display: none;
+            text-align: center;
+        }
+
+        .spinner {
+            display: inline-block;
+            width: 18px;
+            height: 18px;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            border-top-color: #fff;
+            border-radius: 50%;
+            animation: spin 0.6s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .requirements {
+            text-align: left;
+            font-size: 12px;
+            color: var(--text-light);
+            margin-top: 8px;
+        }
+
+        .requirements i {
+            margin-right: 4px;
+        }
+
+        .requirements .valid {
+            color: var(--success);
+        }
+
+        .requirements .invalid {
+            color: #95a5a6;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="logo" id="logoContainer">
+            <i class="fas fa-hospital-alt"></i>
+        </div>
+        <h1>Primeiro Acesso</h1>
+        <p class="subtitle">Por segurança, você precisa criar uma nova senha<br>antes de acessar o sistema.</p>
+
+        <div class="info-box">
+            <i class="fas fa-info-circle"></i>
+            <strong>Atenção:</strong> Esta é a primeira vez que você acessa o sistema. Crie uma senha segura para continuar.
+        </div>
+
+        <form id="changePasswordForm" autocomplete="off">
+            <div class="form-group">
+                <label>Nova Senha <span class="required">*</span></label>
+                <div class="input-wrapper">
+                    <i class="fas fa-lock"></i>
+                    <input type="password" id="newPassword" placeholder="Mínimo 6 caracteres" required minlength="6" autocomplete="new-password">
+                </div>
+                <div class="password-strength">
+                    <div class="bar" id="strengthBar"></div>
+                </div>
+                <div class="strength-text" id="strengthText">Força da senha</div>
+            </div>
+
+            <div class="form-group">
+                <label>Confirmar Senha <span class="required">*</span></label>
+                <div class="input-wrapper">
+                    <i class="fas fa-lock"></i>
+                    <input type="password" id="confirmPassword" placeholder="Repita a nova senha" required minlength="6" autocomplete="new-password">
+                </div>
+            </div>
+
+            <div class="requirements" id="requirements">
+                <div id="reqLength"><i class="fas fa-circle"></i> Mínimo 6 caracteres</div>
+                <div id="reqNumber"><i class="fas fa-circle"></i> Pelo menos 1 número</div>
+                <div id="reqMatch"><i class="fas fa-circle"></i> Senhas conferem</div>
+            </div>
+
+            <button type="submit" class="btn-save" id="btnSave">
+                <i class="fas fa-save"></i> Salvar e Acessar
+            </button>
+        </form>
+
+        <div class="error-message" id="errorMessage"></div>
+        <div class="success-message" id="successMessage"></div>
+    </div>
+
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
+
+    <script>
+        // Configuração Firebase
+        const firebaseConfig = {
+            apiKey: "AIzaSyDcUK7ZwpxX7voL5vGr71ltW0WclRm8NJ8",
+            authDomain: "hrpi-sistema-recepcao.firebaseapp.com",
+            databaseURL: "https://hrpi-sistema-recepcao-default-rtdb.firebaseio.com",
+            projectId: "hrpi-sistema-recepcao",
+            storageBucket: "hrpi-sistema-recepcao.firebasestorage.app",
+            messagingSenderId: "233408674656",
+            appId: "1:233408674656:web:45805b396a7cd7d6e1bc05"
+        };
+
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.database();
+
+        // Pegar ID do usuário da URL
+        const urlParams = new URLSearchParams(window.location.search);
+        const userId = urlParams.get('id');
+
+        console.log('🔑 Página de troca de senha');
+        console.log('📝 User ID:', userId);
+
+        if (!userId) {
+            document.getElementById('errorMessage').textContent = 'Acesso inválido. Volte para a tela de login.';
+            document.getElementById('errorMessage').style.display = 'block';
+            document.getElementById('btnSave').disabled = true;
+        }
+
+        // Carregar logo
+        db.ref('configuracoes/logoHospital').once('value').then(snap => {
+            if (snap.val()) {
+                document.getElementById('logoContainer').innerHTML = `<img src="${snap.val()}" alt="Logo">`;
+            }
+        });
+
+        // Verificar força da senha
+        document.getElementById('newPassword').addEventListener('input', function() {
+            const senha = this.value;
+            const bar = document.getElementById('strengthBar');
+            const text = document.getElementById('strengthText');
+            const reqLength = document.getElementById('reqLength');
+            const reqNumber = document.getElementById('reqNumber');
+
+            let strength = 0;
+
+            if (senha.length >= 6) {
+                strength += 30;
+                reqLength.innerHTML = '<i class="fas fa-check-circle valid"></i> Mínimo 6 caracteres';
+                reqLength.className = 'valid';
+            } else {
+                reqLength.innerHTML = '<i class="fas fa-circle invalid"></i> Mínimo 6 caracteres';
+                reqLength.className = 'invalid';
+            }
+
+            if (senha.length >= 8) strength += 20;
+            if (/\d/.test(senha)) {
+                strength += 25;
+                reqNumber.innerHTML = '<i class="fas fa-check-circle valid"></i> Pelo menos 1 número';
+                reqNumber.className = 'valid';
+            } else {
+                reqNumber.innerHTML = '<i class="fas fa-circle invalid"></i> Pelo menos 1 número';
+                reqNumber.className = 'invalid';
+            }
+            if (/[a-zA-Z]/.test(senha) && /\d/.test(senha)) strength += 25;
+
+            bar.style.width = strength + '%';
+
+            if (strength <= 30) {
+                bar.style.background = '#e74c3c';
+                text.textContent = 'Senha fraca';
+            } else if (strength <= 60) {
+                bar.style.background = '#f39c12';
+                text.textContent = 'Senha média';
+            } else {
+                bar.style.background = '#27ae60';
+                text.textContent = 'Senha forte';
+            }
+        });
+
+        // Verificar se senhas conferem
+        document.getElementById('confirmPassword').addEventListener('input', function() {
+            const nova = document.getElementById('newPassword').value;
+            const confirma = this.value;
+            const reqMatch = document.getElementById('reqMatch');
+
+            if (nova && confirma && nova === confirma) {
+                reqMatch.innerHTML = '<i class="fas fa-check-circle valid"></i> Senhas conferem';
+                reqMatch.className = 'valid';
+            } else {
+                reqMatch.innerHTML = '<i class="fas fa-circle invalid"></i> Senhas conferem';
+                reqMatch.className = 'invalid';
+            }
+        });
+
+        // Submeter formulário
+        document.getElementById('changePasswordForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+
+            if (!userId) {
+                document.getElementById('errorMessage').textContent = 'Sessão inválida. Faça login novamente.';
+                document.getElementById('errorMessage').style.display = 'block';
+                return;
+            }
+
+            const nova = document.getElementById('newPassword').value;
+            const confirma = document.getElementById('confirmPassword').value;
+            const errorEl = document.getElementById('errorMessage');
+            const btnSave = document.getElementById('btnSave');
+
+            // Esconder mensagens anteriores
+            errorEl.style.display = 'none';
+            document.getElementById('successMessage').style.display = 'none';
+
+            if (!nova || !confirma) {
+                errorEl.textContent = 'Preencha todos os campos.';
+                errorEl.style.display = 'block';
+                return;
+            }
+
+            if (nova !== confirma) {
+                errorEl.textContent = 'As senhas não conferem.';
+                errorEl.style.display = 'block';
+                return;
+            }
+
+            if (nova.length < 6) {
+                errorEl.textContent = 'A senha deve ter no mínimo 6 caracteres.';
+                errorEl.style.display = 'block';
+                return;
+            }
+
+            // Desabilitar botão
+            btnSave.disabled = true;
+            btnSave.innerHTML = '<span class="spinner"></span> Salvando...';
+
+            console.log('💾 Atualizando senha para ID:', userId);
+
+            // Atualizar no Firebase
+            db.ref('usuarios/' + userId).update({
+                senha: nova,
+                primeiroAcesso: false
+            }).then(() => {
+                console.log('✅ Senha atualizada com sucesso!');
+
+                // Mostrar sucesso
+                document.getElementById('successMessage').textContent = 'Senha alterada com sucesso! Redirecionando...';
+                document.getElementById('successMessage').style.display = 'block';
+                btnSave.innerHTML = '<i class="fas fa-check"></i> Senha Salva!';
+                btnSave.style.background = '#27ae60';
+
+                // Redirecionar para o sistema principal
+                setTimeout(() => {
+                    window.location.href = 'index.html';
+                }, 1500);
+
+            }).catch(error => {
+                console.error('❌ Erro:', error);
+                errorEl.textContent = 'Erro ao salvar. Tente novamente.';
+                errorEl.style.display = 'block';
+                btnSave.disabled = false;
+                btnSave.innerHTML = '<i class="fas fa-save"></i> Salvar e Acessar';
+            });
+        });
+    </script>
+</body>
+</html>
