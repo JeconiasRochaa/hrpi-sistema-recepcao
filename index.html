@@ -1,0 +1,642 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Controle de Recepção</title>
+    
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- jsPDF -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <!-- jsPDF AutoTable -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js"></script>
+    <!-- CSS -->
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <!-- LOGIN -->
+    <div class="login-overlay" id="loginOverlay">
+        <div class="login-card">
+            <div class="logo-container" id="loginLogo">
+                <i class="fas fa-hospital-alt default-logo"></i>
+            </div>
+            <p class="subtitle">Hospital Regional de Palmeira dos Índios<br>Controle de Recepção</p>
+            <div class="input-group">
+                <i class="fas fa-user"></i>
+                <input type="text" id="loginUsuario" placeholder="Usuário" autocomplete="off">
+            </div>
+            <div class="input-group">
+                <i class="fas fa-lock"></i>
+                <input type="password" id="loginSenha" placeholder="Senha">
+            </div>
+            <button class="btn-login" onclick="fazerLogin()">
+                <i class="fas fa-sign-in-alt"></i> Entrar no Sistema
+            </button>
+            <div class="login-error" id="loginError"></div>
+        </div>
+    </div>
+
+    <!-- TROCA DE SENHA PRIMEIRO ACESSO -->
+    <div class="modal-overlay" id="trocaSenhaOverlay">
+        <div class="modal">
+            <h3><i class="fas fa-key"></i> Primeiro Acesso - Alterar Senha</h3>
+            <p style="margin-bottom:16px;color:#5a6c7d;">Por segurança, você precisa criar uma senha pessoal.</p>
+            <div class="form-group">
+                <label>Nova Senha *</label>
+                <input type="password" id="novaSenha" placeholder="Mínimo 6 caracteres">
+            </div>
+            <div class="form-group">
+                <label>Confirmar Nova Senha *</label>
+                <input type="password" id="confirmarNovaSenha" placeholder="Repita a senha">
+            </div>
+            <div class="form-actions">
+                <button class="btn btn-primary" onclick="alterarSenhaPrimeiroAcesso()">
+                    <i class="fas fa-save"></i> Salvar Nova Senha
+                </button>
+            </div>
+            <div class="login-error" id="trocaSenhaError"></div>
+        </div>
+    </div>
+
+    <!-- APP CONTAINER -->
+    <div class="app-container" id="appContainer">
+        <!-- Mobile menu button -->
+        <button class="mobile-menu-btn" onclick="toggleSidebar()" title="Menu">
+            <i class="fas fa-bars"></i>
+        </button>
+
+        <!-- Sidebar -->
+        <aside class="sidebar" id="sidebar">
+            <div class="sidebar-header">
+                <div class="sidebar-logo" id="sidebarLogo">
+                    <i class="fas fa-hospital-alt default-logo"></i>
+                </div>
+                <span class="logo-text"><small>Hospital Regional de Palmeira dos Índios</small></span>
+            </div>
+            <nav class="sidebar-nav">
+                <div class="nav-section">Principal</div>
+                <a href="#painel" class="nav-link active" data-page="dashboard">
+                    <i class="fas fa-tachometer-alt"></i> Painel
+                </a>
+                <a href="#entrada" class="nav-link" data-page="entrada">
+                    <i class="fas fa-sign-in-alt"></i> Registrar Entrada
+                </a>
+                <a href="#troca" class="nav-link" data-page="troca">
+                    <i class="fas fa-exchange-alt"></i> Registrar Troca
+                </a>
+                <a href="#saida" class="nav-link" data-page="saida">
+                    <i class="fas fa-sign-out-alt"></i> Registrar Saída
+                </a>
+                <a href="#visita" class="nav-link" data-page="visita">
+                    <i class="fas fa-clock"></i> Registrar Visita
+                </a>
+                <div class="nav-section">Consultas</div>
+                <a href="#ativos" class="nav-link" data-page="ativos">
+                    <i class="fas fa-users"></i> Acompanhantes Ativos
+                </a>
+                <a href="#historico" class="nav-link" data-page="historico">
+                    <i class="fas fa-history"></i> Histórico Completo
+                </a>
+                <div class="nav-section" id="navAdmin" style="display:none;">Administração</div>
+                <a href="#usuarios" class="nav-link" data-page="usuarios" id="linkUsuarios" style="display:none;">
+                    <i class="fas fa-user-cog"></i> Gerenciar Usuários
+                </a>
+                <a href="#relatorios" class="nav-link" data-page="relatorios" id="linkRelatorios">
+                    <i class="fas fa-file-pdf"></i> Gerar Relatórios
+                </a>
+                <a href="#configuracoes" class="nav-link" data-page="configuracoes" id="linkConfiguracoes" style="display:none;">
+                    <i class="fas fa-cog"></i> Configurações
+                </a>
+            </nav>
+            <div class="sidebar-footer">
+                <span class="user-info">
+                    <i class="fas fa-user-circle"></i>
+                    <span id="sidebarUserName">Recepção</span>
+                </span>
+                <button class="btn-logout" onclick="logout()" title="Sair do sistema">
+                    <i class="fas fa-power-off"></i> Sair
+                </button>
+                <button class="theme-toggle-btn" onclick="toggleTema()" title="Alternar tema">
+                    <i class="fas fa-moon" id="themeIcon"></i>
+                </button>
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-content" id="mainContent">
+            <!-- DASHBOARD -->
+            <div class="page active" id="page-dashboard">
+                <div class="page-header">
+                    <h1><i class="fas fa-tachometer-alt"></i> Painel</h1>
+                    <p class="breadcrumb">Visão geral dos acompanhantes</p>
+                </div>
+                <!-- Cards de indicadores -->
+                <div class="cards-row" id="dashboardCards"></div>
+                <!-- Indicadores Semanais e Mensais -->
+                <div class="cards-row" id="dashboardIndicadores"></div>
+                <!-- Últimos registros -->
+                <div class="card">
+                    <div class="card-header">
+                        <h3><i class="fas fa-clock"></i> Últimos Registros</h3>
+                    </div>
+                    <div class="table-container">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Tipo</th><th>Acompanhante</th><th>Paciente</th><th>Setor</th><th>Entrada</th><th>Status</th>
+                                </tr>
+                            </thead>
+                            <tbody id="tabelaUltimosRegistros"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ENTRADA -->
+            <div class="page" id="page-entrada">
+                <div class="page-header">
+                    <h1><i class="fas fa-sign-in-alt"></i> Registrar Entrada de Acompanhante</h1>
+                    <p class="breadcrumb">Cadastre um novo acompanhante vinculado a um paciente</p>
+                </div>
+                <div class="card">
+                    <form id="formEntrada" onsubmit="registrarEntrada(event)">
+                        <div class="form-grid">
+                            <div class="form-group">
+                                <label>Nome do Acompanhante *</label>
+                                <input type="text" id="entNomeAcompanhante" required placeholder="Nome completo">
+                            </div>
+                            <div class="form-group">
+                                <label>Documento (CPF/RG)</label>
+                                <input type="text" id="entDocumento" placeholder="Ex: 123.456.789-00">
+                            </div>
+                            <div class="form-group">
+                                <label>Telefone</label>
+                                <input type="text" id="entTelefone" placeholder="(11) 99999-9999">
+                            </div>
+                            <div class="form-group">
+                                <label>Parentesco *</label>
+                                <select id="entParentesco" required>
+                                    <option value="">Selecione...</option>
+                                    <option>Filho(a)</option><option>Pai/Mãe</option><option>Cônjuge</option>
+                                    <option>Irmão/Irmã</option><option>Neto(a)</option><option>Sobrinho(a)</option>
+                                    <option>Amigo(a)</option><option>Cuidador(a)</option><option>Outro</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label>Nome do Paciente *</label>
+                                <input type="text" id="entNomePaciente" required placeholder="Nome do paciente">
+                            </div>
+                            <div class="form-group">
+                                <label>Setor *</label>
+                                <select id="entSetor" required>
+                                    <option value="">Selecione...</option>
+                                    <option>Enfermaria</option><option>UTI</option><option>Apartamento</option>
+                                    <option>Pronto-Socorro</option><option>Centro Cirúrgico</option>
+                                    <option>Pediatria</option><option>Maternidade</option><option>Oncologia</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label>Quarto/Leito</label>
+                                <input type="text" id="entQuarto" placeholder="Ex: 302-A">
+                            </div>
+                            <div class="form-group">
+                                <label>Observação</label>
+                                <input type="text" id="entObservacao" placeholder="Observações relevantes">
+                            </div>
+                        </div>
+                        <div class="form-actions">
+                            <button type="submit" class="btn btn-primary"><i class="fas fa-save"></i> Registrar Entrada</button>
+                            <button type="reset" class="btn btn-outline"><i class="fas fa-eraser"></i> Limpar</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- TROCA -->
+            <div class="page" id="page-troca">
+                <div class="page-header">
+                    <h1><i class="fas fa-exchange-alt"></i> Registrar Troca de Acompanhante</h1>
+                    <p class="breadcrumb">Substitua um acompanhante presente por um novo</p>
+                </div>
+                <div class="card">
+                    <form id="formTroca" onsubmit="registrarTroca(event)">
+                        <div class="form-grid">
+                            <div class="form-group">
+                                <label>Acompanhante que está SAINDO *</label>
+                                <select id="trocaAcompanhanteSaindo" required onchange="preencherDadosTroca()">
+                                    <option value="">Selecione o acompanhante presente...</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label>Paciente vinculado</label>
+                                <input type="text" id="trocaPaciente" readonly>
+                            </div>
+                            <div class="form-group">
+                                <label>Setor</label>
+                                <input type="text" id="trocaSetor" readonly>
+                            </div>
+                            <div class="form-group">
+                                <label>Quarto/Leito</label>
+                                <input type="text" id="trocaQuarto" readonly>
+                            </div>
+                        </div>
+                        <hr style="margin:16px 0;border-color:var(--border);">
+                        <p style="font-weight:700;margin-bottom:10px;color:var(--primary);">
+                            <i class="fas fa-user-plus"></i> Dados do NOVO Acompanhante
+                        </p>
+                        <div class="form-grid">
+                            <div class="form-group">
+                                <label>Nome do Novo Acompanhante *</label>
+                                <input type="text" id="trocaNovoNome" required placeholder="Nome completo">
+                            </div>
+                            <div class="form-group">
+                                <label>Documento (CPF/RG)</label>
+                                <input type="text" id="trocaNovoDocumento" placeholder="Ex: 123.456.789-00">
+                            </div>
+                            <div class="form-group">
+                                <label>Telefone</label>
+                                <input type="text" id="trocaNovoTelefone" placeholder="(11) 99999-9999">
+                            </div>
+                            <div class="form-group">
+                                <label>Parentesco *</label>
+                                <select id="trocaNovoParentesco" required>
+                                    <option value="">Selecione...</option>
+                                    <option>Filho(a)</option><option>Pai/Mãe</option><option>Cônjuge</option>
+                                    <option>Irmão/Irmã</option><option>Neto(a)</option><option>Sobrinho(a)</option>
+                                    <option>Amigo(a)</option><option>Cuidador(a)</option><option>Outro</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="form-actions">
+                            <button type="submit" class="btn btn-accent"><i class="fas fa-exchange-alt"></i> Registrar Troca</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- SAÍDA -->
+            <div class="page" id="page-saida">
+                <div class="page-header">
+                    <h1><i class="fas fa-sign-out-alt"></i> Registrar Saída de Acompanhante</h1>
+                    <p class="breadcrumb">Registre a saída definitiva de um acompanhante</p>
+                </div>
+                <div class="card">
+                    <form id="formSaida" onsubmit="registrarSaida(event)">
+                        <div class="form-grid">
+                            <div class="form-group">
+                                <label>Acompanhante que está SAINDO *</label>
+                                <select id="saidaAcompanhante" required onchange="preencherDadosSaida()">
+                                    <option value="">Selecione o acompanhante presente...</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label>Paciente</label>
+                                <input type="text" id="saidaPaciente" readonly>
+                            </div>
+                            <div class="form-group">
+                                <label>Setor</label>
+                                <input type="text" id="saidaSetor" readonly>
+                            </div>
+                            <div class="form-group">
+                                <label>Data/Hora de Entrada</label>
+                                <input type="text" id="saidaEntrada" readonly>
+                            </div>
+                            <div class="form-group">
+                                <label>Motivo da Saída</label>
+                                <select id="saidaMotivo">
+                                    <option>Alta do paciente</option>
+                                    <option>Fim do horário de visita</option>
+                                    <option>Desistência</option>
+                                    <option>Outro</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="form-actions">
+                            <button type="submit" class="btn btn-danger"><i class="fas fa-sign-out-alt"></i> Registrar Saída</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- VISITA -->
+            <div class="page" id="page-visita">
+                <div class="page-header">
+                    <h1><i class="fas fa-clock"></i> Registrar Visita</h1>
+                    <p class="breadcrumb">Registre uma visita temporária de um acompanhante</p>
+                </div>
+                <div class="card">
+                    <form id="formVisita" onsubmit="registrarVisita(event)">
+                        <div class="form-grid">
+                            <div class="form-group">
+                                <label>Nome do Visitante *</label>
+                                <input type="text" id="visNomeVisitante" required placeholder="Nome completo">
+                            </div>
+                            <div class="form-group">
+                                <label>Documento (CPF/RG)</label>
+                                <input type="text" id="visDocumento" placeholder="Ex: 123.456.789-00">
+                            </div>
+                            <div class="form-group">
+                                <label>Telefone</label>
+                                <input type="text" id="visTelefone" placeholder="(11) 99999-9999">
+                            </div>
+                            <div class="form-group">
+                                <label>Parentesco *</label>
+                                <select id="visParentesco" required>
+                                    <option value="">Selecione...</option>
+                                    <option>Filho(a)</option><option>Pai/Mãe</option><option>Cônjuge</option>
+                                    <option>Irmão/Irmã</option><option>Neto(a)</option><option>Sobrinho(a)</option>
+                                    <option>Amigo(a)</option><option>Cuidador(a)</option><option>Outro</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label>Nome do Paciente *</label>
+                                <input type="text" id="visNomePaciente" required placeholder="Nome do paciente">
+                            </div>
+                            <div class="form-group">
+                                <label>Setor *</label>
+                                <select id="visSetor" required>
+                                    <option value="">Selecione...</option>
+                                    <option>Enfermaria</option><option>UTI</option><option>Apartamento</option>
+                                    <option>Pronto-Socorro</option><option>Centro Cirúrgico</option>
+                                    <option>Pediatria</option><option>Maternidade</option><option>Oncologia</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label>Quarto/Leito</label>
+                                <input type="text" id="visQuarto" placeholder="Ex: 302-A">
+                            </div>
+                            <div class="form-group">
+                                <label>Duração Prevista (minutos)</label>
+                                <input type="number" id="visDuracao" placeholder="Ex: 30" min="10" max="120">
+                            </div>
+                            <div class="form-group">
+                                <label>Observação</label>
+                                <input type="text" id="visObservacao" placeholder="Observações relevantes">
+                            </div>
+                        </div>
+                        <div class="form-actions">
+                            <button type="submit" class="btn btn-primary"><i class="fas fa-save"></i> Registrar Visita</button>
+                            <button type="reset" class="btn btn-outline"><i class="fas fa-eraser"></i> Limpar</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- ATIVOS -->
+            <div class="page" id="page-ativos">
+                <div class="page-header">
+                    <h1><i class="fas fa-users"></i> Acompanhantes Ativos</h1>
+                    <p class="breadcrumb">Lista de acompanhantes atualmente presentes no hospital</p>
+                </div>
+                <div class="card">
+                    <div class="card-header">
+                        <h3><i class="fas fa-list"></i> Presentes no momento</h3>
+                        <span class="badge badge-info" id="contadorAtivos">0 presente(s)</span>
+                    </div>
+                    <div class="table-container">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Tipo</th><th>Acompanhante</th><th>Documento</th><th>Parentesco</th>
+                                    <th>Paciente</th><th>Setor</th><th>Quarto</th><th>Entrada</th>
+                                    <th>Ações</th>
+                                </tr>
+                            </thead>
+                            <tbody id="tabelaAtivos"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- HISTÓRICO -->
+            <div class="page" id="page-historico">
+                <div class="page-header">
+                    <h1><i class="fas fa-history"></i> Histórico Completo</h1>
+                    <p class="breadcrumb">Todos os registros de entrada, troca e saída</p>
+                </div>
+                <div class="card">
+                    <div class="card-header">
+                        <h3><i class="fas fa-filter"></i> Filtros</h3>
+                        <div class="filter-row">
+                            <input type="date" id="filtroDataInicio" title="Data início">
+                            <input type="date" id="filtroDataFim" title="Data fim">
+                            <select id="filtroStatus">
+                                <option value="todos">Todos os status</option>
+                                <option value="presente">Presente</option>
+                                <option value="saiu">Saiu</option>
+                                <option value="trocado">Trocado</option>
+                                <option value="visita">Visita</option>
+                            </select>
+                            <select id="filtroTipo">
+                                <option value="todos">Todos os tipos</option>
+                                <option value="acompanhante">Acompanhante</option>
+                                <option value="visita">Visita</option>
+                            </select>
+                            <button class="btn btn-sm btn-outline" onclick="filtrarHistorico()">
+                                <i class="fas fa-search"></i> Filtrar
+                            </button>
+                            <button class="btn btn-sm btn-outline" onclick="limparFiltrosHistorico()">
+                                <i class="fas fa-undo"></i> Limpar
+                            </button>
+                        </div>
+                    </div>
+                    <div class="table-container">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Tipo</th><th>Acompanhante</th><th>Paciente</th><th>Setor</th>
+                                    <th>Entrada</th><th>Saída</th><th>Status</th><th>Ações</th>
+                                </tr>
+                            </thead>
+                            <tbody id="tabelaHistorico"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- USUÁRIOS -->
+            <div class="page" id="page-usuarios">
+                <div class="page-header">
+                    <h1><i class="fas fa-user-cog"></i> Gerenciar Usuários</h1>
+                    <p class="breadcrumb">Cadastre, edite e gerencie usuários do sistema</p>
+                </div>
+                <div class="card">
+                    <div class="card-header">
+                        <h3><i class="fas fa-user-plus"></i> Adicionar Usuário</h3>
+                    </div>
+                    <form id="formUsuario" onsubmit="salvarUsuario(event)">
+                        <input type="hidden" id="userId">
+                        <div class="form-grid">
+                            <div class="form-group">
+                                <label>Nome Completo *</label>
+                                <input type="text" id="userNome" required placeholder="Nome do usuário">
+                            </div>
+                            <div class="form-group">
+                                <label>Usuário *</label>
+                                <input type="text" id="userUsuario" required placeholder="Nome de login">
+                            </div>
+                            <div class="form-group">
+                                <label>Cargo *</label>
+                                <select id="userCargo" required>
+                                    <option value="Recepcionista">Recepcionista</option>
+                                    <option value="Supervisor">Supervisor</option>
+                                    <option value="Administrador">Administrador</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label>Ativo</label>
+                                <select id="userAtivo">
+                                    <option value="true">Sim</option>
+                                    <option value="false">Não</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="form-actions">
+                            <button type="submit" class="btn btn-primary"><i class="fas fa-save"></i> Salvar Usuário</button>
+                            <button type="button" class="btn btn-outline" onclick="limparFormUsuario()">
+                                <i class="fas fa-eraser"></i> Limpar
+                            </button>
+                        </div>
+                    </form>
+                </div>
+                <div class="card">
+                    <div class="card-header">
+                        <h3><i class="fas fa-list"></i> Usuários Cadastrados</h3>
+                    </div>
+                    <div class="table-container">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Nome</th><th>Usuário</th><th>Cargo</th><th>Primeiro Acesso</th>
+                                    <th>Ativo</th><th>Ações</th>
+                                </tr>
+                            </thead>
+                            <tbody id="tabelaUsuarios"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- RELATÓRIOS -->
+            <div class="page" id="page-relatorios">
+                <div class="page-header">
+                    <h1><i class="fas fa-file-pdf"></i> Gerar Relatórios em PDF</h1>
+                    <p class="breadcrumb">Gere relatórios organizados com todas as informações</p>
+                </div>
+                <div class="cards-row" style="grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));">
+                    <div class="card" style="text-align:center;">
+                        <i class="fas fa-calendar-day" style="font-size:40px;color:var(--primary);margin-bottom:10px;"></i>
+                        <h3>Relatório Diário</h3>
+                        <p style="font-size:13px;color:#7d8c97;">Registros do dia atual</p>
+                        <input type="date" id="relDataDiaria" style="margin:8px 0;padding:8px;border-radius:20px;border:1px solid #ddd;width:100%;text-align:center;">
+                        <button class="btn btn-primary" onclick="gerarPDFDiario()" style="width:100%;justify-content:center;">
+                            <i class="fas fa-download"></i> Gerar PDF Diário
+                        </button>
+                    </div>
+                    <div class="card" style="text-align:center;">
+                        <i class="fas fa-calendar-week" style="font-size:40px;color:var(--accent);margin-bottom:10px;"></i>
+                        <h3>Relatório Semanal</h3>
+                        <p style="font-size:13px;color:#7d8c97;">Resumo da semana atual</p>
+                        <button class="btn btn-accent" onclick="gerarPDFSemanal()" style="width:100%;justify-content:center;margin-top:8px;">
+                            <i class="fas fa-download"></i> Gerar PDF Semanal
+                        </button>
+                    </div>
+                    <div class="card" style="text-align:center;">
+                        <i class="fas fa-calendar-alt" style="font-size:40px;color:#2d8b4e;margin-bottom:10px;"></i>
+                        <h3>Relatório Mensal</h3>
+                        <p style="font-size:13px;color:#7d8c97;">Resumo do mês atual</p>
+                        <button class="btn btn-primary" onclick="gerarPDFMensal()" style="width:100%;justify-content:center;margin-top:8px;background:#2d8b4e;">
+                            <i class="fas fa-download"></i> Gerar PDF Mensal
+                        </button>
+                    </div>
+                    <div class="card" style="text-align:center;">
+                        <i class="fas fa-calendar-check" style="font-size:40px;color:#1a6b7a;margin-bottom:10px;"></i>
+                        <h3>Relatório Personalizado</h3>
+                        <p style="font-size:13px;color:#7d8c97;">Escolha o período</p>
+                        <input type="date" id="relDataInicio" style="margin:4px 0;padding:8px;border-radius:20px;border:1px solid #ddd;width:100%;text-align:center;">
+                        <input type="date" id="relDataFim" style="margin:4px 0;padding:8px;border-radius:20px;border:1px solid #ddd;width:100%;text-align:center;">
+                        <button class="btn btn-outline" onclick="gerarPDFPersonalizado()" style="width:100%;justify-content:center;margin-top:4px;">
+                            <i class="fas fa-download"></i> Gerar PDF
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- CONFIGURAÇÕES -->
+            <div class="page" id="page-configuracoes">
+                <div class="page-header">
+                    <h1><i class="fas fa-cog"></i> Configurações</h1>
+                    <p class="breadcrumb">Personalize o sistema</p>
+                </div>
+                <div class="card">
+                    <h3><i class="fas fa-image"></i> Logo do Hospital</h3>
+                    <p style="font-size:13px;color:#7d8c97;margin-bottom:12px;">Carregue a logo do HRPI (recomendado: 200x60px PNG)</p>
+                    <div class="form-group">
+                        <label>Selecionar arquivo</label>
+                        <input type="file" id="logoUpload" accept="image/*" onchange="carregarLogo(event)">
+                    </div>
+                    <div class="form-group">
+                        <label>Ou cole a URL da imagem</label>
+                        <input type="text" id="logoURL" placeholder="https://exemplo.com/logo.png">
+                        <button class="btn btn-sm btn-primary" onclick="salvarLogoURL()" style="margin-top:8px;">
+                            <i class="fas fa-save"></i> Salvar URL
+                        </button>
+                    </div>
+                    <div style="margin-top:12px;">
+                        <p style="font-weight:600;margin-bottom:6px;">Pré-visualização:</p>
+                        <div id="logoPreview" style="max-width:200px;max-height:60px;overflow:hidden;">
+                            <i class="fas fa-hospital-alt" style="font-size:48px;color:var(--primary);"></i>
+                        </div>
+                        <button class="btn btn-sm btn-danger" onclick="removerLogo()" style="margin-top:8px;">
+                            <i class="fas fa-trash"></i> Remover Logo
+                        </button>
+                    </div>
+                </div>
+                <div class="card">
+    <h3><i class="fas fa-image"></i> Fundo da Tela de Login</h3>
+    <p style="font-size:13px;color:#7d8c97;margin-bottom:12px;">Carregue uma imagem para o fundo da tela de login (recomendado: 1920x1080px)</p>
+    <div class="form-group">
+        <label>Selecionar arquivo</label>
+        <input type="file" id="fundoLoginUpload" accept="image/*" onchange="carregarFundoLogin(event)">
+    </div>
+    <div class="form-group">
+        <label>Ou cole a URL da imagem</label>
+        <input type="text" id="fundoLoginURL" placeholder="https://exemplo.com/fundo.jpg">
+        <button class="btn btn-sm btn-primary" onclick="salvarFundoLoginURL()" style="margin-top:8px;">
+            <i class="fas fa-save"></i> Salvar URL
+        </button>
+    </div>
+    <button class="btn btn-sm btn-danger" onclick="removerFundoLogin()" style="margin-top:8px;">
+        <i class="fas fa-trash"></i> Remover Fundo
+    </button>
+</div>
+                <div class="card">
+                    <h3><i class="fas fa-key"></i> Resetar Senha de Usuário</h3>
+                    <p style="font-size:13px;color:#7d8c97;margin-bottom:12px;">Selecione um usuário para resetar a senha para o padrão "12345"</p>
+                    <div class="form-group">
+                        <label>Usuário</label>
+                        <select id="resetSenhaUsuario">
+                            <option value="">Selecione o usuário...</option>
+                        </select>
+                    </div>
+                    <button class="btn btn-warning" onclick="resetarSenhaUsuario()" style="margin-top:8px;">
+                        <i class="fas fa-key"></i> Resetar Senha
+                    </button>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Toast -->
+    <div class="toast" id="toast"></div>
+
+    <!-- Modal -->
+    <div class="modal-overlay" id="modalOverlay">
+        <div class="modal" id="modalContent"></div>
+    </div>
+
+    <!-- JavaScript -->
+    <script src="script.js"></script>
+</body>
+</html>
