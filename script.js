@@ -780,7 +780,7 @@ function gerarRelatorio(tipo) {
 // ============================================
 // UPLOAD DE LOGO E FUNDO
 // ============================================
-document.getElementById('uploadLogo').addEventListener('change', function(e) {
+document.getElementById('uploadFundo').addEventListener('change', function(e) {
     const file = e.target.files[0];
     if (!file) return;
     
@@ -789,13 +789,20 @@ document.getElementById('uploadLogo').addEventListener('change', function(e) {
         const base64 = event.target.result;
         
         // Salvar no Firebase
-        db.ref('configuracoes').update({ logoHospital: base64 }).then(() => {
-            // Atualizar todas as logos na tela
-            document.getElementById('sidebarLogo').innerHTML = `<img src="${base64}" alt="Logo HRPI" style="max-width:50px;max-height:50px;object-fit:contain;">`;
-            document.getElementById('loginLogo').innerHTML = `<img src="${base64}" alt="Logo HRPI" style="max-width:100px;max-height:80px;object-fit:contain;">`;
-            toast('Logo atualizada com sucesso!');
+        db.ref('configuracoes').update({ fundoLogin: base64 }).then(() => {
+            // Atualizar fundo da tela de login IMEDIATAMENTE
+            const loginScreen = document.getElementById('loginScreen');
+            if (loginScreen) {
+                loginScreen.style.backgroundImage = `url(${base64})`;
+                loginScreen.style.backgroundSize = 'cover';
+                loginScreen.style.backgroundPosition = 'center';
+                loginScreen.style.backgroundRepeat = 'no-repeat';
+            }
+            toast('✅ Fundo da tela de login atualizado!');
+            console.log('✅ Fundo salvo e aplicado!');
         }).catch(erro => {
-            toast('Erro ao salvar logo: ' + erro.message, true);
+            toast('Erro ao salvar fundo: ' + erro.message, true);
+            console.error('Erro:', erro);
         });
     };
     reader.readAsDataURL(file);
@@ -854,16 +861,26 @@ function carregarConfiguracoes() {
         if (config) {
             // Carregar logo
             if (config.logoHospital) {
-                document.getElementById('sidebarLogo').innerHTML = `<img src="${config.logoHospital}" alt="Logo HRPI" style="max-width:50px;max-height:50px;object-fit:contain;">`;
-                document.getElementById('loginLogo').innerHTML = `<img src="${config.logoHospital}" alt="Logo HRPI" style="max-width:100px;max-height:80px;object-fit:contain;">`;
+                const sidebarLogo = document.getElementById('sidebarLogo');
+                const loginLogo = document.getElementById('loginLogo');
+                if (sidebarLogo) {
+                    sidebarLogo.innerHTML = `<img src="${config.logoHospital}" alt="Logo HRPI" style="max-width:50px;max-height:50px;object-fit:contain;">`;
+                }
+                if (loginLogo) {
+                    loginLogo.innerHTML = `<img src="${config.logoHospital}" alt="Logo HRPI" style="max-width:100px;max-height:80px;object-fit:contain;">`;
+                }
             }
             
-            // Carregar fundo
+            // Carregar fundo do login
             if (config.fundoLogin) {
                 const loginScreen = document.getElementById('loginScreen');
-                loginScreen.style.backgroundImage = `url(${config.fundoLogin})`;
-                loginScreen.style.backgroundSize = 'cover';
-                loginScreen.style.backgroundPosition = 'center';
+                if (loginScreen) {
+                    loginScreen.style.backgroundImage = `url(${config.fundoLogin})`;
+                    loginScreen.style.backgroundSize = 'cover';
+                    loginScreen.style.backgroundPosition = 'center';
+                    loginScreen.style.backgroundRepeat = 'no-repeat';
+                    console.log('✅ Fundo de login carregado!');
+                }
             }
             
             // Carregar tema
@@ -875,6 +892,8 @@ function carregarConfiguracoes() {
                 }
             }
         }
+    }).catch(erro => {
+        console.error('Erro ao carregar configurações:', erro);
     });
 }
 
