@@ -293,10 +293,21 @@
                                 <label>Telefone</label>
                                 <input type="tel" id="acTelefone">
                             </div>
-                            <div class="form-group">
-                                <label>Parentesco *</label>
-                                <input type="text" id="acParentesco" required>
-                            </div>
+                           <div class="form-group">
+    <label>Parentesco *</label>
+    <select id="visParentesco" required>
+        <option value="">Selecione...</option>
+        <option>Filho(a)</option>
+        <option>Pai/Mãe</option>
+        <option>Cônjuge</option>
+        <option>Irmão/Irmã</option>
+        <option>Neto(a)</option>
+        <option>Sobrinho(a)</option>
+        <option>Amigo(a)</option>
+        <option>Cuidador(a)</option>
+        <option>Outro</option>
+    </select>
+</div>
                         </div>
                         <div class="form-row">
                             <div class="form-group">
@@ -449,9 +460,20 @@
                                 <input type="tel" id="trocaNovoTelefone">
                             </div>
                             <div class="form-group">
-                                <label>Parentesco *</label>
-                                <input type="text" id="trocaNovoParentesco" required>
-                            </div>
+    <label>Parentesco *</label>
+    <select id="trocaNovoParentesco" required>
+        <option value="">Selecione...</option>
+        <option>Filho(a)</option>
+        <option>Pai/Mãe</option>
+        <option>Cônjuge</option>
+        <option>Irmão/Irmã</option>
+        <option>Neto(a)</option>
+        <option>Sobrinho(a)</option>
+        <option>Amigo(a)</option>
+        <option>Cuidador(a)</option>
+        <option>Outro</option>
+    </select>
+</div>
                         </div>
                         <button type="submit" class="btn-primary">
                             <i class="fas fa-exchange-alt"></i> Registrar Troca
