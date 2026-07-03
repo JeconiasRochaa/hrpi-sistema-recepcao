@@ -325,13 +325,14 @@ function fazerLogin(e) {
         lockoutUntil = null;
         
         if (userEncontrado.primeiroAcesso) {
-            console.log('🔐 Primeiro acesso - solicitando troca de senha');
-            usuarioLogado = userEncontrado;
-            const firstAccessModal = document.getElementById('firstAccessModal');
-            if (firstAccessModal) {
-                firstAccessModal.style.display = 'flex';
-            }
-            resetarBtnLogin();
+            console.log('🔐 Primeiro acesso - redirecionando para troca de senha');
+            console.log('📝 User ID:', userEncontrado.id);
+            
+            // Salvar ID temporariamente
+            sessionStorage.setItem('hrpi_user_id_temp', userEncontrado.id);
+            
+            // Redirecionar para página de troca de senha
+            window.location.href = 'trocar-senha.html?id=' + userEncontrado.id;
             return;
         }
         
