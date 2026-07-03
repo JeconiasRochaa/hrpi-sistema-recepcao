@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Setup HRPI - Criar Admin</title>
+    <style>
+        body { font-family: Arial; padding: 50px; background: #f0f4f5; }
+        .container { max-width: 500px; margin: 0 auto; background: white; padding: 30px; border-radius: 10px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+        button { background: #00695c; color: white; border: none; padding: 15px 30px; border-radius: 5px; cursor: pointer; font-size: 16px; width: 100%; }
+        button:hover { background: #004d40; }
+        .success { color: green; margin-top: 15px; display: none; }
+        .error { color: red; margin-top: 15px; display: none; }
+        h2 { color: #00695c; }
+        input { width: 100%; padding: 10px; margin: 10px 0; border: 1px solid #ddd; border-radius: 5px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h2>🏥 Configuração Inicial - HRPI</h2>
+        <p>Criar usuário administrador no Firebase</p>
+        
+        <label>Login:</label>
+        <input type="text" id="setupUser" value="admin">
+        
+        <label>Senha:</label>
+        <input type="password" id="setupPass" value="admin123">
+        
+        <button onclick="criarUsuario()">Criar Administrador</button>
+        
+        <div id="msgSuccess" class="success">✅ Usuário criado com sucesso! Volte para o sistema e faça login.</div>
+        <div id="msgError" class="error"></div>
+    </div>
+
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
+    <script>
+        const firebaseConfig = {
+            apiKey: "AIzaSyDcUK7ZwpxX7voL5vGr71ltW0WclRm8NJ8",
+            authDomain: "hrpi-sistema-recepcao.firebaseapp.com",
+            databaseURL: "https://hrpi-sistema-recepcao-default-rtdb.firebaseio.com",
+            projectId: "hrpi-sistema-recepcao",
+            storageBucket: "hrpi-sistema-recepcao.firebasestorage.app",
+            messagingSenderId: "233408674656",
+            appId: "1:233408674656:web:45805b396a7cd7d6e1bc05"
+        };
+        
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.database();
+        
+        async function criarUsuario() {
+            const usuario = document.getElementById('setupUser').value;
+            const senha = document.getElementById('setupPass').value;
+            
+            try {
+                await db.ref('usuarios/admin001').set({
+                    id: 'admin001',
+                    nome: 'Administrador',
+                    usuario: usuario,
+                    senha: senha,
+                    cargo: 'Administrador',
+                    ativo: true,
+                    primeiroAcesso: false
+                });
+                
+                document.getElementById('msgSuccess').style.display = 'block';
+                document.getElementById('msgError').style.display = 'none';
+            } catch (error) {
+                document.getElementById('msgError').textContent = 'Erro: ' + error.message;
+                document.getElementById('msgError').style.display = 'block';
+            }
+        }
+    </script>
+</body>
+</html>
