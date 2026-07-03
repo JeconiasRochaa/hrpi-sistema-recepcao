@@ -1,6 +1,6 @@
 // ============================================
 // HRPI - SISTEMA DE CONTROLE DE RECEPÇÃO
-// script.js - Versão Adaptada ao Novo CSS
+// script.js - CORRIGIDO
 // ============================================
 
 const firebaseConfig = {
@@ -79,12 +79,14 @@ function fecharModal() {
 }
 
 // ============================================
-// LOGIN
+// LOGIN - CORRIGIDO
 // ============================================
 let loginAttempts = 0;
 let lockoutUntil = null;
 
 document.addEventListener('DOMContentLoaded', function() {
+    console.log('🟢 DOM Carregado - Inicializando sistema...');
+    
     // Atualizar data
     atualizarDataAtual();
     
@@ -128,43 +130,65 @@ document.addEventListener('DOMContentLoaded', function() {
     document.getElementById('themeToggleBtn').addEventListener('click', toggleTema);
     
     // Modal close
-    document.querySelector('#genericModal .modal-close').addEventListener('click', fecharModal);
+    const modalCloseBtn = document.querySelector('#genericModal .modal-close');
+    if (modalCloseBtn) {
+        modalCloseBtn.addEventListener('click', fecharModal);
+    }
     document.getElementById('genericModal').addEventListener('click', function(e) {
         if (e.target === this) fecharModal();
     });
     
     // Configurações
-    document.getElementById('uploadLogo').addEventListener('change', uploadLogo);
-    document.getElementById('uploadFundo').addEventListener('change', uploadFundo);
-    document.getElementById('btnRemoverLogo').addEventListener('click', removerLogo);
-    document.getElementById('btnRemoverFundo').addEventListener('click', removerFundo);
-    document.getElementById('btnResetSenha').addEventListener('click', resetSenhaUsuario);
+    const uploadLogoEl = document.getElementById('uploadLogo');
+    const uploadFundoEl = document.getElementById('uploadFundo');
+    const btnRemoverLogo = document.getElementById('btnRemoverLogo');
+    const btnRemoverFundo = document.getElementById('btnRemoverFundo');
+    const btnResetSenha = document.getElementById('btnResetSenha');
+    
+    if (uploadLogoEl) uploadLogoEl.addEventListener('change', uploadLogo);
+    if (uploadFundoEl) uploadFundoEl.addEventListener('change', uploadFundo);
+    if (btnRemoverLogo) btnRemoverLogo.addEventListener('click', removerLogo);
+    if (btnRemoverFundo) btnRemoverFundo.addEventListener('click', removerFundo);
+    if (btnResetSenha) btnResetSenha.addEventListener('click', resetSenhaUsuario);
     
     // Novo usuário
-    document.getElementById('btnNovoUsuario').addEventListener('click', abrirModalNovoUsuario);
+    const btnNovoUsuario = document.getElementById('btnNovoUsuario');
+    if (btnNovoUsuario) btnNovoUsuario.addEventListener('click', abrirModalNovoUsuario);
     
     // Formulários
-    document.getElementById('formEntradaAcompanhante').addEventListener('submit', registrarEntrada);
-    document.getElementById('formVisita').addEventListener('submit', registrarVisita);
-    document.getElementById('formTroca').addEventListener('submit', registrarTroca);
-    document.getElementById('formSaida').addEventListener('submit', registrarSaida);
+    const formEntrada = document.getElementById('formEntradaAcompanhante');
+    const formVisita = document.getElementById('formVisita');
+    const formTroca = document.getElementById('formTroca');
+    const formSaida = document.getElementById('formSaida');
+    
+    if (formEntrada) formEntrada.addEventListener('submit', registrarEntrada);
+    if (formVisita) formVisita.addEventListener('submit', registrarVisita);
+    if (formTroca) formTroca.addEventListener('submit', registrarTroca);
+    if (formSaida) formSaida.addEventListener('submit', registrarSaida);
     
     // Eventos selects
-    document.getElementById('saidaAcompanhante').addEventListener('change', atualizarInfoSaida);
-    document.getElementById('trocaAcompanhanteAtual').addEventListener('change', atualizarInfoTroca);
+    const saidaSelect = document.getElementById('saidaAcompanhante');
+    const trocaSelect = document.getElementById('trocaAcompanhanteAtual');
+    
+    if (saidaSelect) saidaSelect.addEventListener('change', atualizarInfoSaida);
+    if (trocaSelect) trocaSelect.addEventListener('change', atualizarInfoTroca);
     
     // Filtro
-    document.getElementById('btnFiltrar').addEventListener('click', filtrarHistorico);
+    const btnFiltrar = document.getElementById('btnFiltrar');
+    if (btnFiltrar) btnFiltrar.addEventListener('click', filtrarHistorico);
     
     // Verificar sessão
     verificarSessao();
     
     // Carregar usuários para select
     carregarSelectUsuarios();
+    
+    console.log('✅ Sistema inicializado!');
 });
 
 function fazerLogin(e) {
     e.preventDefault();
+    console.log('🔐 Tentativa de login...');
     
     if (lockoutUntil && Date.now() < lockoutUntil) {
         const min = Math.ceil((lockoutUntil - Date.now()) / 60000);
@@ -185,21 +209,36 @@ function fazerLogin(e) {
     btnLogin.disabled = true;
     btnLogin.innerHTML = '<span class="spinner"></span> Entrando...';
     
+    // CORREÇÃO: Buscar usuários e encontrar pelo nome de usuário
     db.ref('usuarios').once('value').then(snapshot => {
         const usuarios = snapshot.val();
+        console.log('📦 Usuários encontrados:', usuarios);
+        
         if (!usuarios) {
-            erroDiv.textContent = 'Sistema não configurado.';
+            erroDiv.textContent = 'Nenhum usuário cadastrado. Execute o setup primeiro.';
             resetarBtnLogin();
             return;
         }
         
-        const user = Object.values(usuarios).find(u => 
-            u.usuario === usuario && u.senha === senha && u.ativo !== false
-        );
+        // CORREÇÃO: Buscar usuário pelo campo 'usuario' (nome de login)
+        let userEncontrado = null;
         
-        if (!user) {
+        Object.entries(usuarios).forEach(([key, user]) => {
+            console.log(`🔍 Verificando: ${user.usuario} (ID: ${key})`);
+            if (user.usuario === usuario && user.senha === senha && user.ativo !== false) {
+                userEncontrado = user;
+                // Garantir que o ID está correto
+                if (!userEncontrado.id || userEncontrado.id !== key) {
+                    userEncontrado.id = key;
+                }
+            }
+        });
+        
+        if (!userEncontrado) {
             loginAttempts++;
             erroDiv.textContent = 'Usuário ou senha inválidos.';
+            console.log('❌ Usuário não encontrado ou senha incorreta');
+            
             if (loginAttempts >= CONFIG.MAX_LOGIN_ATTEMPTS) {
                 lockoutUntil = Date.now() + CONFIG.LOCKOUT_TIME;
                 erroDiv.textContent = 'Conta bloqueada por 15 minutos.';
@@ -209,29 +248,33 @@ function fazerLogin(e) {
             return;
         }
         
+        console.log('✅ Usuário encontrado:', userEncontrado.nome);
+        
         loginAttempts = 0;
         lockoutUntil = null;
         
-        if (user.primeiroAcesso) {
-            usuarioLogado = user;
-            document.getElementById('firstAccessModal').classList.add('active');
+        if (userEncontrado.primeiroAcesso) {
+            usuarioLogado = userEncontrado;
             document.getElementById('firstAccessModal').style.display = 'flex';
             resetarBtnLogin();
             return;
         }
         
-        completarLogin(user);
+        completarLogin(userEncontrado);
         resetarBtnLogin();
-    }).catch(() => {
-        erroDiv.textContent = 'Erro de conexão.';
+    }).catch(error => {
+        console.error('🔥 Erro no Firebase:', error);
+        erroDiv.textContent = 'Erro de conexão com o servidor.';
         resetarBtnLogin();
     });
 }
 
 function resetarBtnLogin() {
     const btn = document.querySelector('.btn-login');
-    btn.disabled = false;
-    btn.innerHTML = '<i class="fas fa-sign-in-alt"></i> Entrar';
+    if (btn) {
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fas fa-sign-in-alt"></i> Entrar';
+    }
 }
 
 function trocarSenha(e) {
@@ -251,32 +294,50 @@ function trocarSenha(e) {
         return;
     }
     
+    if (!usuarioLogado || !usuarioLogado.id) {
+        erroDiv.textContent = 'Erro: usuário não identificado.';
+        erroDiv.style.display = 'block';
+        return;
+    }
+    
+    console.log('🔑 Alterando senha para usuário ID:', usuarioLogado.id);
+    
     db.ref('usuarios/' + usuarioLogado.id).update({
-        senha: nova, primeiroAcesso: false
+        senha: nova, 
+        primeiroAcesso: false
     }).then(() => {
+        console.log('✅ Senha alterada com sucesso!');
         usuarioLogado.senha = nova;
         usuarioLogado.primeiroAcesso = false;
-        document.getElementById('firstAccessModal').classList.remove('active');
         document.getElementById('firstAccessModal').style.display = 'none';
         completarLogin(usuarioLogado);
         toast('Senha alterada com sucesso!');
-    }).catch(() => {
-        erroDiv.textContent = 'Erro ao alterar senha.';
+    }).catch(error => {
+        console.error('🔥 Erro ao alterar senha:', error);
+        erroDiv.textContent = 'Erro ao alterar senha. Tente novamente.';
         erroDiv.style.display = 'block';
     });
 }
 
 function completarLogin(user) {
     usuarioLogado = user;
+    
+    // Salvar sessão
     sessionStorage.setItem('hrpi_session', JSON.stringify({
-        id: user.id, nome: user.nome, cargo: user.cargo, timestamp: Date.now()
+        id: user.id, 
+        nome: user.nome, 
+        cargo: user.cargo, 
+        timestamp: Date.now()
     }));
     
+    // Esconder login, mostrar sistema
     document.getElementById('loginScreen').classList.add('hidden');
     document.getElementById('mainSystem').classList.add('active');
     
+    // Atualizar nome do usuário
     document.getElementById('userName').textContent = user.nome;
     
+    // Mostrar/ocultar itens admin
     const isAdmin = user.cargo === 'Administrador' || user.cargo === 'Supervisor';
     document.querySelectorAll('.admin-only').forEach(el => {
         el.style.display = isAdmin ? '' : 'none';
@@ -285,6 +346,8 @@ function completarLogin(user) {
     iniciarSistema();
     navegarPara('dashboard');
     toast(`Bem-vindo(a), ${user.nome}!`);
+    
+    console.log('✅ Login completo para:', user.nome);
 }
 
 function logout() {
@@ -309,6 +372,8 @@ function verificarSessao() {
                     } else {
                         sessionStorage.removeItem('hrpi_session');
                     }
+                }).catch(() => {
+                    sessionStorage.removeItem('hrpi_session');
                 });
             } else {
                 sessionStorage.removeItem('hrpi_session');
@@ -360,13 +425,22 @@ function atualizarDashboard() {
     const ultimos = [];
     
     const agora = new Date();
-    const iniSemana = new Date(agora); iniSemana.setDate(agora.getDate() - agora.getDay());
+    const iniSemana = new Date(agora); 
+    iniSemana.setDate(agora.getDate() - agora.getDay());
+    iniSemana.setHours(0, 0, 0, 0);
+    
     const iniMes = new Date(agora.getFullYear(), agora.getMonth(), 1);
     
     Object.values(acompanhantes).forEach(ac => {
-        if (ac.status === 'presente') { presentes++; if (ac.tipo === 'visita') visitas++; }
+        if (ac.status === 'presente') { 
+            presentes++; 
+            if (ac.tipo === 'visita') visitas++; 
+        }
         if (ac.dataEntrada === hoje) entradas++;
-        if (ac.dataSaida === hoje) { if (ac.status === 'saiu') saidas++; if (ac.status === 'trocado') trocas++; }
+        if (ac.dataSaida === hoje) { 
+            if (ac.status === 'saiu') saidas++; 
+            if (ac.status === 'trocado') trocas++; 
+        }
         
         const [d, m, a] = ac.dataEntrada.split('-');
         const dataE = new Date(a, m-1, d);
@@ -382,25 +456,37 @@ function atualizarDashboard() {
         ultimos.push(ac);
     });
     
-    document.getElementById('countAcompanhantesPresentes').textContent = presentes;
-    document.getElementById('countVisitasAtivas').textContent = visitas;
-    document.getElementById('countEntradasHoje').textContent = entradas;
-    document.getElementById('countTrocasHoje').textContent = trocas;
-    document.getElementById('countSaidasHoje').textContent = saidas;
+    // Atualizar cards
+    const elPresentes = document.getElementById('countAcompanhantesPresentes');
+    const elVisitas = document.getElementById('countVisitasAtivas');
+    const elEntradas = document.getElementById('countEntradasHoje');
+    const elTrocas = document.getElementById('countTrocasHoje');
+    const elSaidas = document.getElementById('countSaidasHoje');
     
+    if (elPresentes) elPresentes.textContent = presentes;
+    if (elVisitas) elVisitas.textContent = visitas;
+    if (elEntradas) elEntradas.textContent = entradas;
+    if (elTrocas) elTrocas.textContent = trocas;
+    if (elSaidas) elSaidas.textContent = saidas;
+    
+    // Indicadores avançados
     const elES = document.getElementById('countEntradasSemana');
     const elSS = document.getElementById('countSaidasSemana');
     const elEM = document.getElementById('countEntradasMes');
     const elSM = document.getElementById('countSaidasMes');
+    
     if (elES) elES.textContent = entSemana;
     if (elSS) elSS.textContent = saiSemana;
     if (elEM) elEM.textContent = entMes;
     if (elSM) elSM.textContent = saiMes;
     
+    // Últimos registros
     ultimos.sort((a, b) => {
         const [da, ma, aa] = a.dataEntrada.split('-');
         const [db, mb, ab] = b.dataEntrada.split('-');
-        return new Date(ab, mb-1, db) - new Date(aa, ma-1, da) || b.horaEntrada.localeCompare(a.horaEntrada);
+        const cmp = new Date(ab, mb-1, db) - new Date(aa, ma-1, da);
+        if (cmp !== 0) return cmp;
+        return b.horaEntrada.localeCompare(a.horaEntrada);
     });
     
     const tbody = document.querySelector('#tabelaUltimosRegistros tbody');
@@ -457,28 +543,34 @@ function atualizarHistorico() {
     registros.sort((a, b) => {
         const [da, ma, aa] = a.dataEntrada.split('-');
         const [db, mb, ab] = b.dataEntrada.split('-');
-        return new Date(ab, mb-1, db) - new Date(aa, ma-1, da) || b.horaEntrada.localeCompare(a.horaEntrada);
+        const cmp = new Date(ab, mb-1, db) - new Date(aa, ma-1, da);
+        if (cmp !== 0) return cmp;
+        return b.horaEntrada.localeCompare(a.horaEntrada);
     });
     renderizarTabelaHistorico(registros);
 }
 
 function filtrarHistorico() {
-    const inicio = document.getElementById('filtroDataInicio').value;
-    const fim = document.getElementById('filtroDataFim').value;
-    const status = document.getElementById('filtroStatus').value;
-    const tipo = document.getElementById('filtroTipo').value;
+    const inicio = document.getElementById('filtroDataInicio')?.value;
+    const fim = document.getElementById('filtroDataFim')?.value;
+    const status = document.getElementById('filtroStatus')?.value;
+    const tipo = document.getElementById('filtroTipo')?.value;
     
     let registros = Object.values(acompanhantes);
     if (status) registros = registros.filter(a => a.status === status);
     if (tipo) registros = registros.filter(a => a.tipo === tipo);
-    if (inicio) registros = registros.filter(a => {
-        const [d, m, an] = a.dataEntrada.split('-');
-        return new Date(an, m-1, d) >= new Date(inicio + 'T00:00:00');
-    });
-    if (fim) registros = registros.filter(a => {
-        const [d, m, an] = a.dataEntrada.split('-');
-        return new Date(an, m-1, d) <= new Date(fim + 'T23:59:59');
-    });
+    if (inicio) {
+        registros = registros.filter(a => {
+            const [d, m, an] = a.dataEntrada.split('-');
+            return new Date(an, m-1, d) >= new Date(inicio + 'T00:00:00');
+        });
+    }
+    if (fim) {
+        registros = registros.filter(a => {
+            const [d, m, an] = a.dataEntrada.split('-');
+            return new Date(an, m-1, d) <= new Date(fim + 'T23:59:59');
+        });
+    }
     
     registros.sort((a, b) => {
         const [da, ma, aa] = a.dataEntrada.split('-');
@@ -534,14 +626,19 @@ function registrarEntrada(e) {
         leito: sanitizar(document.getElementById('acLeito').value.trim()),
         dataEntrada: dataHoje(), horaEntrada: horaAgora(),
         dataSaida: null, horaSaida: null, status: 'presente',
-        recepcionistaEntrada: usuarioLogado.nome, recepcionistaSaida: null,
-        trocas: [], observacao: sanitizar(document.getElementById('acObservacao').value.trim()),
+        recepcionistaEntrada: usuarioLogado?.nome || 'Sistema', 
+        recepcionistaSaida: null,
+        trocas: [], 
+        observacao: sanitizar(document.getElementById('acObservacao').value.trim()),
         duracaoVisita: null
     };
     db.ref('acompanhantes/' + dados.id).set(dados).then(() => {
         toast('Entrada registrada com sucesso!');
         e.target.reset();
-    }).catch(() => toast('Erro ao registrar.', 'error'));
+    }).catch(error => {
+        console.error('Erro:', error);
+        toast('Erro ao registrar.', 'error');
+    });
 }
 
 function registrarVisita(e) {
@@ -559,13 +656,17 @@ function registrarVisita(e) {
         dataEntrada: dataHoje(), horaEntrada: horaAgora(),
         dataSaida: dataHoje(), horaSaida: calcularHoraSaida(duracao),
         status: 'saiu',
-        recepcionistaEntrada: usuarioLogado.nome, recepcionistaSaida: usuarioLogado.nome,
+        recepcionistaEntrada: usuarioLogado?.nome || 'Sistema', 
+        recepcionistaSaida: usuarioLogado?.nome || 'Sistema',
         trocas: [], observacao: '', duracaoVisita: duracao
     };
     db.ref('acompanhantes/' + dados.id).set(dados).then(() => {
         toast('Visita registrada com sucesso!');
         e.target.reset();
-    }).catch(() => toast('Erro ao registrar.', 'error'));
+    }).catch(error => {
+        console.error('Erro:', error);
+        toast('Erro ao registrar.', 'error');
+    });
 }
 
 function calcularHoraSaida(minutos) {
@@ -585,12 +686,12 @@ function registrarTroca(e) {
         dataHora: `${dataHoje()} ${horaAgora()}`,
         acompanhanteAntigo: antigo.nomeAcompanhante,
         acompanhanteNovo: sanitizar(document.getElementById('trocaNovoNome').value.trim()),
-        recepcionista: usuarioLogado.nome
+        recepcionista: usuarioLogado?.nome || 'Sistema'
     });
     
     db.ref('acompanhantes/' + idAntigo).update({
         status: 'trocado', dataSaida: dataHoje(), horaSaida: horaAgora(),
-        recepcionistaSaida: usuarioLogado.nome, trocas: trocas
+        recepcionistaSaida: usuarioLogado?.nome || 'Sistema', trocas: trocas
     });
     
     const novoId = gerarId();
@@ -603,13 +704,16 @@ function registrarTroca(e) {
         nomePaciente: antigo.nomePaciente, setor: antigo.setor, leito: antigo.leito,
         dataEntrada: dataHoje(), horaEntrada: horaAgora(),
         dataSaida: null, horaSaida: null, status: 'presente',
-        recepcionistaEntrada: usuarioLogado.nome, recepcionistaSaida: null,
+        recepcionistaEntrada: usuarioLogado?.nome || 'Sistema', recepcionistaSaida: null,
         trocas: [], observacao: `Substituiu: ${antigo.nomeAcompanhante}`, duracaoVisita: null
     }).then(() => {
         toast('Troca registrada com sucesso!');
         e.target.reset();
         document.getElementById('trocaInfoAtual').style.display = 'none';
-    }).catch(() => toast('Erro ao registrar.', 'error'));
+    }).catch(error => {
+        console.error('Erro:', error);
+        toast('Erro ao registrar.', 'error');
+    });
 }
 
 function registrarSaida(e) {
@@ -619,16 +723,21 @@ function registrarSaida(e) {
     if (!id || !motivo) { toast('Selecione acompanhante e motivo.', 'error'); return; }
     
     const atual = acompanhantes[id];
+    if (!atual) { toast('Acompanhante não encontrado.', 'error'); return; }
+    
     const obs = atual.observacao ? `${atual.observacao} | Saída: ${motivo}` : `Saída: ${motivo}`;
     
     db.ref('acompanhantes/' + id).update({
         status: 'saiu', dataSaida: dataHoje(), horaSaida: horaAgora(),
-        recepcionistaSaida: usuarioLogado.nome, observacao: obs
+        recepcionistaSaida: usuarioLogado?.nome || 'Sistema', observacao: obs
     }).then(() => {
         toast('Saída registrada!');
         e.target.reset();
         document.getElementById('saidaInfo').style.display = 'none';
-    }).catch(() => toast('Erro ao registrar.', 'error'));
+    }).catch(error => {
+        console.error('Erro:', error);
+        toast('Erro ao registrar.', 'error');
+    });
 }
 
 // ============================================
@@ -640,13 +749,19 @@ function atualizarSelects() {
     const selSaida = document.getElementById('saidaAcompanhante');
     if (selSaida) {
         selSaida.innerHTML = '<option value="">Selecione...</option>' +
-            presentes.map(ac => `<option value="${ac.id}">${ac.tipo === 'visita' ? '[VISITA]' : '[ACOMP.]'} ${sanitizar(ac.nomeAcompanhante)} - ${sanitizar(ac.nomePaciente)}</option>`).join('');
+            presentes.map(ac => {
+                const prefixo = ac.tipo === 'visita' ? '[VISITA]' : '[ACOMP.]';
+                return `<option value="${ac.id}">${prefixo} ${sanitizar(ac.nomeAcompanhante)} - ${sanitizar(ac.nomePaciente)}</option>`;
+            }).join('');
     }
     
     const selTroca = document.getElementById('trocaAcompanhanteAtual');
     if (selTroca) {
+        const acompanhantesAtivos = presentes.filter(a => a.tipo === 'acompanhante');
         selTroca.innerHTML = '<option value="">Selecione...</option>' +
-            presentes.filter(a => a.tipo === 'acompanhante').map(ac => `<option value="${ac.id}">${sanitizar(ac.nomeAcompanhante)} - ${sanitizar(ac.nomePaciente)}</option>`).join('');
+            acompanhantesAtivos.map(ac => 
+                `<option value="${ac.id}">${sanitizar(ac.nomeAcompanhante)} - ${sanitizar(ac.nomePaciente)}</option>`
+            ).join('');
     }
 }
 
@@ -659,7 +774,9 @@ function atualizarInfoSaida() {
         document.getElementById('saidaSetor').textContent = ac.setor;
         document.getElementById('saidaEntrada').textContent = `${ac.dataEntrada} ${ac.horaEntrada}`;
         info.style.display = 'block';
-    } else { info.style.display = 'none'; }
+    } else { 
+        info.style.display = 'none'; 
+    }
 }
 
 function atualizarInfoTroca() {
@@ -671,7 +788,9 @@ function atualizarInfoTroca() {
         document.getElementById('trocaSetor').textContent = ac.setor;
         document.getElementById('trocaLeito').textContent = ac.leito || '-';
         info.style.display = 'block';
-    } else { info.style.display = 'none'; }
+    } else { 
+        info.style.display = 'none'; 
+    }
 }
 
 // ============================================
@@ -714,15 +833,25 @@ function editarRegistro(id) {
                 setor: document.getElementById('editSetor').value,
                 leito: sanitizar(document.getElementById('editLeito').value.trim()),
                 observacao: sanitizar(document.getElementById('editObs').value.trim())
-            }).then(() => { toast('Atualizado!'); fecharModal(); })
-              .catch(() => toast('Erro ao atualizar.', 'error'));
+            }).then(() => { 
+                toast('Atualizado!'); 
+                fecharModal(); 
+            }).catch(error => {
+                console.error('Erro:', error);
+                toast('Erro ao atualizar.', 'error');
+            });
         });
     }, 100);
 }
 
 function excluirRegistro(id) {
     if (confirm('Excluir este registro permanentemente?')) {
-        db.ref('acompanhantes/' + id).remove().then(() => toast('Excluído!'));
+        db.ref('acompanhantes/' + id).remove()
+            .then(() => toast('Excluído!'))
+            .catch(error => {
+                console.error('Erro:', error);
+                toast('Erro ao excluir.', 'error');
+            });
     }
 }
 
@@ -734,15 +863,21 @@ function carregarConfiguracoes() {
         const c = snap.val();
         if (c) {
             if (c.logoHospital) {
-                document.getElementById('sidebarLogo').innerHTML = `<img src="${c.logoHospital}" alt="Logo">`;
-                document.getElementById('loginLogo').innerHTML = `<img src="${c.logoHospital}" alt="Logo">`;
+                const sidebarLogo = document.getElementById('sidebarLogo');
+                const loginLogo = document.getElementById('loginLogo');
+                if (sidebarLogo) sidebarLogo.innerHTML = `<img src="${c.logoHospital}" alt="Logo">`;
+                if (loginLogo) loginLogo.innerHTML = `<img src="${c.logoHospital}" alt="Logo">`;
             }
             if (c.fundoLogin) {
-                document.getElementById('loginScreen').style.setProperty('--login-bg-image', `url(${c.fundoLogin})`);
+                const loginScreen = document.getElementById('loginScreen');
+                if (loginScreen) loginScreen.style.setProperty('--login-bg-image', `url(${c.fundoLogin})`);
             }
             if (c.tema) {
-                if (c.tema === 'dark') document.body.classList.add('dark-theme');
-                else document.body.classList.remove('dark-theme');
+                if (c.tema === 'dark') {
+                    document.body.classList.add('dark-theme');
+                } else {
+                    document.body.classList.remove('dark-theme');
+                }
                 const icon = document.querySelector('#themeToggleBtn i');
                 if (icon) icon.className = c.tema === 'dark' ? 'fas fa-sun' : 'fas fa-moon';
             }
@@ -752,12 +887,17 @@ function carregarConfiguracoes() {
 
 function uploadLogo(e) {
     const file = e.target.files[0];
-    if (!file || !file.type.startsWith('image/')) { toast('Imagem inválida.', 'error'); return; }
+    if (!file || !file.type.startsWith('image/')) { 
+        toast('Imagem inválida.', 'error'); 
+        return; 
+    }
     const reader = new FileReader();
     reader.onload = ev => {
         db.ref('configuracoes').update({ logoHospital: ev.target.result }).then(() => {
-            document.getElementById('sidebarLogo').innerHTML = `<img src="${ev.target.result}" alt="Logo">`;
-            document.getElementById('loginLogo').innerHTML = `<img src="${ev.target.result}" alt="Logo">`;
+            const sidebarLogo = document.getElementById('sidebarLogo');
+            const loginLogo = document.getElementById('loginLogo');
+            if (sidebarLogo) sidebarLogo.innerHTML = `<img src="${ev.target.result}" alt="Logo">`;
+            if (loginLogo) loginLogo.innerHTML = `<img src="${ev.target.result}" alt="Logo">`;
             toast('Logo atualizada!');
         });
     };
@@ -766,11 +906,15 @@ function uploadLogo(e) {
 
 function uploadFundo(e) {
     const file = e.target.files[0];
-    if (!file || !file.type.startsWith('image/')) { toast('Imagem inválida.', 'error'); return; }
+    if (!file || !file.type.startsWith('image/')) { 
+        toast('Imagem inválida.', 'error'); 
+        return; 
+    }
     const reader = new FileReader();
     reader.onload = ev => {
         db.ref('configuracoes').update({ fundoLogin: ev.target.result }).then(() => {
-            document.getElementById('loginScreen').style.setProperty('--login-bg-image', `url(${ev.target.result})`);
+            const loginScreen = document.getElementById('loginScreen');
+            if (loginScreen) loginScreen.style.setProperty('--login-bg-image', `url(${ev.target.result})`);
             toast('Fundo atualizado!');
         });
     };
@@ -780,8 +924,10 @@ function uploadFundo(e) {
 function removerLogo() {
     if (confirm('Remover a logo?')) {
         db.ref('configuracoes').update({ logoHospital: null }).then(() => {
-            document.getElementById('sidebarLogo').innerHTML = '<i class="fas fa-hospital-alt"></i>';
-            document.getElementById('loginLogo').innerHTML = '<span class="default-logo"><i class="fas fa-hospital-alt"></i></span>';
+            const sidebarLogo = document.getElementById('sidebarLogo');
+            const loginLogo = document.getElementById('loginLogo');
+            if (sidebarLogo) sidebarLogo.innerHTML = '<i class="fas fa-hospital-alt"></i>';
+            if (loginLogo) loginLogo.innerHTML = '<span class="default-logo"><i class="fas fa-hospital-alt"></i></span>';
             toast('Logo removida.');
         });
     }
@@ -790,30 +936,40 @@ function removerLogo() {
 function removerFundo() {
     if (confirm('Remover o fundo?')) {
         db.ref('configuracoes').update({ fundoLogin: null }).then(() => {
-            document.getElementById('loginScreen').style.removeProperty('--login-bg-image');
+            const loginScreen = document.getElementById('loginScreen');
+            if (loginScreen) loginScreen.style.removeProperty('--login-bg-image');
             toast('Fundo removido.');
         });
     }
 }
 
 function resetSenhaUsuario() {
-    const userId = document.getElementById('selectUsuarioReset').value;
-    if (!userId) { toast('Selecione um usuário.', 'error'); return; }
+    const userId = document.getElementById('selectUsuarioReset')?.value;
+    if (!userId) { 
+        toast('Selecione um usuário.', 'error'); 
+        return; 
+    }
     if (confirm('Resetar senha para "123456"?')) {
-        db.ref('usuarios/' + userId).update({ senha: '123456', primeiroAcesso: true })
-            .then(() => toast('Senha resetada! Nova senha: 123456'));
+        db.ref('usuarios/' + userId).update({ 
+            senha: '123456', 
+            primeiroAcesso: true 
+        }).then(() => toast('Senha resetada! Nova senha: 123456'))
+          .catch(error => {
+              console.error('Erro:', error);
+              toast('Erro ao resetar.', 'error');
+          });
     }
 }
 
 function toggleTema() {
     const isDark = document.body.classList.toggle('dark-theme');
     const icon = document.querySelector('#themeToggleBtn i');
-    icon.className = isDark ? 'fas fa-sun' : 'fas fa-moon';
+    if (icon) icon.className = isDark ? 'fas fa-sun' : 'fas fa-moon';
     db.ref('configuracoes').update({ tema: isDark ? 'dark' : 'light' });
 }
 
 // ============================================
-// USUÁRIOS
+// USUÁRIOS - CORRIGIDO
 // ============================================
 function carregarSelectUsuarios() {
     db.ref('usuarios').on('value', snap => {
@@ -821,7 +977,9 @@ function carregarSelectUsuarios() {
         if (!sel) return;
         const usuarios = snap.val() || {};
         sel.innerHTML = '<option value="">Selecione um usuário...</option>' +
-            Object.values(usuarios).map(u => `<option value="${u.id}">${sanitizar(u.nome)} (${sanitizar(u.usuario)})</option>`).join('');
+            Object.entries(usuarios).map(([key, u]) => 
+                `<option value="${key}">${sanitizar(u.nome)} (${sanitizar(u.usuario)})</option>`
+            ).join('');
     });
 }
 
@@ -830,15 +988,23 @@ function carregarUsuarios() {
         const usuarios = snap.val() || {};
         const tbody = document.querySelector('#tabelaUsuarios tbody');
         if (!tbody) return;
-        tbody.innerHTML = Object.values(usuarios).map(u => `
+        
+        if (Object.keys(usuarios).length === 0) {
+            tbody.innerHTML = '<tr><td colspan="6" class="empty-table-message"><i class="fas fa-inbox"></i> Nenhum usuário cadastrado</td></tr>';
+            return;
+        }
+        
+        tbody.innerHTML = Object.entries(usuarios).map(([key, u]) => `
             <tr>
-                <td>${sanitizar(u.nome)}</td><td>${sanitizar(u.usuario)}</td><td>${sanitizar(u.cargo)}</td>
+                <td>${sanitizar(u.nome)}</td>
+                <td>${sanitizar(u.usuario)}</td>
+                <td>${sanitizar(u.cargo)}</td>
                 <td><span class="badge ${u.ativo !== false ? 'badge-success' : 'badge-danger'}">${u.ativo !== false ? 'Ativo' : 'Inativo'}</span></td>
                 <td><span class="badge ${u.primeiroAcesso ? 'badge-warning' : 'badge-info'}">${u.primeiroAcesso ? 'Pendente' : 'OK'}</span></td>
                 <td>
-                    <button class="btn-icon btn-edit" onclick="editarUsuario('${u.id}')" title="Editar"><i class="fas fa-edit"></i></button>
-                    <button class="btn-icon btn-key" onclick="resetSenhaUser('${u.id}')" title="Resetar Senha"><i class="fas fa-key"></i></button>
-                    <button class="btn-icon btn-delete" onclick="excluirUsuario('${u.id}')" title="Excluir"><i class="fas fa-trash"></i></button>
+                    <button class="btn-icon btn-edit" onclick="editarUsuario('${key}')" title="Editar"><i class="fas fa-edit"></i></button>
+                    <button class="btn-icon btn-key" onclick="resetSenhaUser('${key}')" title="Resetar Senha"><i class="fas fa-key"></i></button>
+                    <button class="btn-icon btn-delete" onclick="excluirUsuario('${key}')" title="Excluir"><i class="fas fa-trash"></i></button>
                 </td>
             </tr>
         `).join('');
@@ -850,29 +1016,74 @@ function abrirModalNovoUsuario() {
     document.getElementById('modalBody').innerHTML = `
         <form id="formNovoUsuario">
             <div class="form-grid">
-                <div class="form-group"><label>Nome <span class="required">*</span></label><input type="text" id="newUserNome" required></div>
-                <div class="form-group"><label>Usuário <span class="required">*</span></label><input type="text" id="newUserUsername" required></div>
-                <div class="form-group"><label>Cargo <span class="required">*</span></label><select id="newUserCargo" required><option value="">Selecione...</option><option>Administrador</option><option>Supervisor</option><option>Recepcionista</option></select></div>
-                <div class="form-group"><label>Status</label><select id="newUserAtivo"><option value="true">Ativo</option><option value="false">Inativo</option></select></div>
+                <div class="form-group">
+                    <label>Nome Completo <span class="required">*</span></label>
+                    <input type="text" id="newUserNome" placeholder="Nome do usuário" required>
+                </div>
+                <div class="form-group">
+                    <label>Nome de Usuário <span class="required">*</span></label>
+                    <input type="text" id="newUserUsername" placeholder="Login do usuário" required>
+                </div>
+                <div class="form-group">
+                    <label>Cargo <span class="required">*</span></label>
+                    <select id="newUserCargo" required>
+                        <option value="">Selecione...</option>
+                        <option>Administrador</option>
+                        <option>Supervisor</option>
+                        <option>Recepcionista</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Status</label>
+                    <select id="newUserAtivo">
+                        <option value="true">Ativo</option>
+                        <option value="false">Inativo</option>
+                    </select>
+                </div>
             </div>
-            <div class="form-actions"><button type="submit" class="btn btn-primary"><i class="fas fa-save"></i> Criar</button></div>
+            <div class="form-actions">
+                <button type="submit" class="btn btn-primary">
+                    <i class="fas fa-save"></i> Criar Usuário
+                </button>
+            </div>
         </form>
     `;
     document.getElementById('genericModal').classList.add('active');
     
     document.getElementById('formNovoUsuario').addEventListener('submit', function(e) {
         e.preventDefault();
-        const id = 'user_' + Date.now();
-        db.ref('usuarios/' + id).set({
-            id, nome: sanitizar(document.getElementById('newUserNome').value.trim()),
+        
+        const novoUsuario = {
+            nome: sanitizar(document.getElementById('newUserNome').value.trim()),
             usuario: sanitizar(document.getElementById('newUserUsername').value.trim().toLowerCase()),
-            senha: '123456', cargo: document.getElementById('newUserCargo').value,
-            ativo: document.getElementById('newUserAtivo').value === 'true', primeiroAcesso: true
-        }).then(() => {
-            toast('Usuário criado! Senha: 123456');
+            cargo: document.getElementById('newUserCargo').value,
+            ativo: document.getElementById('newUserAtivo').value === 'true',
+            senha: '123456',
+            primeiroAcesso: true
+        };
+        
+        console.log('📝 Criando novo usuário:', novoUsuario);
+        
+        // Gerar ID único
+        const novoId = 'user_' + Date.now();
+        
+        // CORREÇÃO: Salvar com o ID correto
+        const userData = {
+            ...novoUsuario,
+            id: novoId
+        };
+        
+        db.ref('usuarios/' + novoId).set(userData).then(() => {
+            console.log('✅ Usuário criado com ID:', novoId);
+            toast('Usuário criado com sucesso! Senha inicial: 123456');
             fecharModal();
-            if (document.getElementById('usuarios').classList.contains('active')) carregarUsuarios();
+            if (document.getElementById('usuarios').classList.contains('active')) {
+                carregarUsuarios();
+            }
             carregarSelectUsuarios();
+        }).catch(error => {
+            console.error('🔥 Erro ao criar usuário:', error);
+            toast('Erro ao criar usuário.', 'error');
         });
     });
 }
@@ -880,16 +1091,42 @@ function abrirModalNovoUsuario() {
 function editarUsuario(id) {
     db.ref('usuarios/' + id).once('value').then(snap => {
         const u = snap.val();
+        if (!u) {
+            toast('Usuário não encontrado.', 'error');
+            return;
+        }
+        
         document.getElementById('modalTitle').innerHTML = '<i class="fas fa-edit"></i> Editar Usuário';
         document.getElementById('modalBody').innerHTML = `
             <form id="formEditarUsuario">
                 <div class="form-grid">
-                    <div class="form-group"><label>Nome <span class="required">*</span></label><input type="text" id="editUNome" value="${sanitizar(u.nome)}" required></div>
-                    <div class="form-group"><label>Usuário <span class="required">*</span></label><input type="text" id="editUUser" value="${sanitizar(u.usuario)}" required></div>
-                    <div class="form-group"><label>Cargo</label><select id="editUCargo"><option ${u.cargo==='Administrador'?'selected':''}>Administrador</option><option ${u.cargo==='Supervisor'?'selected':''}>Supervisor</option><option ${u.cargo==='Recepcionista'?'selected':''}>Recepcionista</option></select></div>
-                    <div class="form-group"><label>Status</label><select id="editUAtivo"><option value="true" ${u.ativo!==false?'selected':''}>Ativo</option><option value="false" ${u.ativo===false?'selected':''}>Inativo</option></select></div>
+                    <div class="form-group">
+                        <label>Nome <span class="required">*</span></label>
+                        <input type="text" id="editUNome" value="${sanitizar(u.nome)}" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Usuário <span class="required">*</span></label>
+                        <input type="text" id="editUUser" value="${sanitizar(u.usuario)}" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Cargo</label>
+                        <select id="editUCargo">
+                            <option ${u.cargo==='Administrador'?'selected':''}>Administrador</option>
+                            <option ${u.cargo==='Supervisor'?'selected':''}>Supervisor</option>
+                            <option ${u.cargo==='Recepcionista'?'selected':''}>Recepcionista</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Status</label>
+                        <select id="editUAtivo">
+                            <option value="true" ${u.ativo!==false?'selected':''}>Ativo</option>
+                            <option value="false" ${u.ativo===false?'selected':''}>Inativo</option>
+                        </select>
+                    </div>
                 </div>
-                <div class="form-actions"><button type="submit" class="btn btn-primary"><i class="fas fa-save"></i> Salvar</button></div>
+                <div class="form-actions">
+                    <button type="submit" class="btn btn-primary"><i class="fas fa-save"></i> Salvar</button>
+                </div>
             </form>
         `;
         document.getElementById('genericModal').classList.add('active');
@@ -901,21 +1138,44 @@ function editarUsuario(id) {
                 usuario: sanitizar(document.getElementById('editUUser').value.trim().toLowerCase()),
                 cargo: document.getElementById('editUCargo').value,
                 ativo: document.getElementById('editUAtivo').value === 'true'
-            }).then(() => { toast('Atualizado!'); fecharModal(); carregarUsuarios(); });
+            }).then(() => { 
+                toast('Usuário atualizado!'); 
+                fecharModal(); 
+                carregarUsuarios(); 
+            }).catch(error => {
+                console.error('Erro:', error);
+                toast('Erro ao atualizar.', 'error');
+            });
         });
     });
 }
 
 function resetSenhaUser(id) {
     if (confirm('Resetar senha para "123456"?')) {
-        db.ref('usuarios/' + id).update({ senha: '123456', primeiroAcesso: true })
-            .then(() => { toast('Senha resetada!'); carregarUsuarios(); });
+        db.ref('usuarios/' + id).update({ 
+            senha: '123456', 
+            primeiroAcesso: true 
+        }).then(() => { 
+            toast('Senha resetada!'); 
+            carregarUsuarios(); 
+        }).catch(error => {
+            console.error('Erro:', error);
+            toast('Erro ao resetar.', 'error');
+        });
     }
 }
 
 function excluirUsuario(id) {
-    if (confirm('Excluir este usuário?')) {
-        db.ref('usuarios/' + id).remove().then(() => { toast('Excluído!'); carregarUsuarios(); carregarSelectUsuarios(); });
+    if (confirm('Excluir este usuário permanentemente?')) {
+        db.ref('usuarios/' + id).remove()
+            .then(() => { 
+                toast('Usuário excluído!'); 
+                carregarUsuarios(); 
+                carregarSelectUsuarios(); 
+            }).catch(error => {
+                console.error('Erro:', error);
+                toast('Erro ao excluir.', 'error');
+            });
     }
 }
 
@@ -923,7 +1183,10 @@ function excluirUsuario(id) {
 // RELATÓRIOS PDF
 // ============================================
 function gerarRelatorio(tipo) {
-    if (typeof window.jspdf === 'undefined') { toast('Carregando gerador...', 'error'); return; }
+    if (typeof window.jspdf === 'undefined') { 
+        toast('Carregando gerador...', 'error'); 
+        return; 
+    }
     
     const { jsPDF } = window.jspdf;
     const doc = new jsPDF('landscape');
@@ -931,55 +1194,95 @@ function gerarRelatorio(tipo) {
     const hoje = new Date();
     
     switch(tipo) {
-        case 'diario': dataInicio = dataHoje(); dataFim = dataHoje(); titulo = 'Relatório Diário'; break;
+        case 'diario': 
+            dataInicio = dataHoje(); 
+            dataFim = dataHoje(); 
+            titulo = 'Relatório Diário'; 
+            break;
         case 'semanal':
-            const is = new Date(); is.setDate(hoje.getDate() - hoje.getDay());
+            const is = new Date(); 
+            is.setDate(hoje.getDate() - hoje.getDay());
             dataInicio = `${String(is.getDate()).padStart(2,'0')}-${String(is.getMonth()+1).padStart(2,'0')}-${is.getFullYear()}`;
-            dataFim = dataHoje(); titulo = 'Relatório Semanal'; break;
+            dataFim = dataHoje(); 
+            titulo = 'Relatório Semanal'; 
+            break;
         case 'mensal':
             dataInicio = `01-${String(hoje.getMonth()+1).padStart(2,'0')}-${hoje.getFullYear()}`;
-            dataFim = dataHoje(); titulo = 'Relatório Mensal'; break;
+            dataFim = dataHoje(); 
+            titulo = 'Relatório Mensal'; 
+            break;
         case 'personalizado':
-            const ini = document.getElementById('dataInicioPersonalizado').value;
-            const fim = document.getElementById('dataFimPersonalizado').value;
-            if (!ini || !fim) { toast('Selecione as datas.', 'error'); return; }
+            const ini = document.getElementById('dataInicioPersonalizado')?.value;
+            const fim = document.getElementById('dataFimPersonalizado')?.value;
+            if (!ini || !fim) { 
+                toast('Selecione as datas.', 'error'); 
+                return; 
+            }
             dataInicio = ini.split('-').reverse().join('-');
             dataFim = fim.split('-').reverse().join('-');
-            titulo = 'Relatório Personalizado'; break;
+            titulo = 'Relatório Personalizado'; 
+            break;
     }
     
     db.ref('configuracoes/logoHospital').once('value').then(snapLogo => {
-        if (snapLogo.val()) {
-            try { doc.addImage(snapLogo.val(), 'PNG', 10, 8, 22, 22); } catch(e) {}
+        const logo = snapLogo.val();
+        if (logo) {
+            try { doc.addImage(logo, 'PNG', 10, 8, 22, 22); } catch(e) {}
         }
         
-        doc.setFontSize(16); doc.setTextColor(26, 107, 122);
+        doc.setFontSize(16); 
+        doc.setTextColor(26, 107, 122);
         doc.text('HOSPITAL REGIONAL DE PALMEIRA DOS ÍNDIOS', 148, 15, { align: 'center' });
-        doc.setFontSize(11); doc.setTextColor(100);
+        
+        doc.setFontSize(11); 
+        doc.setTextColor(100);
         doc.text('Sistema de Controle de Recepção - HRPI', 148, 22, { align: 'center' });
-        doc.setFontSize(13); doc.setTextColor(0);
+        
+        doc.setFontSize(13); 
+        doc.setTextColor(0);
         doc.text(`${titulo}: ${dataInicio} a ${dataFim}`, 148, 30, { align: 'center' });
         
         let dados = Object.values(acompanhantes);
         if (dataInicio) {
             const [di, mi, ai] = dataInicio.split('-');
-            dados = dados.filter(ac => { const [d, m, a] = ac.dataEntrada.split('-'); return new Date(a, m-1, d) >= new Date(ai, mi-1, di); });
+            dados = dados.filter(ac => { 
+                const [d, m, a] = ac.dataEntrada.split('-'); 
+                return new Date(a, m-1, d) >= new Date(ai, mi-1, di); 
+            });
         }
         if (dataFim) {
             const [df, mf, af] = dataFim.split('-');
-            dados = dados.filter(ac => { const [d, m, a] = ac.dataEntrada.split('-'); return new Date(a, m-1, d) <= new Date(af, mf-1, df, 23, 59, 59); });
+            dados = dados.filter(ac => { 
+                const [d, m, a] = ac.dataEntrada.split('-'); 
+                return new Date(a, m-1, d) <= new Date(af, mf-1, df, 23, 59, 59); 
+            });
         }
         
         doc.autoTable({
             startY: 38,
             head: [['Tipo', 'Nome', 'Documento', 'Parentesco', 'Paciente', 'Setor', 'Leito', 'Entrada', 'Saída', 'Status']],
-            body: dados.map(ac => [ac.tipo === 'visita' ? 'Visita' : 'Acomp.', ac.nomeAcompanhante, ac.documento || '-', ac.parentesco, ac.nomePaciente, ac.setor, ac.leito || '-', ac.dataEntrada + ' ' + ac.horaEntrada, ac.dataSaida ? ac.dataSaida + ' ' + ac.horaSaida : '-', ac.status]),
-            styles: { fontSize: 7.5 }, headStyles: { fillColor: [26, 107, 122] },
+            body: dados.map(ac => [
+                ac.tipo === 'visita' ? 'Visita' : 'Acomp.', 
+                ac.nomeAcompanhante, 
+                ac.documento || '-', 
+                ac.parentesco, 
+                ac.nomePaciente, 
+                ac.setor, 
+                ac.leito || '-', 
+                ac.dataEntrada + ' ' + ac.horaEntrada, 
+                ac.dataSaida ? ac.dataSaida + ' ' + ac.horaSaida : '-', 
+                ac.status
+            ]),
+            styles: { fontSize: 7.5 }, 
+            headStyles: { fillColor: [26, 107, 122] },
             alternateRowStyles: { fillColor: [232, 244, 247] }
         });
         
         doc.save(`HRPI_Relatorio_${tipo}_${dataHoje()}.pdf`);
         toast('PDF gerado com sucesso!');
+    }).catch(error => {
+        console.error('Erro:', error);
+        toast('Erro ao gerar PDF.', 'error');
     });
 }
 
