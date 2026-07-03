@@ -777,5 +777,335 @@ function gerarRelatorio(tipo) {
     doc.save(`Relatorio_${tipo}_${dataHoje()}.pdf`);
     toast('PDF gerado com sucesso!');
 }
+// ============================================
+// UPLOAD DE LOGO E FUNDO
+// ============================================
+document.getElementById('uploadLogo').addEventListener('change', function(e) {
+    const file = e.target.files[0];
+    if (!file) return;
+    
+    const reader = new FileReader();
+    reader.onload = function(event) {
+        const base64 = event.target.result;
+        
+        // Salvar no Firebase
+        db.ref('configuracoes').update({ logoHospital: base64 }).then(() => {
+            // Atualizar todas as logos na tela
+            document.getElementById('sidebarLogo').innerHTML = `<img src="${base64}" alt="Logo HRPI" style="max-width:50px;max-height:50px;object-fit:contain;">`;
+            document.getElementById('loginLogo').innerHTML = `<img src="${base64}" alt="Logo HRPI" style="max-width:100px;max-height:80px;object-fit:contain;">`;
+            toast('Logo atualizada com sucesso!');
+        }).catch(erro => {
+            toast('Erro ao salvar logo: ' + erro.message, true);
+        });
+    };
+    reader.readAsDataURL(file);
+});
 
+document.getElementById('uploadFundo').addEventListener('change', function(e) {
+    const file = e.target.files[0];
+    if (!file) return;
+    
+    const reader = new FileReader();
+    reader.onload = function(event) {
+        const base64 = event.target.result;
+        
+        // Salvar no Firebase
+        db.ref('configuracoes').update({ fundoLogin: base64 }).then(() => {
+            // Atualizar fundo da tela de login
+            const loginScreen = document.getElementById('loginScreen');
+            loginScreen.style.backgroundImage = `url(${base64})`;
+            loginScreen.style.backgroundSize = 'cover';
+            loginScreen.style.backgroundPosition = 'center';
+            toast('Fundo da tela de login atualizado!');
+        }).catch(erro => {
+            toast('Erro ao salvar fundo: ' + erro.message, true);
+        });
+    };
+    reader.readAsDataURL(file);
+});
+
+// Remover Logo
+document.getElementById('btnRemoverLogo').addEventListener('click', function() {
+    if (confirm('Remover a logo do hospital?')) {
+        db.ref('configuracoes').update({ logoHospital: null }).then(() => {
+            document.getElementById('sidebarLogo').innerHTML = '<i class="fas fa-hospital-alt"></i>';
+            document.getElementById('loginLogo').innerHTML = '<i class="fas fa-hospital-alt"></i>';
+            toast('Logo removida!');
+        });
+    }
+});
+
+// Remover Fundo
+document.getElementById('btnRemoverFundo').addEventListener('click', function() {
+    if (confirm('Remover o fundo da tela de login?')) {
+        db.ref('configuracoes').update({ fundoLogin: null }).then(() => {
+            document.getElementById('loginScreen').style.backgroundImage = '';
+            toast('Fundo removido!');
+        });
+    }
+});
+
+// ============================================
+// CARREGAR CONFIGURAÇÕES AO INICIAR
+// ============================================
+function carregarConfiguracoes() {
+    db.ref('configuracoes').once('value').then(snapshot => {
+        const config = snapshot.val();
+        if (config) {
+            // Carregar logo
+            if (config.logoHospital) {
+                document.getElementById('sidebarLogo').innerHTML = `<img src="${config.logoHospital}" alt="Logo HRPI" style="max-width:50px;max-height:50px;object-fit:contain;">`;
+                document.getElementById('loginLogo').innerHTML = `<img src="${config.logoHospital}" alt="Logo HRPI" style="max-width:100px;max-height:80px;object-fit:contain;">`;
+            }
+            
+            // Carregar fundo
+            if (config.fundoLogin) {
+                const loginScreen = document.getElementById('loginScreen');
+                loginScreen.style.backgroundImage = `url(${config.fundoLogin})`;
+                loginScreen.style.backgroundSize = 'cover';
+                loginScreen.style.backgroundPosition = 'center';
+            }
+            
+            // Carregar tema
+            if (config.tema) {
+                document.documentElement.setAttribute('data-theme', config.tema);
+                const themeIcon = document.querySelector('#themeToggle i');
+                if (themeIcon) {
+                    themeIcon.className = config.tema === 'dark' ? 'fas fa-sun' : 'fas fa-moon';
+                }
+            }
+        }
+    });
+}
+
+// Chamar ao iniciar o sistema
+function iniciarSistema() {
+    db.ref('acompanhantes').on('value', snapshot => {
+        acompanhantes = snapshot.val() || {};
+        atualizarDashboard();
+        atualizarAtivos();
+        atualizarHistorico();
+        atualizarSelects();
+    });
+    
+    carregarConfiguracoes(); // <-- ADICIONAR ESTA LINHA
+    
+    navegarPara('dashboard');
+}
+
+// ============================================
+// RESETAR SENHA DE USUÁRIO (CONFIGURAÇÕES)
+// ============================================
+// Preencher select de usuários
+db.ref('usuarios').on('value', snapshot => {
+    const select = document.getElementById('selectUsuarioReset');
+    if (!select) return;
+    
+    select.innerHTML = '<option value="">Selecione um usuário...</option>';
+    const usuarios = snapshot.val() || {};
+    Object.values(usuarios).forEach(user => {
+        const option = document.createElement('option');
+        option.value = user.id;
+        option.textContent = `${user.nome} (${user.usuario}) - ${user.cargo}`;
+        select.appendChild(option);
+    });
+});
+
+document.getElementById('btnResetSenha').addEventListener('click', function() {
+    const userId = document.getElementById('selectUsuarioReset').value;
+    if (!userId) {
+        toast('Selecione um usuário', true);
+        return;
+    }
+    
+    if (confirm('Resetar a senha deste usuário para "12345"?')) {
+        db.ref('usuarios/' + userId).update({
+            senha: '12345',
+            primeiroAcesso: true
+        }).then(() => {
+            toast('Senha resetada para 12345');
+        }).catch(erro => {
+            toast('Erro: ' + erro.message, true);
+        });
+    }
+});
+
+// ============================================
+// GERENCIAMENTO DE USUÁRIOS
+// ============================================
+document.getElementById('btnNovoUsuario').addEventListener('click', function() {
+    document.getElementById('modalTitle').textContent = 'Novo Usuário';
+    document.getElementById('modalBody').innerHTML = `
+        <form id="formNovoUsuario" class="modern-form">
+            <div class="form-group">
+                <label>Nome Completo *</label>
+                <input type="text" id="newUserNome" required>
+            </div>
+            <div class="form-group">
+                <label>Usuário *</label>
+                <input type="text" id="newUserUsername" required>
+            </div>
+            <div class="form-group">
+                <label>Cargo *</label>
+                <select id="newUserCargo" required>
+                    <option value="">Selecione...</option>
+                    <option value="Administrador">Administrador</option>
+                    <option value="Supervisor">Supervisor</option>
+                    <option value="Recepcionista">Recepcionista</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>Ativo</label>
+                <select id="newUserAtivo">
+                    <option value="true">Sim</option>
+                    <option value="false">Não</option>
+                </select>
+            </div>
+            <button type="submit" class="btn-primary">
+                <i class="fas fa-save"></i> Criar Usuário
+            </button>
+        </form>
+    `;
+    
+    document.getElementById('genericModal').style.display = 'flex';
+    
+    document.getElementById('formNovoUsuario').addEventListener('submit', function(e) {
+        e.preventDefault();
+        const id = 'user_' + Date.now();
+        const dados = {
+            id: id,
+            nome: document.getElementById('newUserNome').value,
+            usuario: document.getElementById('newUserUsername').value,
+            senha: '12345',
+            cargo: document.getElementById('newUserCargo').value,
+            ativo: document.getElementById('newUserAtivo').value === 'true',
+            primeiroAcesso: true
+        };
+        
+        db.ref('usuarios/' + id).set(dados).then(() => {
+            toast('Usuário criado! Senha padrão: 12345');
+            document.getElementById('genericModal').style.display = 'none';
+            carregarUsuarios();
+        }).catch(erro => {
+            toast('Erro: ' + erro.message, true);
+        });
+    });
+});
+
+function carregarUsuarios() {
+    db.ref('usuarios').once('value').then(snapshot => {
+        const usuarios = snapshot.val() || {};
+        const tbody = document.querySelector('#tabelaUsuarios tbody');
+        tbody.innerHTML = '';
+        
+        Object.values(usuarios).forEach(user => {
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+                <td>${user.nome}</td>
+                <td>${user.usuario}</td>
+                <td>${user.cargo}</td>
+                <td><span class="status-badge ${user.ativo !== false ? 'status-presente' : 'status-saiu'}">${user.ativo !== false ? 'Ativo' : 'Inativo'}</span></td>
+                <td><span class="status-badge ${user.primeiroAcesso ? 'status-trocado' : 'status-presente'}">${user.primeiroAcesso ? 'Pendente' : 'OK'}</span></td>
+                <td>
+                    <button class="btn-icon btn-edit" onclick="editarUsuario('${user.id}')"><i class="fas fa-edit"></i></button>
+                    <button class="btn-icon btn-key" onclick="resetSenhaUsuario('${user.id}')"><i class="fas fa-key"></i></button>
+                    <button class="btn-icon btn-delete" onclick="excluirUsuario('${user.id}')"><i class="fas fa-trash"></i></button>
+                </td>
+            `;
+            tbody.appendChild(tr);
+        });
+    });
+}
+
+function editarUsuario(id) {
+    db.ref('usuarios/' + id).once('value').then(snapshot => {
+        const user = snapshot.val();
+        
+        document.getElementById('modalTitle').textContent = 'Editar Usuário';
+        document.getElementById('modalBody').innerHTML = `
+            <form id="formEditarUsuario" class="modern-form">
+                <div class="form-group">
+                    <label>Nome Completo *</label>
+                    <input type="text" id="editUserNome" value="${user.nome}" required>
+                </div>
+                <div class="form-group">
+                    <label>Usuário *</label>
+                    <input type="text" id="editUserUsername" value="${user.usuario}" required>
+                </div>
+                <div class="form-group">
+                    <label>Cargo *</label>
+                    <select id="editUserCargo" required>
+                        <option value="Administrador" ${user.cargo === 'Administrador' ? 'selected' : ''}>Administrador</option>
+                        <option value="Supervisor" ${user.cargo === 'Supervisor' ? 'selected' : ''}>Supervisor</option>
+                        <option value="Recepcionista" ${user.cargo === 'Recepcionista' ? 'selected' : ''}>Recepcionista</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Ativo</label>
+                    <select id="editUserAtivo">
+                        <option value="true" ${user.ativo !== false ? 'selected' : ''}>Sim</option>
+                        <option value="false" ${user.ativo === false ? 'selected' : ''}>Não</option>
+                    </select>
+                </div>
+                <button type="submit" class="btn-primary">
+                    <i class="fas fa-save"></i> Salvar
+                </button>
+            </form>
+        `;
+        
+        document.getElementById('genericModal').style.display = 'flex';
+        
+        document.getElementById('formEditarUsuario').addEventListener('submit', function(e) {
+            e.preventDefault();
+            db.ref('usuarios/' + id).update({
+                nome: document.getElementById('editUserNome').value,
+                usuario: document.getElementById('editUserUsername').value,
+                cargo: document.getElementById('editUserCargo').value,
+                ativo: document.getElementById('editUserAtivo').value === 'true'
+            }).then(() => {
+                toast('Usuário atualizado!');
+                document.getElementById('genericModal').style.display = 'none';
+                carregarUsuarios();
+            });
+        });
+    });
+}
+
+function resetSenhaUsuario(id) {
+    if (confirm('Resetar senha para "12345"?')) {
+        db.ref('usuarios/' + id).update({
+            senha: '12345',
+            primeiroAcesso: true
+        }).then(() => {
+            toast('Senha resetada!');
+            carregarUsuarios();
+        });
+    }
+}
+
+function excluirUsuario(id) {
+    if (confirm('Excluir este usuário?')) {
+        db.ref('usuarios/' + id).remove().then(() => {
+            toast('Usuário excluído!');
+            carregarUsuarios();
+        });
+    }
+}
+
+// Carregar usuários quando a seção for acessada
+const observer = new MutationObserver(function() {
+    if (document.getElementById('usuarios') && document.getElementById('usuarios').classList.contains('active')) {
+        carregarUsuarios();
+    }
+});
+
+document.querySelectorAll('.nav-item').forEach(item => {
+    item.addEventListener('click', function() {
+        if (this.getAttribute('data-section') === 'usuarios') {
+            setTimeout(carregarUsuarios, 100);
+        }
+    });
+});
+
+console.log('✅ HRPI - Sistema completo carregado!');
 console.log('✅ HRPI - Sistema pronto!');
