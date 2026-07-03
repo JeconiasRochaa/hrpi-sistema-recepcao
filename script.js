@@ -79,7 +79,6 @@ function fazerLoginEvento(e) {
         }
         
         if (user.primeiroAcesso) {
-            // Forçar troca de senha
             usuarioLogado = user;
             document.getElementById('firstAccessModal').style.display = 'flex';
             return;
@@ -103,7 +102,6 @@ function completarLogin(user) {
     document.getElementById('userName').textContent = user.nome;
     document.getElementById('userRole').textContent = user.cargo;
     
-    // Mostrar/esconder itens admin
     const isAdmin = user.cargo === 'Administrador' || user.cargo === 'Supervisor';
     document.querySelectorAll('.admin-only').forEach(el => {
         el.style.display = isAdmin ? '' : 'none';
@@ -125,7 +123,7 @@ function logout() {
 }
 
 // ============================================
-// TROCA DE SENHA (PRIMEIRO ACESSO)
+// INICIALIZAÇÃO
 // ============================================
 document.addEventListener('DOMContentLoaded', function() {
     // Login form
@@ -172,12 +170,298 @@ document.addEventListener('DOMContentLoaded', function() {
         document.getElementById('mainSystem').style.display = 'flex';
         document.getElementById('userName').textContent = usuarioLogado.nome;
         document.getElementById('userRole').textContent = usuarioLogado.cargo;
+        const isAdmin = usuarioLogado.cargo === 'Administrador' || usuarioLogado.cargo === 'Supervisor';
+        document.querySelectorAll('.admin-only').forEach(el => {
+            el.style.display = isAdmin ? '' : 'none';
+        });
+        if (isAdmin) {
+            document.getElementById('indicadoresAvancados').style.display = 'block';
+        }
         iniciarSistema();
     }
     
-    // Atualizar data
+    // Data atual
     document.getElementById('currentDate').textContent = new Date().toLocaleDateString('pt-BR', {
         weekday: 'long', year: 'numeric', month: 'long', day: 'numeric'
+    });
+    
+    // Navegação
+    document.querySelectorAll('.nav-item').forEach(item => {
+        item.addEventListener('click', function(e) {
+            e.preventDefault();
+            navegarPara(this.getAttribute('data-section'));
+        });
+    });
+    
+    // Mobile menu
+    document.getElementById('mobileMenuToggle').addEventListener('click', function() {
+        document.getElementById('sidebar').classList.toggle('mobile-open');
+    });
+    
+    // Logout
+    document.getElementById('logoutBtn').addEventListener('click', function() {
+        if (confirm('Deseja sair do sistema?')) logout();
+    });
+    
+    // Theme toggle
+    document.getElementById('themeToggle').addEventListener('click', function() {
+        const current = document.documentElement.getAttribute('data-theme') || 'light';
+        const next = current === 'light' ? 'dark' : 'light';
+        document.documentElement.setAttribute('data-theme', next);
+        this.querySelector('i').className = next === 'light' ? 'fas fa-moon' : 'fas fa-sun';
+        db.ref('configuracoes').update({ tema: next });
+    });
+    
+    // Modal close
+    document.querySelector('.modal-close').addEventListener('click', function() {
+        document.getElementById('genericModal').style.display = 'none';
+    });
+    document.getElementById('genericModal').addEventListener('click', function(e) {
+        if (e.target === this) this.style.display = 'none';
+    });
+    
+    // Configurações - Upload Logo
+    document.getElementById('uploadLogo').addEventListener('change', function(e) {
+        const file = e.target.files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = function(event) {
+            const base64 = event.target.result;
+            db.ref('configuracoes').update({ logoHospital: base64 }).then(() => {
+                document.getElementById('sidebarLogo').innerHTML = `<img src="${base64}" alt="Logo" style="max-width:40px;max-height:40px;object-fit:contain;">`;
+                document.getElementById('loginLogo').innerHTML = `<img src="${base64}" alt="Logo" style="max-width:80px;max-height:80px;object-fit:contain;">`;
+                toast('Logo atualizada!');
+            });
+        };
+        reader.readAsDataURL(file);
+    });
+    
+    // Configurações - Upload Fundo
+    document.getElementById('uploadFundo').addEventListener('change', function(e) {
+        const file = e.target.files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = function(event) {
+            const base64 = event.target.result;
+            db.ref('configuracoes').update({ fundoLogin: base64 }).then(() => {
+                const loginScreen = document.getElementById('loginScreen');
+                loginScreen.style.backgroundImage = `url(${base64})`;
+                loginScreen.style.backgroundSize = 'cover';
+                loginScreen.style.backgroundPosition = 'center';
+                loginScreen.style.backgroundRepeat = 'no-repeat';
+                toast('Fundo atualizado!');
+            });
+        };
+        reader.readAsDataURL(file);
+    });
+    
+    // Remover Logo
+    document.getElementById('btnRemoverLogo').addEventListener('click', function() {
+        if (confirm('Remover a logo?')) {
+            db.ref('configuracoes').update({ logoHospital: null }).then(() => {
+                document.getElementById('sidebarLogo').innerHTML = '<i class="fas fa-hospital-alt"></i>';
+                document.getElementById('loginLogo').innerHTML = '<i class="fas fa-hospital-alt"></i>';
+                toast('Logo removida!');
+            });
+        }
+    });
+    
+    // Remover Fundo
+    document.getElementById('btnRemoverFundo').addEventListener('click', function() {
+        if (confirm('Remover o fundo?')) {
+            db.ref('configuracoes').update({ fundoLogin: null }).then(() => {
+                document.getElementById('loginScreen').style.backgroundImage = '';
+                toast('Fundo removido!');
+            });
+        }
+    });
+    
+    // Resetar Senha
+    document.getElementById('btnResetSenha').addEventListener('click', function() {
+        const userId = document.getElementById('selectUsuarioReset').value;
+        if (!userId) { toast('Selecione um usuário', true); return; }
+        if (confirm('Resetar senha para "12345"?')) {
+            db.ref('usuarios/' + userId).update({ senha: '12345', primeiroAcesso: true }).then(() => {
+                toast('Senha resetada!');
+            });
+        }
+    });
+    
+    // Novo Usuário
+    document.getElementById('btnNovoUsuario').addEventListener('click', function() {
+        document.getElementById('modalTitle').textContent = 'Novo Usuário';
+        document.getElementById('modalBody').innerHTML = `
+            <form id="formNovoUsuario" class="modern-form">
+                <div class="form-group"><label>Nome *</label><input type="text" id="newUserNome" required></div>
+                <div class="form-group"><label>Usuário *</label><input type="text" id="newUserUsername" required></div>
+                <div class="form-group"><label>Cargo *</label><select id="newUserCargo" required><option value="">Selecione...</option><option>Administrador</option><option>Supervisor</option><option>Recepcionista</option></select></div>
+                <div class="form-group"><label>Ativo</label><select id="newUserAtivo"><option value="true">Sim</option><option value="false">Não</option></select></div>
+                <button type="submit" class="btn-primary"><i class="fas fa-save"></i> Criar</button>
+            </form>
+        `;
+        document.getElementById('genericModal').style.display = 'flex';
+        
+        document.getElementById('formNovoUsuario').addEventListener('submit', function(e) {
+            e.preventDefault();
+            const id = 'user_' + Date.now();
+            db.ref('usuarios/' + id).set({
+                id, nome: document.getElementById('newUserNome').value,
+                usuario: document.getElementById('newUserUsername').value,
+                senha: '12345', cargo: document.getElementById('newUserCargo').value,
+                ativo: document.getElementById('newUserAtivo').value === 'true',
+                primeiroAcesso: true
+            }).then(() => {
+                toast('Usuário criado! Senha: 12345');
+                document.getElementById('genericModal').style.display = 'none';
+                carregarUsuarios();
+            });
+        });
+    });
+    
+    // Formulários
+    document.getElementById('formEntradaAcompanhante').addEventListener('submit', function(e) {
+        e.preventDefault();
+        const dados = {
+            id: gerarId(), tipo: 'acompanhante',
+            nomeAcompanhante: document.getElementById('acNome').value,
+            documento: document.getElementById('acDocumento').value,
+            telefone: document.getElementById('acTelefone').value,
+            parentesco: document.getElementById('acParentesco').value,
+            nomePaciente: document.getElementById('acPaciente').value,
+            setor: document.getElementById('acSetor').value,
+            leito: document.getElementById('acLeito').value,
+            dataEntrada: dataHoje(), horaEntrada: horaAgora(),
+            dataSaida: null, horaSaida: null, status: 'presente',
+            recepcionistaEntrada: usuarioLogado.nome, recepcionistaSaida: null,
+            trocas: [], observacao: document.getElementById('acObservacao').value,
+            duracaoVisita: null
+        };
+        db.ref('acompanhantes/' + dados.id).set(dados).then(() => {
+            toast('Entrada registrada!');
+            this.reset();
+        }).catch(erro => toast('Erro: ' + erro.message, true));
+    });
+    
+    document.getElementById('formVisita').addEventListener('submit', function(e) {
+        e.preventDefault();
+        const duracao = parseInt(document.getElementById('visDuracao').value);
+        const entrada = new Date();
+        const saida = new Date(entrada.getTime() + duracao * 60000);
+        const dados = {
+            id: gerarId(), tipo: 'visita',
+            nomeAcompanhante: document.getElementById('visNome').value,
+            documento: document.getElementById('visDocumento').value,
+            telefone: document.getElementById('visTelefone').value,
+            parentesco: document.getElementById('visParentesco').value,
+            nomePaciente: document.getElementById('visPaciente').value,
+            setor: document.getElementById('visSetor').value,
+            leito: document.getElementById('visLeito').value,
+            dataEntrada: dataHoje(), horaEntrada: horaAgora(),
+            dataSaida: `${String(saida.getDate()).padStart(2,'0')}-${String(saida.getMonth()+1).padStart(2,'0')}-${saida.getFullYear()}`,
+            horaSaida: `${String(saida.getHours()).padStart(2,'0')}:${String(saida.getMinutes()).padStart(2,'0')}`,
+            status: 'saiu', recepcionistaEntrada: usuarioLogado.nome,
+            recepcionistaSaida: usuarioLogado.nome, trocas: [],
+            observacao: document.getElementById('visObservacao')?.value || '',
+            duracaoVisita: duracao
+        };
+        db.ref('acompanhantes/' + dados.id).set(dados).then(() => {
+            toast('Visita registrada!');
+            this.reset();
+        }).catch(erro => toast('Erro: ' + erro.message, true));
+    });
+    
+    document.getElementById('saidaAcompanhante').addEventListener('change', function() {
+        const id = this.value;
+        const info = document.getElementById('saidaInfo');
+        if (id && acompanhantes[id]) {
+            const ac = acompanhantes[id];
+            document.getElementById('saidaPaciente').textContent = ac.nomePaciente;
+            document.getElementById('saidaSetor').textContent = ac.setor;
+            document.getElementById('saidaEntrada').textContent = ac.dataEntrada + ' ' + ac.horaEntrada;
+            info.style.display = 'block';
+        } else { info.style.display = 'none'; }
+    });
+    
+    document.getElementById('formSaida').addEventListener('submit', function(e) {
+        e.preventDefault();
+        const id = document.getElementById('saidaAcompanhante').value;
+        const motivo = document.getElementById('saidaMotivo').value;
+        if (!id || !motivo) { toast('Selecione acompanhante e motivo', true); return; }
+        const atual = acompanhantes[id];
+        const obs = atual.observacao ? atual.observacao + ' | Saída: ' + motivo : 'Saída: ' + motivo;
+        db.ref('acompanhantes/' + id).update({
+            status: 'saiu', dataSaida: dataHoje(), horaSaida: horaAgora(),
+            recepcionistaSaida: usuarioLogado.nome, observacao: obs
+        }).then(() => {
+            toast('Saída registrada!');
+            this.reset();
+            document.getElementById('saidaInfo').style.display = 'none';
+        });
+    });
+    
+    document.getElementById('trocaAcompanhanteAtual').addEventListener('change', function() {
+        const id = this.value;
+        const info = document.getElementById('trocaInfoAtual');
+        if (id && acompanhantes[id]) {
+            const ac = acompanhantes[id];
+            document.getElementById('trocaPaciente').textContent = ac.nomePaciente;
+            document.getElementById('trocaSetor').textContent = ac.setor;
+            document.getElementById('trocaLeito').textContent = ac.leito || '-';
+            info.style.display = 'block';
+        } else { info.style.display = 'none'; }
+    });
+    
+    document.getElementById('formTroca').addEventListener('submit', function(e) {
+        e.preventDefault();
+        const idAntigo = document.getElementById('trocaAcompanhanteAtual').value;
+        const antigo = acompanhantes[idAntigo];
+        if (!antigo) { toast('Selecione um acompanhante', true); return; }
+        
+        db.ref('acompanhantes/' + idAntigo).update({
+            status: 'trocado', dataSaida: dataHoje(), horaSaida: horaAgora(),
+            recepcionistaSaida: usuarioLogado.nome,
+            trocas: [...(antigo.trocas || []), {
+                dataHora: dataHoje() + ' ' + horaAgora(),
+                acompanhanteAntigo: antigo.nomeAcompanhante,
+                acompanhanteNovo: document.getElementById('trocaNovoNome').value,
+                recepcionista: usuarioLogado.nome
+            }]
+        });
+        
+        const novoId = gerarId();
+        db.ref('acompanhantes/' + novoId).set({
+            id: novoId, tipo: 'acompanhante',
+            nomeAcompanhante: document.getElementById('trocaNovoNome').value,
+            documento: document.getElementById('trocaNovoDocumento').value,
+            telefone: document.getElementById('trocaNovoTelefone').value,
+            parentesco: document.getElementById('trocaNovoParentesco').value,
+            nomePaciente: antigo.nomePaciente, setor: antigo.setor, leito: antigo.leito,
+            dataEntrada: dataHoje(), horaEntrada: horaAgora(),
+            dataSaida: null, horaSaida: null, status: 'presente',
+            recepcionistaEntrada: usuarioLogado.nome, recepcionistaSaida: null,
+            trocas: [], observacao: 'Substituiu: ' + antigo.nomeAcompanhante,
+            duracaoVisita: null
+        }).then(() => {
+            toast('Troca registrada!');
+            this.reset();
+            document.getElementById('trocaInfoAtual').style.display = 'none';
+        });
+    });
+    
+    // Filtro histórico
+    document.getElementById('btnFiltrar').addEventListener('click', function() {
+        filtrarHistorico();
+    });
+    
+    // Select reset senha
+    db.ref('usuarios').on('value', snapshot => {
+        const select = document.getElementById('selectUsuarioReset');
+        if (!select) return;
+        select.innerHTML = '<option value="">Selecione...</option>';
+        const usuarios = snapshot.val() || {};
+        Object.values(usuarios).forEach(user => {
+            select.innerHTML += `<option value="${user.id}">${user.nome} (${user.usuario})</option>`;
+        });
     });
 });
 
@@ -192,7 +476,7 @@ function iniciarSistema() {
         atualizarHistorico();
         atualizarSelects();
     });
-    
+    carregarConfiguracoes();
     navegarPara('dashboard');
 }
 
@@ -210,44 +494,15 @@ function navegarPara(section) {
     if (nav) nav.classList.add('active');
     
     document.getElementById('sectionTitle').textContent = {
-        'dashboard': 'Dashboard',
-        'entradaAcompanhante': 'Entrada de Acompanhante',
-        'registroVisita': 'Registro de Visita',
-        'registroTroca': 'Troca de Acompanhante',
-        'registroSaida': 'Registro de Saída',
-        'acompanhantesAtivos': 'Acompanhantes Ativos',
-        'historico': 'Histórico Completo',
-        'relatorios': 'Relatórios em PDF',
-        'usuarios': 'Gerenciamento de Usuários',
-        'configuracoes': 'Configurações'
+        'dashboard': 'Dashboard', 'entradaAcompanhante': 'Entrada de Acompanhante',
+        'registroVisita': 'Registro de Visita', 'registroTroca': 'Troca de Acompanhante',
+        'registroSaida': 'Registro de Saída', 'acompanhantesAtivos': 'Acompanhantes Ativos',
+        'historico': 'Histórico Completo', 'relatorios': 'Relatórios em PDF',
+        'usuarios': 'Gerenciamento de Usuários', 'configuracoes': 'Configurações'
     }[section] || '';
+    
+    if (section === 'usuarios') carregarUsuarios();
 }
-
-document.querySelectorAll('.nav-item').forEach(item => {
-    item.addEventListener('click', function(e) {
-        e.preventDefault();
-        navegarPara(this.getAttribute('data-section'));
-    });
-});
-
-// Mobile menu
-document.getElementById('mobileMenuToggle').addEventListener('click', function() {
-    document.getElementById('sidebar').classList.toggle('mobile-open');
-});
-
-// Logout
-document.getElementById('logoutBtn').addEventListener('click', function() {
-    if (confirm('Deseja sair do sistema?')) logout();
-});
-
-// Theme toggle
-document.getElementById('themeToggle').addEventListener('click', function() {
-    const current = document.documentElement.getAttribute('data-theme') || 'light';
-    const next = current === 'light' ? 'dark' : 'light';
-    document.documentElement.setAttribute('data-theme', next);
-    this.querySelector('i').className = next === 'light' ? 'fas fa-moon' : 'fas fa-sun';
-    db.ref('configuracoes').update({ tema: next });
-});
 
 // ============================================
 // DASHBOARD
@@ -258,10 +513,7 @@ function atualizarDashboard() {
     const ultimos = [];
     
     Object.values(acompanhantes).forEach(ac => {
-        if (ac.status === 'presente') {
-            presentes++;
-            if (ac.tipo === 'visita') visitas++;
-        }
+        if (ac.status === 'presente') { presentes++; if (ac.tipo === 'visita') visitas++; }
         if (ac.dataEntrada === hoje) entradas++;
         if (ac.dataSaida === hoje) {
             if (ac.status === 'saiu') saidas++;
@@ -276,19 +528,16 @@ function atualizarDashboard() {
     document.getElementById('countTrocasHoje').textContent = trocas;
     document.getElementById('countSaidasHoje').textContent = saidas;
     
-    // Ordenar
     ultimos.sort((a, b) => {
         const [da, ma, aa] = a.dataEntrada.split('-');
         const [db, mb, ab] = b.dataEntrada.split('-');
         return new Date(ab, mb-1, db) - new Date(aa, ma-1, da);
     });
     
-    const tbody = document.querySelector('#tabelaUltimosRegistros tbody');
-    tbody.innerHTML = ultimos.slice(0, 8).map(ac => `
+    document.querySelector('#tabelaUltimosRegistros tbody').innerHTML = ultimos.slice(0, 8).map(ac => `
         <tr>
             <td><span class="badge badge-${ac.tipo}">${ac.tipo === 'visita' ? 'Visita' : 'Acomp.'}</span></td>
-            <td>${ac.nomeAcompanhante}</td>
-            <td>${ac.nomePaciente}</td>
+            <td>${ac.nomeAcompanhante}</td><td>${ac.nomePaciente}</td>
             <td>${ac.setor}${ac.leito ? ' / ' + ac.leito : ''}</td>
             <td>${ac.dataEntrada} ${ac.horaEntrada}</td>
             <td><span class="status-badge status-${ac.status}">${ac.status}</span></td>
@@ -297,211 +546,18 @@ function atualizarDashboard() {
 }
 
 // ============================================
-// ENTRADA DE ACOMPANHANTE
-// ============================================
-document.getElementById('formEntradaAcompanhante').addEventListener('submit', function(e) {
-    e.preventDefault();
-    
-    const dados = {
-        id: gerarId(),
-        tipo: 'acompanhante',
-        nomeAcompanhante: document.getElementById('acNome').value,
-        documento: document.getElementById('acDocumento').value,
-        telefone: document.getElementById('acTelefone').value,
-        parentesco: document.getElementById('acParentesco').value,
-        nomePaciente: document.getElementById('acPaciente').value,
-        setor: document.getElementById('acSetor').value,
-        leito: document.getElementById('acLeito').value,
-        dataEntrada: dataHoje(),
-        horaEntrada: horaAgora(),
-        dataSaida: null,
-        horaSaida: null,
-        status: 'presente',
-        recepcionistaEntrada: usuarioLogado.nome,
-        recepcionistaSaida: null,
-        trocas: [],
-        observacao: document.getElementById('acObservacao').value,
-        duracaoVisita: null
-    };
-    
-    db.ref('acompanhantes/' + dados.id).set(dados).then(() => {
-        toast('Entrada registrada com sucesso!');
-        this.reset();
-    }).catch(erro => toast('Erro: ' + erro.message, true));
-});
-
-// ============================================
-// REGISTRO DE VISITA
-// ============================================
-document.getElementById('formVisita').addEventListener('submit', function(e) {
-    e.preventDefault();
-    
-    const duracao = parseInt(document.getElementById('visDuracao').value);
-    const entrada = new Date();
-    const saida = new Date(entrada.getTime() + duracao * 60000);
-    
-    const dados = {
-        id: gerarId(),
-        tipo: 'visita',
-        nomeAcompanhante: document.getElementById('visNome').value,
-        documento: document.getElementById('visDocumento').value,
-        telefone: document.getElementById('visTelefone').value,
-        parentesco: document.getElementById('visParentesco').value,
-        nomePaciente: document.getElementById('visPaciente').value,
-        setor: document.getElementById('visSetor').value,
-        leito: document.getElementById('visLeito').value,
-        dataEntrada: dataHoje(),
-        horaEntrada: horaAgora(),
-        dataSaida: `${String(saida.getDate()).padStart(2,'0')}-${String(saida.getMonth()+1).padStart(2,'0')}-${saida.getFullYear()}`,
-        horaSaida: `${String(saida.getHours()).padStart(2,'0')}:${String(saida.getMinutes()).padStart(2,'0')}`,
-        status: 'saiu',
-        recepcionistaEntrada: usuarioLogado.nome,
-        recepcionistaSaida: usuarioLogado.nome,
-        trocas: [],
-        observacao: document.getElementById('visObservacao').value,
-        duracaoVisita: duracao
-    };
-    
-    db.ref('acompanhantes/' + dados.id).set(dados).then(() => {
-        toast('Visita registrada com sucesso!');
-        this.reset();
-    }).catch(erro => toast('Erro: ' + erro.message, true));
-});
-
-// ============================================
-// REGISTRO DE SAÍDA
-// ============================================
-document.getElementById('saidaAcompanhante').addEventListener('change', function() {
-    const id = this.value;
-    const info = document.getElementById('saidaInfo');
-    if (id && acompanhantes[id]) {
-        const ac = acompanhantes[id];
-        document.getElementById('saidaPaciente').textContent = ac.nomePaciente;
-        document.getElementById('saidaSetor').textContent = ac.setor;
-        document.getElementById('saidaEntrada').textContent = ac.dataEntrada + ' ' + ac.horaEntrada;
-        info.style.display = 'block';
-    } else {
-        info.style.display = 'none';
-    }
-});
-
-document.getElementById('formSaida').addEventListener('submit', function(e) {
-    e.preventDefault();
-    
-    const id = document.getElementById('saidaAcompanhante').value;
-    const motivo = document.getElementById('saidaMotivo').value;
-    
-    if (!id || !motivo) {
-        toast('Selecione o acompanhante e o motivo', true);
-        return;
-    }
-    
-    const atual = acompanhantes[id];
-    const obs = atual.observacao ? atual.observacao + ' | Saída: ' + motivo : 'Saída: ' + motivo;
-    
-    db.ref('acompanhantes/' + id).update({
-        status: 'saiu',
-        dataSaida: dataHoje(),
-        horaSaida: horaAgora(),
-        recepcionistaSaida: usuarioLogado.nome,
-        observacao: obs
-    }).then(() => {
-        toast('Saída registrada!');
-        this.reset();
-        document.getElementById('saidaInfo').style.display = 'none';
-    }).catch(erro => toast('Erro: ' + erro.message, true));
-});
-
-// ============================================
-// REGISTRO DE TROCA
-// ============================================
-document.getElementById('trocaAcompanhanteAtual').addEventListener('change', function() {
-    const id = this.value;
-    const info = document.getElementById('trocaInfoAtual');
-    if (id && acompanhantes[id]) {
-        const ac = acompanhantes[id];
-        document.getElementById('trocaPaciente').textContent = ac.nomePaciente;
-        document.getElementById('trocaSetor').textContent = ac.setor;
-        document.getElementById('trocaLeito').textContent = ac.leito || '-';
-        info.style.display = 'block';
-    } else {
-        info.style.display = 'none';
-    }
-});
-
-document.getElementById('formTroca').addEventListener('submit', function(e) {
-    e.preventDefault();
-    
-    const idAntigo = document.getElementById('trocaAcompanhanteAtual').value;
-    const antigo = acompanhantes[idAntigo];
-    
-    if (!antigo) {
-        toast('Selecione um acompanhante', true);
-        return;
-    }
-    
-    // Atualizar antigo
-    db.ref('acompanhantes/' + idAntigo).update({
-        status: 'trocado',
-        dataSaida: dataHoje(),
-        horaSaida: horaAgora(),
-        recepcionistaSaida: usuarioLogado.nome,
-        trocas: [...(antigo.trocas || []), {
-            dataHora: dataHoje() + ' ' + horaAgora(),
-            acompanhanteAntigo: antigo.nomeAcompanhante,
-            acompanhanteNovo: document.getElementById('trocaNovoNome').value,
-            recepcionista: usuarioLogado.nome
-        }]
-    });
-    
-    // Criar novo
-    const novoId = gerarId();
-    db.ref('acompanhantes/' + novoId).set({
-        id: novoId,
-        tipo: 'acompanhante',
-        nomeAcompanhante: document.getElementById('trocaNovoNome').value,
-        documento: document.getElementById('trocaNovoDocumento').value,
-        telefone: document.getElementById('trocaNovoTelefone').value,
-        parentesco: document.getElementById('trocaNovoParentesco').value,
-        nomePaciente: antigo.nomePaciente,
-        setor: antigo.setor,
-        leito: antigo.leito,
-        dataEntrada: dataHoje(),
-        horaEntrada: horaAgora(),
-        dataSaida: null,
-        horaSaida: null,
-        status: 'presente',
-        recepcionistaEntrada: usuarioLogado.nome,
-        recepcionistaSaida: null,
-        trocas: [],
-        observacao: 'Substituiu: ' + antigo.nomeAcompanhante,
-        duracaoVisita: null
-    }).then(() => {
-        toast('Troca registrada!');
-        this.reset();
-        document.getElementById('trocaInfoAtual').style.display = 'none';
-    });
-});
-
-// ============================================
 // ATIVOS
 // ============================================
 function atualizarAtivos() {
-    const tbody = document.querySelector('#tabelaAtivos tbody');
     const ativos = Object.values(acompanhantes).filter(a => a.status === 'presente');
-    
-    tbody.innerHTML = ativos.length === 0 
+    document.querySelector('#tabelaAtivos tbody').innerHTML = ativos.length === 0 
         ? '<tr><td colspan="9" style="text-align:center;">Nenhum ativo</td></tr>'
         : ativos.map(ac => `
             <tr>
                 <td><span class="badge badge-${ac.tipo}">${ac.tipo === 'visita' ? 'Visita' : 'Acomp.'}</span></td>
-                <td>${ac.nomeAcompanhante}</td>
-                <td>${ac.documento || '-'}</td>
-                <td>${ac.parentesco}</td>
-                <td>${ac.nomePaciente}</td>
-                <td>${ac.setor}</td>
-                <td>${ac.leito || '-'}</td>
-                <td>${ac.dataEntrada} ${ac.horaEntrada}</td>
+                <td>${ac.nomeAcompanhante}</td><td>${ac.documento || '-'}</td>
+                <td>${ac.parentesco}</td><td>${ac.nomePaciente}</td><td>${ac.setor}</td>
+                <td>${ac.leito || '-'}</td><td>${ac.dataEntrada} ${ac.horaEntrada}</td>
                 <td>
                     <button class="btn-icon btn-edit" onclick="editarRegistro('${ac.id}')"><i class="fas fa-edit"></i></button>
                     <button class="btn-icon btn-delete" onclick="excluirRegistro('${ac.id}')"><i class="fas fa-trash"></i></button>
@@ -514,25 +570,19 @@ function atualizarAtivos() {
 // HISTÓRICO
 // ============================================
 function atualizarHistorico() {
-    const tbody = document.querySelector('#tabelaHistorico tbody');
     let registros = Object.values(acompanhantes);
-    
     registros.sort((a, b) => {
         const [da, ma, aa] = a.dataEntrada.split('-');
         const [db, mb, ab] = b.dataEntrada.split('-');
         return new Date(ab, mb-1, db) - new Date(aa, ma-1, da);
     });
     
-    tbody.innerHTML = registros.map(ac => `
+    document.querySelector('#tabelaHistorico tbody').innerHTML = registros.map(ac => `
         <tr>
             <td><span class="badge badge-${ac.tipo}">${ac.tipo === 'visita' ? 'Visita' : 'Acomp.'}</span></td>
-            <td>${ac.nomeAcompanhante}</td>
-            <td>${ac.documento || '-'}</td>
-            <td>${ac.parentesco}</td>
-            <td>${ac.nomePaciente}</td>
-            <td>${ac.setor}</td>
-            <td>${ac.leito || '-'}</td>
-            <td>${ac.dataEntrada} ${ac.horaEntrada}</td>
+            <td>${ac.nomeAcompanhante}</td><td>${ac.documento || '-'}</td>
+            <td>${ac.parentesco}</td><td>${ac.nomePaciente}</td><td>${ac.setor}</td>
+            <td>${ac.leito || '-'}</td><td>${ac.dataEntrada} ${ac.horaEntrada}</td>
             <td>${ac.dataSaida ? ac.dataSaida + ' ' + ac.horaSaida : '-'}</td>
             <td><span class="status-badge status-${ac.status}">${ac.status}</span></td>
             <td>
@@ -543,14 +593,13 @@ function atualizarHistorico() {
     `).join('');
 }
 
-document.getElementById('btnFiltrar').addEventListener('click', function() {
+function filtrarHistorico() {
     const inicio = document.getElementById('filtroDataInicio').value;
     const fim = document.getElementById('filtroDataFim').value;
     const status = document.getElementById('filtroStatus').value;
     const tipo = document.getElementById('filtroTipo').value;
     
     let registros = Object.values(acompanhantes);
-    
     if (status) registros = registros.filter(a => a.status === status);
     if (tipo) registros = registros.filter(a => a.tipo === tipo);
     if (inicio) registros = registros.filter(a => {
@@ -562,17 +611,12 @@ document.getElementById('btnFiltrar').addEventListener('click', function() {
         return new Date(an, m-1, d) <= new Date(fim + 'T23:59:59');
     });
     
-    const tbody = document.querySelector('#tabelaHistorico tbody');
-    tbody.innerHTML = registros.map(ac => `
+    document.querySelector('#tabelaHistorico tbody').innerHTML = registros.map(ac => `
         <tr>
             <td><span class="badge badge-${ac.tipo}">${ac.tipo === 'visita' ? 'Visita' : 'Acomp.'}</span></td>
-            <td>${ac.nomeAcompanhante}</td>
-            <td>${ac.documento || '-'}</td>
-            <td>${ac.parentesco}</td>
-            <td>${ac.nomePaciente}</td>
-            <td>${ac.setor}</td>
-            <td>${ac.leito || '-'}</td>
-            <td>${ac.dataEntrada} ${ac.horaEntrada}</td>
+            <td>${ac.nomeAcompanhante}</td><td>${ac.documento || '-'}</td>
+            <td>${ac.parentesco}</td><td>${ac.nomePaciente}</td><td>${ac.setor}</td>
+            <td>${ac.leito || '-'}</td><td>${ac.dataEntrada} ${ac.horaEntrada}</td>
             <td>${ac.dataSaida ? ac.dataSaida + ' ' + ac.horaSaida : '-'}</td>
             <td><span class="status-badge status-${ac.status}">${ac.status}</span></td>
             <td>
@@ -581,7 +625,7 @@ document.getElementById('btnFiltrar').addEventListener('click', function() {
             </td>
         </tr>
     `).join('');
-});
+}
 
 // ============================================
 // EDITAR / EXCLUIR
@@ -594,40 +638,34 @@ function editarRegistro(id) {
     document.getElementById('modalBody').innerHTML = `
         <form id="formEditar" class="modern-form">
             <div class="form-row">
-                <div class="form-group">
-                    <label>Nome *</label>
-                    <input type="text" id="editNome" value="${ac.nomeAcompanhante}" required>
-                </div>
-                <div class="form-group">
-                    <label>Documento</label>
-                    <input type="text" id="editDoc" value="${ac.documento || ''}">
-                </div>
+                <div class="form-group"><label>Nome *</label><input type="text" id="editNome" value="${ac.nomeAcompanhante}" required></div>
+                <div class="form-group"><label>Documento</label><input type="text" id="editDoc" value="${ac.documento || ''}"></div>
             </div>
             <div class="form-row">
-                <div class="form-group">
-                    <label>Telefone</label>
-                    <input type="text" id="editTel" value="${ac.telefone || ''}">
-                </div>
+                <div class="form-group"><label>Telefone</label><input type="text" id="editTel" value="${ac.telefone || ''}"></div>
                 <div class="form-group">
                     <label>Parentesco</label>
-                    <input type="text" id="editParentesco" value="${ac.parentesco}">
+                    <select id="editParentesco">
+                        <option>Filho(a)</option><option>Pai/Mãe</option><option>Cônjuge</option>
+                        <option>Irmão/Irmã</option><option>Neto(a)</option><option>Sobrinho(a)</option>
+                        <option>Amigo(a)</option><option>Cuidador(a)</option><option>Outro</option>
+                    </select>
                 </div>
             </div>
             <div class="form-row">
-                <div class="form-group">
-                    <label>Paciente</label>
-                    <input type="text" id="editPaciente" value="${ac.nomePaciente}">
-                </div>
+                <div class="form-group"><label>Paciente</label><input type="text" id="editPaciente" value="${ac.nomePaciente}"></div>
                 <div class="form-group">
                     <label>Setor</label>
                     <select id="editSetor">
-                        <option>Oncologia I</option><option>Oncologia II</option>
-                        <option>UTI I</option><option>UTI II</option>
-                        <option>Clínica Médica I</option><option>Clínica Médica II</option>
-                        <option>Clínica Cirúrgica</option><option>Pediatria</option>
-                        <option>Saúde Mental</option>
+                        <option>Oncologia I</option><option>Oncologia II</option><option>UTI I</option><option>UTI II</option>
+                        <option>Clínica Médica I</option><option>Clínica Médica II</option><option>Clínica Cirúrgica</option>
+                        <option>Pediatria</option><option>Saúde Mental</option>
                     </select>
                 </div>
+            </div>
+            <div class="form-row">
+                <div class="form-group"><label>Leito</label><input type="text" id="editLeito" value="${ac.leito || ''}"></div>
+                <div class="form-group"><label>Observação</label><input type="text" id="editObs" value="${ac.observacao || ''}"></div>
             </div>
             <button type="submit" class="btn-primary"><i class="fas fa-save"></i> Salvar</button>
         </form>
@@ -637,6 +675,8 @@ function editarRegistro(id) {
     
     setTimeout(() => {
         document.getElementById('editSetor').value = ac.setor;
+        document.getElementById('editParentesco').value = ac.parentesco;
+        
         document.getElementById('formEditar').addEventListener('submit', function(e) {
             e.preventDefault();
             db.ref('acompanhantes/' + id).update({
@@ -645,7 +685,9 @@ function editarRegistro(id) {
                 telefone: document.getElementById('editTel').value,
                 parentesco: document.getElementById('editParentesco').value,
                 nomePaciente: document.getElementById('editPaciente').value,
-                setor: document.getElementById('editSetor').value
+                setor: document.getElementById('editSetor').value,
+                leito: document.getElementById('editLeito').value,
+                observacao: document.getElementById('editObs').value
             }).then(() => {
                 toast('Registro atualizado!');
                 document.getElementById('genericModal').style.display = 'none';
@@ -659,15 +701,6 @@ function excluirRegistro(id) {
         db.ref('acompanhantes/' + id).remove().then(() => toast('Excluído!'));
     }
 }
-
-// Fechar modal
-document.querySelector('.modal-close').addEventListener('click', function() {
-    document.getElementById('genericModal').style.display = 'none';
-});
-
-document.getElementById('genericModal').addEventListener('click', function(e) {
-    if (e.target === this) this.style.display = 'none';
-});
 
 // ============================================
 // ATUALIZAR SELECTS
@@ -694,344 +727,52 @@ function atualizarSelects() {
 }
 
 // ============================================
-// RELATÓRIOS PDF
-// ============================================
-function gerarRelatorio(tipo) {
-    const { jsPDF } = window.jspdf;
-    const doc = new jsPDF('landscape');
-    
-    let dataInicio, dataFim, titulo;
-    const hoje = new Date();
-    
-    switch(tipo) {
-        case 'diario':
-            dataInicio = dataHoje();
-            dataFim = dataHoje();
-            titulo = 'Relatório Diário';
-            break;
-        case 'semanal':
-            const inicioSemana = new Date();
-            inicioSemana.setDate(hoje.getDate() - hoje.getDay());
-            dataInicio = `${String(inicioSemana.getDate()).padStart(2,'0')}-${String(inicioSemana.getMonth()+1).padStart(2,'0')}-${inicioSemana.getFullYear()}`;
-            dataFim = dataHoje();
-            titulo = 'Relatório Semanal';
-            break;
-        case 'mensal':
-            dataInicio = `01-${String(hoje.getMonth()+1).padStart(2,'0')}-${hoje.getFullYear()}`;
-            dataFim = dataHoje();
-            titulo = 'Relatório Mensal';
-            break;
-        case 'personalizado':
-            dataInicio = document.getElementById('dataInicioPersonalizado').value.split('-').reverse().join('-');
-            dataFim = document.getElementById('dataFimPersonalizado').value.split('-').reverse().join('-');
-            titulo = 'Relatório Personalizado';
-            break;
-    }
-    
-    // Cabeçalho
-    doc.setFontSize(16);
-    doc.text('HOSPITAL REGIONAL DE PALMEIRA DOS ÍNDIOS - HRPI', 140, 20, { align: 'center' });
-    doc.setFontSize(12);
-    doc.text(titulo + ' - ' + dataInicio + ' a ' + dataFim, 140, 30, { align: 'center' });
-    
-    // Dados
-    let dados = Object.values(acompanhantes);
-    if (dataInicio) {
-        const [di, mi, ai] = dataInicio.split('-');
-        const dataI = new Date(ai, mi-1, di);
-        dados = dados.filter(ac => {
-            const [d, m, a] = ac.dataEntrada.split('-');
-            return new Date(a, m-1, d) >= dataI;
-        });
-    }
-    if (dataFim) {
-        const [df, mf, af] = dataFim.split('-');
-        const dataF = new Date(af, mf-1, df, 23, 59, 59);
-        dados = dados.filter(ac => {
-            const [d, m, a] = ac.dataEntrada.split('-');
-            return new Date(a, m-1, d) <= dataF;
-        });
-    }
-    
-    const tableData = dados.map(ac => [
-        ac.tipo === 'visita' ? 'Visita' : 'Acomp.',
-        ac.nomeAcompanhante,
-        ac.documento || '-',
-        ac.parentesco,
-        ac.nomePaciente,
-        ac.setor,
-        ac.leito || '-',
-        ac.dataEntrada + ' ' + ac.horaEntrada,
-        ac.dataSaida ? ac.dataSaida + ' ' + ac.horaSaida : '-',
-        ac.status
-    ]);
-    
-    doc.autoTable({
-        startY: 40,
-        head: [['Tipo', 'Nome', 'Documento', 'Parentesco', 'Paciente', 'Setor', 'Leito', 'Entrada', 'Saída', 'Status']],
-        body: tableData,
-        styles: { fontSize: 8 },
-        headStyles: { fillColor: [0, 105, 92] }
-    });
-    
-    doc.save(`Relatorio_${tipo}_${dataHoje()}.pdf`);
-    toast('PDF gerado com sucesso!');
-}
-// ============================================
-// UPLOAD DE LOGO E FUNDO
-// ============================================
-document.getElementById('uploadFundo').addEventListener('change', function(e) {
-    const file = e.target.files[0];
-    if (!file) return;
-    
-    const reader = new FileReader();
-    reader.onload = function(event) {
-        const base64 = event.target.result;
-        
-        // Salvar no Firebase
-        db.ref('configuracoes').update({ fundoLogin: base64 }).then(() => {
-            // Atualizar fundo da tela de login IMEDIATAMENTE
-            const loginScreen = document.getElementById('loginScreen');
-            if (loginScreen) {
-                loginScreen.style.backgroundImage = `url(${base64})`;
-                loginScreen.style.backgroundSize = 'cover';
-                loginScreen.style.backgroundPosition = 'center';
-                loginScreen.style.backgroundRepeat = 'no-repeat';
-            }
-            toast('✅ Fundo da tela de login atualizado!');
-            console.log('✅ Fundo salvo e aplicado!');
-        }).catch(erro => {
-            toast('Erro ao salvar fundo: ' + erro.message, true);
-            console.error('Erro:', erro);
-        });
-    };
-    reader.readAsDataURL(file);
-});
-
-document.getElementById('uploadFundo').addEventListener('change', function(e) {
-    const file = e.target.files[0];
-    if (!file) return;
-    
-    const reader = new FileReader();
-    reader.onload = function(event) {
-        const base64 = event.target.result;
-        
-        // Salvar no Firebase
-        db.ref('configuracoes').update({ fundoLogin: base64 }).then(() => {
-            // Atualizar fundo da tela de login
-            const loginScreen = document.getElementById('loginScreen');
-            loginScreen.style.backgroundImage = `url(${base64})`;
-            loginScreen.style.backgroundSize = 'cover';
-            loginScreen.style.backgroundPosition = 'center';
-            toast('Fundo da tela de login atualizado!');
-        }).catch(erro => {
-            toast('Erro ao salvar fundo: ' + erro.message, true);
-        });
-    };
-    reader.readAsDataURL(file);
-});
-
-// Remover Logo
-document.getElementById('btnRemoverLogo').addEventListener('click', function() {
-    if (confirm('Remover a logo do hospital?')) {
-        db.ref('configuracoes').update({ logoHospital: null }).then(() => {
-            document.getElementById('sidebarLogo').innerHTML = '<i class="fas fa-hospital-alt"></i>';
-            document.getElementById('loginLogo').innerHTML = '<i class="fas fa-hospital-alt"></i>';
-            toast('Logo removida!');
-        });
-    }
-});
-
-// Remover Fundo
-document.getElementById('btnRemoverFundo').addEventListener('click', function() {
-    if (confirm('Remover o fundo da tela de login?')) {
-        db.ref('configuracoes').update({ fundoLogin: null }).then(() => {
-            document.getElementById('loginScreen').style.backgroundImage = '';
-            toast('Fundo removido!');
-        });
-    }
-});
-
-// ============================================
-// CARREGAR CONFIGURAÇÕES AO INICIAR
+// CONFIGURAÇÕES
 // ============================================
 function carregarConfiguracoes() {
     db.ref('configuracoes').once('value').then(snapshot => {
         const config = snapshot.val();
         if (config) {
-            // Carregar logo
             if (config.logoHospital) {
-                const sidebarLogo = document.getElementById('sidebarLogo');
-                const loginLogo = document.getElementById('loginLogo');
-                if (sidebarLogo) {
-                    sidebarLogo.innerHTML = `<img src="${config.logoHospital}" alt="Logo HRPI" style="max-width:50px;max-height:50px;object-fit:contain;">`;
-                }
-                if (loginLogo) {
-                    loginLogo.innerHTML = `<img src="${config.logoHospital}" alt="Logo HRPI" style="max-width:100px;max-height:80px;object-fit:contain;">`;
-                }
+                document.getElementById('sidebarLogo').innerHTML = `<img src="${config.logoHospital}" alt="Logo" style="max-width:40px;max-height:40px;object-fit:contain;">`;
+                document.getElementById('loginLogo').innerHTML = `<img src="${config.logoHospital}" alt="Logo" style="max-width:80px;max-height:80px;object-fit:contain;">`;
             }
-            
-            // Carregar fundo do login
             if (config.fundoLogin) {
                 const loginScreen = document.getElementById('loginScreen');
-                if (loginScreen) {
-                    loginScreen.style.backgroundImage = `url(${config.fundoLogin})`;
-                    loginScreen.style.backgroundSize = 'cover';
-                    loginScreen.style.backgroundPosition = 'center';
-                    loginScreen.style.backgroundRepeat = 'no-repeat';
-                    console.log('✅ Fundo de login carregado!');
-                }
+                loginScreen.style.backgroundImage = `url(${config.fundoLogin})`;
+                loginScreen.style.backgroundSize = 'cover';
+                loginScreen.style.backgroundPosition = 'center';
+                loginScreen.style.backgroundRepeat = 'no-repeat';
             }
-            
-            // Carregar tema
             if (config.tema) {
                 document.documentElement.setAttribute('data-theme', config.tema);
-                const themeIcon = document.querySelector('#themeToggle i');
-                if (themeIcon) {
-                    themeIcon.className = config.tema === 'dark' ? 'fas fa-sun' : 'fas fa-moon';
-                }
+                const icon = document.querySelector('#themeToggle i');
+                if (icon) icon.className = config.tema === 'dark' ? 'fas fa-sun' : 'fas fa-moon';
             }
         }
-    }).catch(erro => {
-        console.error('Erro ao carregar configurações:', erro);
     });
 }
 
-// Chamar ao iniciar o sistema
-function iniciarSistema() {
-    db.ref('acompanhantes').on('value', snapshot => {
-        acompanhantes = snapshot.val() || {};
-        atualizarDashboard();
-        atualizarAtivos();
-        atualizarHistorico();
-        atualizarSelects();
-    });
-    
-    carregarConfiguracoes(); // <-- ADICIONAR ESTA LINHA
-    
-    navegarPara('dashboard');
-}
-
 // ============================================
-// RESETAR SENHA DE USUÁRIO (CONFIGURAÇÕES)
+// USUÁRIOS
 // ============================================
-// Preencher select de usuários
-db.ref('usuarios').on('value', snapshot => {
-    const select = document.getElementById('selectUsuarioReset');
-    if (!select) return;
-    
-    select.innerHTML = '<option value="">Selecione um usuário...</option>';
-    const usuarios = snapshot.val() || {};
-    Object.values(usuarios).forEach(user => {
-        const option = document.createElement('option');
-        option.value = user.id;
-        option.textContent = `${user.nome} (${user.usuario}) - ${user.cargo}`;
-        select.appendChild(option);
-    });
-});
-
-document.getElementById('btnResetSenha').addEventListener('click', function() {
-    const userId = document.getElementById('selectUsuarioReset').value;
-    if (!userId) {
-        toast('Selecione um usuário', true);
-        return;
-    }
-    
-    if (confirm('Resetar a senha deste usuário para "12345"?')) {
-        db.ref('usuarios/' + userId).update({
-            senha: '12345',
-            primeiroAcesso: true
-        }).then(() => {
-            toast('Senha resetada para 12345');
-        }).catch(erro => {
-            toast('Erro: ' + erro.message, true);
-        });
-    }
-});
-
-// ============================================
-// GERENCIAMENTO DE USUÁRIOS
-// ============================================
-document.getElementById('btnNovoUsuario').addEventListener('click', function() {
-    document.getElementById('modalTitle').textContent = 'Novo Usuário';
-    document.getElementById('modalBody').innerHTML = `
-        <form id="formNovoUsuario" class="modern-form">
-            <div class="form-group">
-                <label>Nome Completo *</label>
-                <input type="text" id="newUserNome" required>
-            </div>
-            <div class="form-group">
-                <label>Usuário *</label>
-                <input type="text" id="newUserUsername" required>
-            </div>
-            <div class="form-group">
-                <label>Cargo *</label>
-                <select id="newUserCargo" required>
-                    <option value="">Selecione...</option>
-                    <option value="Administrador">Administrador</option>
-                    <option value="Supervisor">Supervisor</option>
-                    <option value="Recepcionista">Recepcionista</option>
-                </select>
-            </div>
-            <div class="form-group">
-                <label>Ativo</label>
-                <select id="newUserAtivo">
-                    <option value="true">Sim</option>
-                    <option value="false">Não</option>
-                </select>
-            </div>
-            <button type="submit" class="btn-primary">
-                <i class="fas fa-save"></i> Criar Usuário
-            </button>
-        </form>
-    `;
-    
-    document.getElementById('genericModal').style.display = 'flex';
-    
-    document.getElementById('formNovoUsuario').addEventListener('submit', function(e) {
-        e.preventDefault();
-        const id = 'user_' + Date.now();
-        const dados = {
-            id: id,
-            nome: document.getElementById('newUserNome').value,
-            usuario: document.getElementById('newUserUsername').value,
-            senha: '12345',
-            cargo: document.getElementById('newUserCargo').value,
-            ativo: document.getElementById('newUserAtivo').value === 'true',
-            primeiroAcesso: true
-        };
-        
-        db.ref('usuarios/' + id).set(dados).then(() => {
-            toast('Usuário criado! Senha padrão: 12345');
-            document.getElementById('genericModal').style.display = 'none';
-            carregarUsuarios();
-        }).catch(erro => {
-            toast('Erro: ' + erro.message, true);
-        });
-    });
-});
-
 function carregarUsuarios() {
     db.ref('usuarios').once('value').then(snapshot => {
         const usuarios = snapshot.val() || {};
         const tbody = document.querySelector('#tabelaUsuarios tbody');
         tbody.innerHTML = '';
-        
         Object.values(usuarios).forEach(user => {
-            const tr = document.createElement('tr');
-            tr.innerHTML = `
-                <td>${user.nome}</td>
-                <td>${user.usuario}</td>
-                <td>${user.cargo}</td>
-                <td><span class="status-badge ${user.ativo !== false ? 'status-presente' : 'status-saiu'}">${user.ativo !== false ? 'Ativo' : 'Inativo'}</span></td>
-                <td><span class="status-badge ${user.primeiroAcesso ? 'status-trocado' : 'status-presente'}">${user.primeiroAcesso ? 'Pendente' : 'OK'}</span></td>
-                <td>
-                    <button class="btn-icon btn-edit" onclick="editarUsuario('${user.id}')"><i class="fas fa-edit"></i></button>
-                    <button class="btn-icon btn-key" onclick="resetSenhaUsuario('${user.id}')"><i class="fas fa-key"></i></button>
-                    <button class="btn-icon btn-delete" onclick="excluirUsuario('${user.id}')"><i class="fas fa-trash"></i></button>
-                </td>
-            `;
-            tbody.appendChild(tr);
+            tbody.innerHTML += `
+                <tr>
+                    <td>${user.nome}</td><td>${user.usuario}</td><td>${user.cargo}</td>
+                    <td><span class="status-badge ${user.ativo !== false ? 'status-presente' : 'status-saiu'}">${user.ativo !== false ? 'Ativo' : 'Inativo'}</span></td>
+                    <td><span class="status-badge ${user.primeiroAcesso ? 'status-trocado' : 'status-presente'}">${user.primeiroAcesso ? 'Pendente' : 'OK'}</span></td>
+                    <td>
+                        <button class="btn-icon btn-edit" onclick="editarUsuario('${user.id}')"><i class="fas fa-edit"></i></button>
+                        <button class="btn-icon btn-key" onclick="resetSenhaUsuario('${user.id}')"><i class="fas fa-key"></i></button>
+                        <button class="btn-icon btn-delete" onclick="excluirUsuario('${user.id}')"><i class="fas fa-trash"></i></button>
+                    </td>
+                </tr>`;
         });
     });
 }
@@ -1039,39 +780,23 @@ function carregarUsuarios() {
 function editarUsuario(id) {
     db.ref('usuarios/' + id).once('value').then(snapshot => {
         const user = snapshot.val();
-        
         document.getElementById('modalTitle').textContent = 'Editar Usuário';
         document.getElementById('modalBody').innerHTML = `
             <form id="formEditarUsuario" class="modern-form">
-                <div class="form-group">
-                    <label>Nome Completo *</label>
-                    <input type="text" id="editUserNome" value="${user.nome}" required>
-                </div>
-                <div class="form-group">
-                    <label>Usuário *</label>
-                    <input type="text" id="editUserUsername" value="${user.usuario}" required>
-                </div>
-                <div class="form-group">
-                    <label>Cargo *</label>
-                    <select id="editUserCargo" required>
-                        <option value="Administrador" ${user.cargo === 'Administrador' ? 'selected' : ''}>Administrador</option>
-                        <option value="Supervisor" ${user.cargo === 'Supervisor' ? 'selected' : ''}>Supervisor</option>
-                        <option value="Recepcionista" ${user.cargo === 'Recepcionista' ? 'selected' : ''}>Recepcionista</option>
-                    </select>
-                </div>
-                <div class="form-group">
-                    <label>Ativo</label>
-                    <select id="editUserAtivo">
-                        <option value="true" ${user.ativo !== false ? 'selected' : ''}>Sim</option>
-                        <option value="false" ${user.ativo === false ? 'selected' : ''}>Não</option>
-                    </select>
-                </div>
-                <button type="submit" class="btn-primary">
-                    <i class="fas fa-save"></i> Salvar
-                </button>
+                <div class="form-group"><label>Nome *</label><input type="text" id="editUserNome" value="${user.nome}" required></div>
+                <div class="form-group"><label>Usuário *</label><input type="text" id="editUserUsername" value="${user.usuario}" required></div>
+                <div class="form-group"><label>Cargo *</label><select id="editUserCargo" required>
+                    <option value="Administrador" ${user.cargo==='Administrador'?'selected':''}>Administrador</option>
+                    <option value="Supervisor" ${user.cargo==='Supervisor'?'selected':''}>Supervisor</option>
+                    <option value="Recepcionista" ${user.cargo==='Recepcionista'?'selected':''}>Recepcionista</option>
+                </select></div>
+                <div class="form-group"><label>Ativo</label><select id="editUserAtivo">
+                    <option value="true" ${user.ativo!==false?'selected':''}>Sim</option>
+                    <option value="false" ${user.ativo===false?'selected':''}>Não</option>
+                </select></div>
+                <button type="submit" class="btn-primary"><i class="fas fa-save"></i> Salvar</button>
             </form>
         `;
-        
         document.getElementById('genericModal').style.display = 'flex';
         
         document.getElementById('formEditarUsuario').addEventListener('submit', function(e) {
@@ -1092,10 +817,7 @@ function editarUsuario(id) {
 
 function resetSenhaUsuario(id) {
     if (confirm('Resetar senha para "12345"?')) {
-        db.ref('usuarios/' + id).update({
-            senha: '12345',
-            primeiroAcesso: true
-        }).then(() => {
+        db.ref('usuarios/' + id).update({ senha: '12345', primeiroAcesso: true }).then(() => {
             toast('Senha resetada!');
             carregarUsuarios();
         });
@@ -1111,20 +833,69 @@ function excluirUsuario(id) {
     }
 }
 
-// Carregar usuários quando a seção for acessada
-const observer = new MutationObserver(function() {
-    if (document.getElementById('usuarios') && document.getElementById('usuarios').classList.contains('active')) {
-        carregarUsuarios();
+// ============================================
+// RELATÓRIOS PDF
+// ============================================
+function gerarRelatorio(tipo) {
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF('landscape');
+    
+    let dataInicio, dataFim, titulo;
+    const hoje = new Date();
+    
+    switch(tipo) {
+        case 'diario':
+            dataInicio = dataHoje(); dataFim = dataHoje(); titulo = 'Relatório Diário'; break;
+        case 'semanal':
+            const inicioSemana = new Date();
+            inicioSemana.setDate(hoje.getDate() - hoje.getDay());
+            dataInicio = `${String(inicioSemana.getDate()).padStart(2,'0')}-${String(inicioSemana.getMonth()+1).padStart(2,'0')}-${inicioSemana.getFullYear()}`;
+            dataFim = dataHoje(); titulo = 'Relatório Semanal'; break;
+        case 'mensal':
+            dataInicio = `01-${String(hoje.getMonth()+1).padStart(2,'0')}-${hoje.getFullYear()}`;
+            dataFim = dataHoje(); titulo = 'Relatório Mensal'; break;
+        case 'personalizado':
+            dataInicio = document.getElementById('dataInicioPersonalizado').value.split('-').reverse().join('-');
+            dataFim = document.getElementById('dataFimPersonalizado').value.split('-').reverse().join('-');
+            titulo = 'Relatório Personalizado'; break;
     }
-});
-
-document.querySelectorAll('.nav-item').forEach(item => {
-    item.addEventListener('click', function() {
-        if (this.getAttribute('data-section') === 'usuarios') {
-            setTimeout(carregarUsuarios, 100);
-        }
+    
+    doc.setFontSize(16);
+    doc.text('HOSPITAL REGIONAL DE PALMEIRA DOS ÍNDIOS - HRPI', 140, 20, { align: 'center' });
+    doc.setFontSize(12);
+    doc.text(titulo + ' - ' + dataInicio + ' a ' + dataFim, 140, 30, { align: 'center' });
+    
+    let dados = Object.values(acompanhantes);
+    if (dataInicio) {
+        const [di, mi, ai] = dataInicio.split('-');
+        dados = dados.filter(ac => {
+            const [d, m, a] = ac.dataEntrada.split('-');
+            return new Date(a, m-1, d) >= new Date(ai, mi-1, di);
+        });
+    }
+    if (dataFim) {
+        const [df, mf, af] = dataFim.split('-');
+        dados = dados.filter(ac => {
+            const [d, m, a] = ac.dataEntrada.split('-');
+            return new Date(a, m-1, d) <= new Date(af, mf-1, df, 23, 59, 59);
+        });
+    }
+    
+    doc.autoTable({
+        startY: 40,
+        head: [['Tipo', 'Nome', 'Documento', 'Parentesco', 'Paciente', 'Setor', 'Leito', 'Entrada', 'Saída', 'Status']],
+        body: dados.map(ac => [
+            ac.tipo === 'visita' ? 'Visita' : 'Acomp.', ac.nomeAcompanhante, ac.documento || '-',
+            ac.parentesco, ac.nomePaciente, ac.setor, ac.leito || '-',
+            ac.dataEntrada + ' ' + ac.horaEntrada,
+            ac.dataSaida ? ac.dataSaida + ' ' + ac.horaSaida : '-', ac.status
+        ]),
+        styles: { fontSize: 8 },
+        headStyles: { fillColor: [0, 105, 92] }
     });
-});
+    
+    doc.save(`Relatorio_${tipo}_${dataHoje()}.pdf`);
+    toast('PDF gerado com sucesso!');
+}
 
 console.log('✅ HRPI - Sistema completo carregado!');
-console.log('✅ HRPI - Sistema pronto!');
