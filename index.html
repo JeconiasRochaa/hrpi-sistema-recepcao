@@ -3,375 +3,680 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>HRPI - Controle de Recepção</title>
+    <title>HRPI - Sistema de Controle de Recepção</title>
+    
+    <!-- Font Awesome 6 -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link rel="stylesheet" href="styles.css">
-</head>
-<body>
-
-    <!-- ========== TELA DE LOGIN ========== -->
-    <div id="loginScreen">
-        <div class="login-card">
-            <div class="login-logo">
-                <i class="fas fa-hospital-alt"></i>
-            </div>
-            <h1>HRPI</h1>
-            <p>Hospital Regional de Palmeira dos Índios</p>
-            <p class="login-subtitle">Sistema de Controle de Recepção</p>
-            
-            <div class="input-group">
-                <i class="fas fa-user"></i>
-                <input type="text" id="usuarioInput" placeholder="Usuário">
-            </div>
-            
-            <div class="input-group">
-                <i class="fas fa-lock"></i>
-                <input type="password" id="senhaInput" placeholder="Senha">
-            </div>
-            
-            <button class="btn-entrar" onclick="login()">
-                <i class="fas fa-sign-in-alt"></i> Entrar
-            </button>
-            
-            <div id="loginErro" style="color:red;display:none;margin-top:10px;"></div>
-        </div>
-    </div>
-
-    <!-- ========== SISTEMA PRINCIPAL ========== -->
-    <div id="sistemaPrincipal" style="display:none;">
-        
-        <!-- Sidebar -->
-        <div class="sidebar">
-            <div class="sidebar-top">
-                <i class="fas fa-hospital-alt" style="font-size:30px;color:#ffd700;"></i>
-                <span style="color:white;font-weight:bold;">HRPI</span>
-            </div>
-            
-            <nav>
-                <a href="#" onclick="mostrarSecao('dashboard')" class="nav-link ativo" id="nav-dashboard">
-                    <i class="fas fa-chart-bar"></i> Dashboard
-                </a>
-                <a href="#" onclick="mostrarSecao('entrada')" class="nav-link" id="nav-entrada">
-                    <i class="fas fa-sign-in-alt"></i> Registrar Entrada
-                </a>
-                <a href="#" onclick="mostrarSecao('saida')" class="nav-link" id="nav-saida">
-                    <i class="fas fa-sign-out-alt"></i> Registrar Saída
-                </a>
-                <a href="#" onclick="mostrarSecao('troca')" class="nav-link" id="nav-troca">
-                    <i class="fas fa-exchange-alt"></i> Trocar Acompanhante
-                </a>
-                <a href="#" onclick="mostrarSecao('visita')" class="nav-link" id="nav-visita">
-                    <i class="fas fa-clock"></i> Registrar Visita
-                </a>
-                <a href="#" onclick="mostrarSecao('ativos')" class="nav-link" id="nav-ativos">
-                    <i class="fas fa-users"></i> Acompanhantes Ativos
-                </a>
-                <a href="#" onclick="mostrarSecao('historico')" class="nav-link" id="nav-historico">
-                    <i class="fas fa-history"></i> Histórico
-                </a>
-            </nav>
-            
-            <div class="sidebar-footer">
-                <span id="nomeUsuario" style="color:white;font-size:14px;"></span>
-                <button class="btn-sair" onclick="logout()">
-                    <i class="fas fa-sign-out-alt"></i> Sair
-                </button>
-            </div>
-        </div>
-        
-        <!-- Conteúdo Principal -->
-        <div class="conteudo">
-            
-            <!-- DASHBOARD -->
-            <div id="secao-dashboard" class="secao ativo">
-                <h2>Dashboard</h2>
-                <div class="cards">
-                    <div class="card">
-                        <h3>Acompanhantes Presentes</h3>
-                        <span id="countPresentes" style="font-size:36px;">0</span>
-                    </div>
-                    <div class="card">
-                        <h3>Visitas Ativas</h3>
-                        <span id="countVisitas" style="font-size:36px;">0</span>
-                    </div>
-                    <div class="card">
-                        <h3>Entradas Hoje</h3>
-                        <span id="countEntradas" style="font-size:36px;">0</span>
-                    </div>
-                    <div class="card">
-                        <h3>Saídas Hoje</h3>
-                        <span id="countSaidas" style="font-size:36px;">0</span>
-                    </div>
-                </div>
-                
-                <h3>Últimos Registros</h3>
-                <table class="tabela" id="tabelaUltimos">
-                    <thead>
-                        <tr>
-                            <th>Tipo</th>
-                            <th>Nome</th>
-                            <th>Paciente</th>
-                            <th>Setor</th>
-                            <th>Entrada</th>
-                            <th>Status</th>
-                        </tr>
-                    </thead>
-                    <tbody></tbody>
-                </table>
-            </div>
-            
-            <!-- ENTRADA -->
-            <div id="secao-entrada" class="secao">
-                <h2>Registrar Entrada de Acompanhante</h2>
-                <form onsubmit="salvarEntrada(event)" class="formulario">
-                    <div class="linha">
-                        <div class="campo">
-                            <label>Nome do Acompanhante *</label>
-                            <input type="text" id="entNome" required>
-                        </div>
-                        <div class="campo">
-                            <label>Documento</label>
-                            <input type="text" id="entDocumento">
-                        </div>
-                    </div>
-                    <div class="linha">
-                        <div class="campo">
-                            <label>Telefone</label>
-                            <input type="text" id="entTelefone">
-                        </div>
-                        <div class="campo">
-                            <label>Parentesco *</label>
-                            <input type="text" id="entParentesco" required>
-                        </div>
-                    </div>
-                    <div class="linha">
-                        <div class="campo">
-                            <label>Nome do Paciente *</label>
-                            <input type="text" id="entPaciente" required>
-                        </div>
-                        <div class="campo">
-                            <label>Setor *</label>
-                            <select id="entSetor" required>
-                                <option value="">Selecione...</option>
-                                <option>Oncologia I</option>
-                                <option>Oncologia II</option>
-                                <option>UTI I</option>
-                                <option>UTI II</option>
-                                <option>Clínica Médica I</option>
-                                <option>Clínica Médica II</option>
-                                <option>Clínica Cirúrgica</option>
-                                <option>Pediatria</option>
-                                <option>Saúde Mental</option>
-                            </select>
-                        </div>
-                    </div>
-                    <div class="linha">
-                        <div class="campo">
-                            <label>Leito</label>
-                            <input type="text" id="entLeito">
-                        </div>
-                        <div class="campo">
-                            <label>Observação</label>
-                            <input type="text" id="entObs">
-                        </div>
-                    </div>
-                    <button type="submit" class="btn-salvar">
-                        <i class="fas fa-save"></i> Registrar Entrada
-                    </button>
-                </form>
-            </div>
-            
-            <!-- SAÍDA -->
-            <div id="secao-saida" class="secao">
-                <h2>Registrar Saída</h2>
-                <form onsubmit="salvarSaida(event)" class="formulario">
-                    <div class="campo">
-                        <label>Selecione o Acompanhante *</label>
-                        <select id="saidaSelect" required onchange="preencherSaida()">
-                            <option value="">Selecione...</option>
-                        </select>
-                    </div>
-                    <div id="infoSaida" style="display:none;background:#f0f0f0;padding:15px;border-radius:5px;margin:15px 0;">
-                        <p><b>Paciente:</b> <span id="saidaPaciente"></span></p>
-                        <p><b>Setor:</b> <span id="saidaSetor"></span></p>
-                        <p><b>Entrada:</b> <span id="saidaEntrada"></span></p>
-                    </div>
-                    <div class="campo">
-                        <label>Motivo *</label>
-                        <select id="saidaMotivo" required>
-                            <option value="">Selecione...</option>
-                            <option>Alta do paciente</option>
-                            <option>Fim do horário de visita</option>
-                            <option>Desistência</option>
-                            <option>Outro</option>
-                        </select>
-                    </div>
-                    <button type="submit" class="btn-salvar">
-                        <i class="fas fa-sign-out-alt"></i> Registrar Saída
-                    </button>
-                </form>
-            </div>
-            
-            <!-- TROCA -->
-            <div id="secao-troca" class="secao">
-                <h2>Trocar Acompanhante</h2>
-                <form onsubmit="salvarTroca(event)" class="formulario">
-                    <div class="campo">
-                        <label>Acompanhante Atual *</label>
-                        <select id="trocaSelect" required onchange="preencherTroca()">
-                            <option value="">Selecione...</option>
-                        </select>
-                    </div>
-                    <div id="infoTroca" style="display:none;background:#f0f0f0;padding:15px;border-radius:5px;margin:15px 0;">
-                        <p><b>Paciente:</b> <span id="trocaPaciente"></span></p>
-                        <p><b>Setor:</b> <span id="trocaSetor"></span></p>
-                        <p><b>Leito:</b> <span id="trocaLeito"></span></p>
-                    </div>
-                    <h4>Novo Acompanhante</h4>
-                    <div class="linha">
-                        <div class="campo">
-                            <label>Nome *</label>
-                            <input type="text" id="trocaNovoNome" required>
-                        </div>
-                        <div class="campo">
-                            <label>Documento</label>
-                            <input type="text" id="trocaNovoDoc">
-                        </div>
-                    </div>
-                    <div class="linha">
-                        <div class="campo">
-                            <label>Telefone</label>
-                            <input type="text" id="trocaNovoTel">
-                        </div>
-                        <div class="campo">
-                            <label>Parentesco *</label>
-                            <input type="text" id="trocaNovoParentesco" required>
-                        </div>
-                    </div>
-                    <button type="submit" class="btn-salvar">
-                        <i class="fas fa-exchange-alt"></i> Registrar Troca
-                    </button>
-                </form>
-            </div>
-            
-            <!-- VISITA -->
-            <div id="secao-visita" class="secao">
-                <h2>Registrar Visita</h2>
-                <form onsubmit="salvarVisita(event)" class="formulario">
-                    <div class="linha">
-                        <div class="campo">
-                            <label>Nome do Visitante *</label>
-                            <input type="text" id="visNome" required>
-                        </div>
-                        <div class="campo">
-                            <label>Documento</label>
-                            <input type="text" id="visDocumento">
-                        </div>
-                    </div>
-                    <div class="linha">
-                        <div class="campo">
-                            <label>Telefone</label>
-                            <input type="text" id="visTelefone">
-                        </div>
-                        <div class="campo">
-                            <label>Parentesco *</label>
-                            <input type="text" id="visParentesco" required>
-                        </div>
-                    </div>
-                    <div class="linha">
-                        <div class="campo">
-                            <label>Paciente *</label>
-                            <input type="text" id="visPaciente" required>
-                        </div>
-                        <div class="campo">
-                            <label>Setor *</label>
-                            <select id="visSetor" required>
-                                <option value="">Selecione...</option>
-                                <option>Oncologia I</option>
-                                <option>Oncologia II</option>
-                                <option>UTI I</option>
-                                <option>UTI II</option>
-                                <option>Clínica Médica I</option>
-                                <option>Clínica Médica II</option>
-                                <option>Clínica Cirúrgica</option>
-                                <option>Pediatria</option>
-                                <option>Saúde Mental</option>
-                            </select>
-                        </div>
-                    </div>
-                    <div class="linha">
-                        <div class="campo">
-                            <label>Leito</label>
-                            <input type="text" id="visLeito">
-                        </div>
-                        <div class="campo">
-                            <label>Duração (minutos) *</label>
-                            <input type="number" id="visDuracao" value="30" min="1" required>
-                        </div>
-                    </div>
-                    <button type="submit" class="btn-salvar">
-                        <i class="fas fa-save"></i> Registrar Visita
-                    </button>
-                </form>
-            </div>
-            
-            <!-- ATIVOS -->
-            <div id="secao-ativos" class="secao">
-                <h2>Acompanhantes Ativos</h2>
-                <table class="tabela" id="tabelaAtivos">
-                    <thead>
-                        <tr>
-                            <th>Nome</th>
-                            <th>Documento</th>
-                            <th>Parentesco</th>
-                            <th>Paciente</th>
-                            <th>Setor</th>
-                            <th>Leito</th>
-                            <th>Entrada</th>
-                            <th>Ações</th>
-                        </tr>
-                    </thead>
-                    <tbody></tbody>
-                </table>
-            </div>
-            
-            <!-- HISTÓRICO -->
-            <div id="secao-historico" class="secao">
-                <h2>Histórico Completo</h2>
-                <div style="margin-bottom:15px;display:flex;gap:10px;flex-wrap:wrap;">
-                    <input type="date" id="filtroInicio">
-                    <input type="date" id="filtroFim">
-                    <button onclick="filtrarHistorico()" class="btn-salvar" style="width:auto;">
-                        <i class="fas fa-filter"></i> Filtrar
-                    </button>
-                </div>
-                <table class="tabela" id="tabelaHistorico">
-                    <thead>
-                        <tr>
-                            <th>Nome</th>
-                            <th>Paciente</th>
-                            <th>Setor</th>
-                            <th>Entrada</th>
-                            <th>Saída</th>
-                            <th>Status</th>
-                            <th>Ações</th>
-                        </tr>
-                    </thead>
-                    <tbody></tbody>
-                </table>
-            </div>
-            
-        </div>
-    </div>
-
-    <!-- Toast -->
-    <div id="toast" class="toast"></div>
-
-    <!-- Firebase -->
+    
+    <!-- Firebase Compat (versão que funciona sem módulos) -->
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
     
-    <!-- Script Principal -->
+    <!-- jsPDF e autotable -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
+    
+    <!-- CSS -->
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <!-- Tela de Login -->
+    <div id="loginScreen" class="login-container">
+        <div class="login-card">
+            <div class="login-header">
+                <div id="loginLogo" class="login-logo">
+                    <i class="fas fa-hospital-alt"></i>
+                </div>
+                <h1>HRPI</h1>
+                <h2>Sistema de Controle de Recepção</h2>
+            </div>
+            <form id="loginForm" class="login-form">
+                <div class="input-group">
+                    <i class="fas fa-user"></i>
+                    <input type="text" id="username" placeholder="Usuário" required autocomplete="username">
+                </div>
+                <div class="input-group">
+                    <i class="fas fa-lock"></i>
+                    <input type="password" id="password" placeholder="Senha" required autocomplete="current-password">
+                </div>
+                <button type="submit" class="btn-login">
+                    <i class="fas fa-sign-in-alt"></i> Entrar
+                </button>
+            </form>
+            <div id="loginError" class="login-error" style="display: none;"></div>
+        </div>
+        <div class="login-footer">
+            <p>&copy; 2024 Hospital Regional de Palmeira dos Índios</p>
+        </div>
+    </div>
+
+    <!-- Modal de Primeiro Acesso (Troca de Senha) -->
+    <div id="firstAccessModal" class="modal-overlay" style="display: none;">
+        <div class="modal-card">
+            <div class="modal-header">
+                <h2><i class="fas fa-key"></i> Primeiro Acesso - Alterar Senha</h2>
+            </div>
+            <div class="modal-body">
+                <p>Por segurança, você precisa alterar sua senha padrão.</p>
+                <form id="changePasswordForm">
+                    <div class="input-group">
+                        <i class="fas fa-lock"></i>
+                        <input type="password" id="newPassword" placeholder="Nova Senha" required minlength="4">
+                    </div>
+                    <div class="input-group">
+                        <i class="fas fa-lock"></i>
+                        <input type="password" id="confirmPassword" placeholder="Confirmar Senha" required minlength="4">
+                    </div>
+                    <div id="passwordError" class="error-message" style="display: none;"></div>
+                    <button type="submit" class="btn-primary">
+                        <i class="fas fa-save"></i> Salvar Nova Senha
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Sistema Principal -->
+    <div id="mainSystem" style="display: none;">
+        <!-- Sidebar -->
+        <aside id="sidebar" class="sidebar">
+            <div class="sidebar-header">
+                <div id="sidebarLogo" class="sidebar-logo">
+                    <i class="fas fa-hospital-alt"></i>
+                </div>
+                <h1>HRPI</h1>
+                <button id="mobileMenuToggle" class="mobile-menu-toggle">
+                    <i class="fas fa-bars"></i>
+                </button>
+            </div>
+            
+            <nav class="sidebar-nav">
+                <ul>
+                    <li>
+                        <a href="#" data-section="dashboard" class="nav-item active">
+                            <i class="fas fa-chart-pie"></i>
+                            <span>Dashboard</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="#" data-section="entradaAcompanhante" class="nav-item">
+                            <i class="fas fa-user-plus"></i>
+                            <span>Entrada Acompanhante</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="#" data-section="registroVisita" class="nav-item">
+                            <i class="fas fa-clock"></i>
+                            <span>Registro de Visita</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="#" data-section="registroTroca" class="nav-item">
+                            <i class="fas fa-exchange-alt"></i>
+                            <span>Troca de Acompanhante</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="#" data-section="registroSaida" class="nav-item">
+                            <i class="fas fa-sign-out-alt"></i>
+                            <span>Registro de Saída</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="#" data-section="acompanhantesAtivos" class="nav-item">
+                            <i class="fas fa-users"></i>
+                            <span>Acompanhantes Ativos</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="#" data-section="historico" class="nav-item">
+                            <i class="fas fa-history"></i>
+                            <span>Histórico</span>
+                        </a>
+                    </li>
+                    <li class="admin-only">
+                        <a href="#" data-section="relatorios" class="nav-item">
+                            <i class="fas fa-file-pdf"></i>
+                            <span>Relatórios</span>
+                        </a>
+                    </li>
+                    <li class="admin-only">
+                        <a href="#" data-section="usuarios" class="nav-item">
+                            <i class="fas fa-user-cog"></i>
+                            <span>Usuários</span>
+                        </a>
+                    </li>
+                    <li class="admin-only">
+                        <a href="#" data-section="configuracoes" class="nav-item">
+                            <i class="fas fa-cog"></i>
+                            <span>Configurações</span>
+                        </a>
+                    </li>
+                </ul>
+            </nav>
+            
+            <div class="sidebar-footer">
+                <button id="themeToggle" class="theme-toggle" title="Alternar Tema">
+                    <i class="fas fa-moon"></i>
+                </button>
+                <div class="user-info">
+                    <i class="fas fa-user-circle"></i>
+                    <span id="userName"></span>
+                    <small id="userRole"></small>
+                </div>
+                <button id="logoutBtn" class="btn-logout">
+                    <i class="fas fa-sign-out-alt"></i> Sair
+                </button>
+            </div>
+        </aside>
+
+        <!-- Conteúdo Principal -->
+        <main class="main-content">
+            <header class="top-header">
+                <h2 id="sectionTitle">Dashboard</h2>
+                <div class="header-actions">
+                    <span id="currentDate" class="current-date"></span>
+                </div>
+            </header>
+
+            <!-- Seção Dashboard -->
+            <section id="dashboard" class="content-section active">
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <i class="fas fa-user-check"></i>
+                        <div class="stat-info">
+                            <h3>Acompanhantes Presentes</h3>
+                            <span id="countAcompanhantesPresentes">0</span>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <i class="fas fa-clock"></i>
+                        <div class="stat-info">
+                            <h3>Visitas Ativas</h3>
+                            <span id="countVisitasAtivas">0</span>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <i class="fas fa-sign-in-alt"></i>
+                        <div class="stat-info">
+                            <h3>Entradas Hoje</h3>
+                            <span id="countEntradasHoje">0</span>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <i class="fas fa-exchange-alt"></i>
+                        <div class="stat-info">
+                            <h3>Trocas Hoje</h3>
+                            <span id="countTrocasHoje">0</span>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <i class="fas fa-sign-out-alt"></i>
+                        <div class="stat-info">
+                            <h3>Saídas Hoje</h3>
+                            <span id="countSaidasHoje">0</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="indicadoresAvancados" class="admin-only" style="display: none;">
+                    <h3>Indicadores da Semana e Mês</h3>
+                    <div class="stats-grid">
+                        <div class="stat-card">
+                            <i class="fas fa-calendar-week"></i>
+                            <div class="stat-info">
+                                <h3>Entradas (Semana)</h3>
+                                <span id="countEntradasSemana">0</span>
+                            </div>
+                        </div>
+                        <div class="stat-card">
+                            <i class="fas fa-calendar-week"></i>
+                            <div class="stat-info">
+                                <h3>Saídas (Semana)</h3>
+                                <span id="countSaidasSemana">0</span>
+                            </div>
+                        </div>
+                        <div class="stat-card">
+                            <i class="fas fa-calendar-month"></i>
+                            <div class="stat-info">
+                                <h3>Entradas (Mês)</h3>
+                                <span id="countEntradasMes">0</span>
+                            </div>
+                        </div>
+                        <div class="stat-card">
+                            <i class="fas fa-calendar-month"></i>
+                            <div class="stat-info">
+                                <h3>Saídas (Mês)</h3>
+                                <span id="countSaidasMes">0</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="recent-activity">
+                    <h3>Últimos Registros</h3>
+                    <div class="table-responsive">
+                        <table id="tabelaUltimosRegistros" class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>Tipo</th>
+                                    <th>Acompanhante</th>
+                                    <th>Paciente</th>
+                                    <th>Setor/Leito</th>
+                                    <th>Data/Hora Entrada</th>
+                                    <th>Status</th>
+                                </tr>
+                            </thead>
+                            <tbody></tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Seção Entrada de Acompanhante -->
+            <section id="entradaAcompanhante" class="content-section">
+                <div class="form-container">
+                    <h3>Registro de Entrada de Acompanhante</h3>
+                    <form id="formEntradaAcompanhante" class="modern-form">
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>Nome do Acompanhante *</label>
+                                <input type="text" id="acNome" required>
+                            </div>
+                            <div class="form-group">
+                                <label>Documento</label>
+                                <input type="text" id="acDocumento">
+                            </div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>Telefone</label>
+                                <input type="tel" id="acTelefone">
+                            </div>
+                            <div class="form-group">
+                                <label>Parentesco *</label>
+                                <input type="text" id="acParentesco" required>
+                            </div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>Nome do Paciente *</label>
+                                <input type="text" id="acPaciente" required>
+                            </div>
+                            <div class="form-group">
+                                <label>Setor *</label>
+                                <select id="acSetor" required>
+                                    <option value="">Selecione...</option>
+                                    <option>Oncologia I</option>
+                                    <option>Oncologia II</option>
+                                    <option>UTI I</option>
+                                    <option>UTI II</option>
+                                    <option>Clínica Médica I</option>
+                                    <option>Clínica Médica II</option>
+                                    <option>Clínica Cirúrgica</option>
+                                    <option>Pediatria</option>
+                                    <option>Saúde Mental</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>Leito</label>
+                                <input type="text" id="acLeito">
+                            </div>
+                            <div class="form-group">
+                                <label>Observação</label>
+                                <textarea id="acObservacao" rows="2"></textarea>
+                            </div>
+                        </div>
+                        <button type="submit" class="btn-primary">
+                            <i class="fas fa-save"></i> Registrar Entrada
+                        </button>
+                    </form>
+                </div>
+            </section>
+
+            <!-- Seção Registro de Visita -->
+            <section id="registroVisita" class="content-section">
+                <div class="form-container">
+                    <h3>Registro de Visita</h3>
+                    <form id="formVisita" class="modern-form">
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>Nome do Visitante *</label>
+                                <input type="text" id="visNome" required>
+                            </div>
+                            <div class="form-group">
+                                <label>Documento</label>
+                                <input type="text" id="visDocumento">
+                            </div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>Telefone</label>
+                                <input type="tel" id="visTelefone">
+                            </div>
+                            <div class="form-group">
+                                <label>Parentesco *</label>
+                                <input type="text" id="visParentesco" required>
+                            </div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>Nome do Paciente *</label>
+                                <input type="text" id="visPaciente" required>
+                            </div>
+                            <div class="form-group">
+                                <label>Setor *</label>
+                                <select id="visSetor" required>
+                                    <option value="">Selecione...</option>
+                                    <option>Oncologia I</option>
+                                    <option>Oncologia II</option>
+                                    <option>UTI I</option>
+                                    <option>UTI II</option>
+                                    <option>Clínica Médica I</option>
+                                    <option>Clínica Médica II</option>
+                                    <option>Clínica Cirúrgica</option>
+                                    <option>Pediatria</option>
+                                    <option>Saúde Mental</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>Leito</label>
+                                <input type="text" id="visLeito">
+                            </div>
+                            <div class="form-group">
+                                <label>Duração Prevista (minutos) *</label>
+                                <input type="number" id="visDuracao" min="1" required>
+                            </div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>Observação</label>
+                                <textarea id="visObservacao" rows="2"></textarea>
+                            </div>
+                        </div>
+                        <button type="submit" class="btn-primary">
+                            <i class="fas fa-save"></i> Registrar Visita
+                        </button>
+                    </form>
+                </div>
+            </section>
+
+            <!-- Seção Registro de Troca -->
+            <section id="registroTroca" class="content-section">
+                <div class="form-container">
+                    <h3>Troca de Acompanhante</h3>
+                    <form id="formTroca" class="modern-form">
+                        <div class="form-group">
+                            <label>Selecione o Acompanhante Atual *</label>
+                            <select id="trocaAcompanhanteAtual" required>
+                                <option value="">Selecione...</option>
+                            </select>
+                        </div>
+                        <div id="trocaInfoAtual" class="info-box" style="display: none;">
+                            <p><strong>Paciente:</strong> <span id="trocaPaciente"></span></p>
+                            <p><strong>Setor:</strong> <span id="trocaSetor"></span></p>
+                            <p><strong>Leito:</strong> <span id="trocaLeito"></span></p>
+                        </div>
+                        <h4>Dados do Novo Acompanhante</h4>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>Nome *</label>
+                                <input type="text" id="trocaNovoNome" required>
+                            </div>
+                            <div class="form-group">
+                                <label>Documento</label>
+                                <input type="text" id="trocaNovoDocumento">
+                            </div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>Telefone</label>
+                                <input type="tel" id="trocaNovoTelefone">
+                            </div>
+                            <div class="form-group">
+                                <label>Parentesco *</label>
+                                <input type="text" id="trocaNovoParentesco" required>
+                            </div>
+                        </div>
+                        <button type="submit" class="btn-primary">
+                            <i class="fas fa-exchange-alt"></i> Registrar Troca
+                        </button>
+                    </form>
+                </div>
+            </section>
+
+            <!-- Seção Registro de Saída -->
+            <section id="registroSaida" class="content-section">
+                <div class="form-container">
+                    <h3>Registro de Saída</h3>
+                    <form id="formSaida" class="modern-form">
+                        <div class="form-group">
+                            <label>Selecione Acompanhante/Visitante *</label>
+                            <select id="saidaAcompanhante" required>
+                                <option value="">Selecione...</option>
+                            </select>
+                        </div>
+                        <div id="saidaInfo" class="info-box" style="display: none;">
+                            <p><strong>Paciente:</strong> <span id="saidaPaciente"></span></p>
+                            <p><strong>Setor:</strong> <span id="saidaSetor"></span></p>
+                            <p><strong>Data/Hora Entrada:</strong> <span id="saidaEntrada"></span></p>
+                        </div>
+                        <div class="form-group">
+                            <label>Motivo da Saída *</label>
+                            <select id="saidaMotivo" required>
+                                <option value="">Selecione...</option>
+                                <option>Alta do paciente</option>
+                                <option>Fim do horário de visita</option>
+                                <option>Desistência</option>
+                                <option>Outro</option>
+                            </select>
+                        </div>
+                        <button type="submit" class="btn-primary">
+                            <i class="fas fa-sign-out-alt"></i> Registrar Saída
+                        </button>
+                    </form>
+                </div>
+            </section>
+
+            <!-- Seção Acompanhantes Ativos -->
+            <section id="acompanhantesAtivos" class="content-section">
+                <h3>Acompanhantes e Visitas Ativas</h3>
+                <div class="table-responsive">
+                    <table id="tabelaAtivos" class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Tipo</th>
+                                <th>Nome</th>
+                                <th>Documento</th>
+                                <th>Parentesco</th>
+                                <th>Paciente</th>
+                                <th>Setor</th>
+                                <th>Leito</th>
+                                <th>Data/Hora Entrada</th>
+                                <th>Ações</th>
+                            </tr>
+                        </thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
+            </section>
+
+            <!-- Seção Histórico -->
+            <section id="historico" class="content-section">
+                <h3>Histórico Completo</h3>
+                <div class="filters">
+                    <div class="filter-row">
+                        <div class="form-group">
+                            <label>Data Início</label>
+                            <input type="date" id="filtroDataInicio">
+                        </div>
+                        <div class="form-group">
+                            <label>Data Fim</label>
+                            <input type="date" id="filtroDataFim">
+                        </div>
+                        <div class="form-group">
+                            <label>Status</label>
+                            <select id="filtroStatus">
+                                <option value="">Todos</option>
+                                <option value="presente">Presente</option>
+                                <option value="saiu">Saiu</option>
+                                <option value="trocado">Trocado</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Tipo</label>
+                            <select id="filtroTipo">
+                                <option value="">Todos</option>
+                                <option value="acompanhante">Acompanhante</option>
+                                <option value="visita">Visita</option>
+                            </select>
+                        </div>
+                        <button id="btnFiltrar" class="btn-secondary">
+                            <i class="fas fa-filter"></i> Filtrar
+                        </button>
+                    </div>
+                </div>
+                <div class="table-responsive">
+                    <table id="tabelaHistorico" class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Tipo</th>
+                                <th>Nome</th>
+                                <th>Documento</th>
+                                <th>Parentesco</th>
+                                <th>Paciente</th>
+                                <th>Setor</th>
+                                <th>Leito</th>
+                                <th>Entrada</th>
+                                <th>Saída</th>
+                                <th>Status</th>
+                                <th>Ações</th>
+                            </tr>
+                        </thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
+            </section>
+
+            <!-- Seção Relatórios -->
+            <section id="relatorios" class="content-section">
+                <h3>Gerar Relatórios em PDF</h3>
+                <div class="reports-grid">
+                    <div class="report-card">
+                        <i class="fas fa-calendar-day"></i>
+                        <h4>Relatório Diário</h4>
+                        <p>Registros do dia atual</p>
+                        <button class="btn-primary" onclick="gerarRelatorio('diario')">
+                            <i class="fas fa-file-pdf"></i> Gerar PDF
+                        </button>
+                    </div>
+                    <div class="report-card">
+                        <i class="fas fa-calendar-week"></i>
+                        <h4>Relatório Semanal</h4>
+                        <p>Últimos 7 dias</p>
+                        <button class="btn-primary" onclick="gerarRelatorio('semanal')">
+                            <i class="fas fa-file-pdf"></i> Gerar PDF
+                        </button>
+                    </div>
+                    <div class="report-card">
+                        <i class="fas fa-calendar-month"></i>
+                        <h4>Relatório Mensal</h4>
+                        <p>Mês atual</p>
+                        <button class="btn-primary" onclick="gerarRelatorio('mensal')">
+                            <i class="fas fa-file-pdf"></i> Gerar PDF
+                        </button>
+                    </div>
+                    <div class="report-card">
+                        <i class="fas fa-calendar-alt"></i>
+                        <h4>Período Personalizado</h4>
+                        <div class="form-row">
+                            <input type="date" id="dataInicioPersonalizado">
+                            <input type="date" id="dataFimPersonalizado">
+                        </div>
+                        <button class="btn-primary" onclick="gerarRelatorio('personalizado')">
+                            <i class="fas fa-file-pdf"></i> Gerar PDF
+                        </button>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Seção Usuários -->
+            <section id="usuarios" class="content-section">
+                <h3>Gerenciamento de Usuários</h3>
+                <button id="btnNovoUsuario" class="btn-primary">
+                    <i class="fas fa-plus"></i> Novo Usuário
+                </button>
+                <div class="table-responsive">
+                    <table id="tabelaUsuarios" class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Nome</th>
+                                <th>Usuário</th>
+                                <th>Cargo</th>
+                                <th>Status</th>
+                                <th>1º Acesso</th>
+                                <th>Ações</th>
+                            </tr>
+                        </thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
+            </section>
+
+            <!-- Seção Configurações -->
+            <section id="configuracoes" class="content-section">
+                <h3>Configurações do Sistema</h3>
+                <div class="config-grid">
+                    <div class="config-card">
+                        <h4>Logo do Hospital</h4>
+                        <input type="file" id="uploadLogo" accept="image/*">
+                        <button id="btnRemoverLogo" class="btn-secondary">
+                            <i class="fas fa-trash"></i> Remover Logo
+                        </button>
+                    </div>
+                    <div class="config-card">
+                        <h4>Fundo da Tela de Login</h4>
+                        <input type="file" id="uploadFundo" accept="image/*">
+                        <button id="btnRemoverFundo" class="btn-secondary">
+                            <i class="fas fa-trash"></i> Remover Fundo
+                        </button>
+                    </div>
+                    <div class="config-card">
+                        <h4>Resetar Senha de Usuário</h4>
+                        <select id="selectUsuarioReset">
+                            <option value="">Selecione um usuário...</option>
+                        </select>
+                        <button id="btnResetSenha" class="btn-secondary">
+                            <i class="fas fa-key"></i> Resetar Senha
+                        </button>
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <!-- Modal Genérico -->
+    <div id="genericModal" class="modal-overlay" style="display: none;">
+        <div class="modal-card modal-lg">
+            <div class="modal-header">
+                <h2 id="modalTitle"></h2>
+                <button class="modal-close">&times;</button>
+            </div>
+            <div class="modal-body" id="modalBody"></div>
+        </div>
+    </div>
+
+    <!-- Toast de Notificação -->
+    <div id="toast" class="toast">
+        <i class="fas fa-check-circle"></i>
+        <span id="toastMessage"></span>
+    </div>
+
+    <!-- JavaScript -->
     <script src="script.js"></script>
 </body>
 </html>
