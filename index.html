@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
-    <title>HRPI - Sistema de Controle de Recepção</title>
+    <title>Controle de Recepção</title>
     
     <!-- Font Awesome 6 -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -29,8 +29,7 @@
             <div id="loginLogo" class="logo-container">
                 <span class="default-logo"><i class="fas fa-hospital-alt"></i></span>
             </div>
-            <h2>HRPI</h2>
-            <p class="subtitle">Sistema de Controle de Recepção<br>Hospital Regional de Palmeira dos Índios</p>
+            <p class="subtitle">Controle de Recepção<br>Hospital Regional de Palmeira dos Índios</p>
             
             <form id="loginForm" autocomplete="off">
                 <div class="input-group">
@@ -50,7 +49,7 @@
             <p class="login-hint">Sistema exclusivo para funcionários autorizados</p>
         </div>
         <div class="login-footer">
-            &copy; 2024 Hospital Regional de Palmeira dos Índios - Todos os direitos reservados
+            &copy; 2026 Hospital Regional de Palmeira dos Índios - Todos os direitos reservados
         </div>
     </div>
 
@@ -100,15 +99,14 @@
                     <i class="fas fa-hospital-alt"></i>
                 </div>
                 <div class="logo-text">
-                    HRPI
-                    <small>Sistema de Recepção</small>
+                    <small>Controle de Recepção</small>
                 </div>
             </div>
             
             <nav class="sidebar-nav">
                 <div class="nav-section">Principal</div>
                 <a data-page="dashboard" class="active">
-                    <i class="fas fa-chart-pie"></i> Dashboard
+                    <i class="fas fa-chart-pie"></i> Painel
                 </a>
                 <a data-page="entradaAcompanhante">
                     <i class="fas fa-user-plus"></i> Entrada Acompanhante
@@ -162,7 +160,7 @@
             <!-- ============================================ -->
             <div id="dashboard" class="page active">
                 <div class="page-header">
-                    <h1><i class="fas fa-chart-pie"></i> Dashboard</h1>
+                    <h1><i class="fas fa-chart-pie"></i> Painel </h1>
                     <p class="breadcrumb" id="currentDate"></p>
                 </div>
                 
@@ -292,9 +290,15 @@
                                 <label>Parentesco <span class="required">*</span></label>
                                 <select id="acParentesco" required>
                                     <option value="">Selecione...</option>
-                                    <option>Filho(a)</option><option>Pai/Mãe</option><option>Cônjuge</option>
-                                    <option>Irmão/Irmã</option><option>Neto(a)</option><option>Sobrinho(a)</option>
-                                    <option>Amigo(a)</option><option>Cuidador(a)</option><option>Outro</option>
+                                    <option>Filho(a)</option>
+                                    <option>Pai/Mãe</option>
+                                    <option>Cônjuge</option>
+                                    <option>Irmão/Irmã</option>
+                                    <option>Neto(a)</option>
+                                    <option>Sobrinho(a)</option>
+                                    <option>Amigo(a)</option>
+                                    <option>Cuidador(a)</option>
+                                    <option>Outro</option>
                                 </select>
                             </div>
                             <div class="form-group">
@@ -305,10 +309,14 @@
                                 <label>Setor <span class="required">*</span></label>
                                 <select id="acSetor" required>
                                     <option value="">Selecione...</option>
-                                    <option>Oncologia I</option><option>Oncologia II</option>
-                                    <option>UTI I</option><option>UTI II</option>
-                                    <option>Clínica Médica I</option><option>Clínica Médica II</option>
-                                    <option>Clínica Cirúrgica</option><option>Pediatria</option>
+                                    <option>Oncologia I</option>
+                                    <option>Oncologia II</option>
+                                    <option>UTI I</option>
+                                    <option>UTI II</option>
+                                    <option>Clínica Médica I</option>
+                                    <option>Clínica Médica II</option>
+                                    <option>Clínica Cirúrgica</option>
+                                    <option>Pediatria</option>
                                     <option>Saúde Mental</option>
                                 </select>
                             </div>
@@ -361,9 +369,15 @@
                                 <label>Parentesco <span class="required">*</span></label>
                                 <select id="visParentesco" required>
                                     <option value="">Selecione...</option>
-                                    <option>Filho(a)</option><option>Pai/Mãe</option><option>Cônjuge</option>
-                                    <option>Irmão/Irmã</option><option>Neto(a)</option><option>Sobrinho(a)</option>
-                                    <option>Amigo(a)</option><option>Cuidador(a)</option><option>Outro</option>
+                                    <option>Filho(a)</option>
+                                    <option>Pai/Mãe</option>
+                                    <option>Cônjuge</option>
+                                    <option>Irmão/Irmã</option>
+                                    <option>Neto(a)</option>
+                                    <option>Sobrinho(a)</option>
+                                    <option>Amigo(a)</option>
+                                    <option>Cuidador(a)</option>
+                                    <option>Outro</option>
                                 </select>
                             </div>
                             <div class="form-group">
@@ -374,10 +388,14 @@
                                 <label>Setor <span class="required">*</span></label>
                                 <select id="visSetor" required>
                                     <option value="">Selecione...</option>
-                                    <option>Oncologia I</option><option>Oncologia II</option>
-                                    <option>UTI I</option><option>UTI II</option>
-                                    <option>Clínica Médica I</option><option>Clínica Médica II</option>
-                                    <option>Clínica Cirúrgica</option><option>Pediatria</option>
+                                    <option>Oncologia I</option>
+                                    <option>Oncologia II</option>
+                                    <option>UTI I</option>
+                                    <option>UTI II</option>
+                                    <option>Clínica Médica I</option>
+                                    <option>Clínica Médica II</option>
+                                    <option>Clínica Cirúrgica</option>
+                                    <option>Pediatria</option>
                                     <option>Saúde Mental</option>
                                 </select>
                             </div>
@@ -445,9 +463,15 @@
                                 <label>Parentesco <span class="required">*</span></label>
                                 <select id="trocaNovoParentesco" required>
                                     <option value="">Selecione...</option>
-                                    <option>Filho(a)</option><option>Pai/Mãe</option><option>Cônjuge</option>
-                                    <option>Irmão/Irmã</option><option>Neto(a)</option><option>Sobrinho(a)</option>
-                                    <option>Amigo(a)</option><option>Cuidador(a)</option><option>Outro</option>
+                                    <option>Filho(a)</option>
+                                    <option>Pai/Mãe</option>
+                                    <option>Cônjuge</option>
+                                    <option>Irmão/Irmã</option>
+                                    <option>Neto(a)</option>
+                                    <option>Sobrinho(a)</option>
+                                    <option>Amigo(a)</option>
+                                    <option>Cuidador(a)</option>
+                                    <option>Outro</option>
                                 </select>
                             </div>
                         </div>
@@ -521,10 +545,15 @@
                         <table id="tabelaAtivos">
                             <thead>
                                 <tr>
-                                    <th>Tipo</th><th>Nome</th><th>Documento</th>
-                                    <th>Parentesco</th><th>Paciente</th>
-                                    <th>Setor</th><th>Leito</th>
-                                    <th>Entrada</th><th>Ações</th>
+                                    <th>Tipo</th>
+                                    <th>Nome</th>
+                                    <th>Documento</th>
+                                    <th>Parentesco</th>
+                                    <th>Paciente</th>
+                                    <th>Setor</th>
+                                    <th>Leito</th>
+                                    <th>Entrada</th>
+                                    <th>Ações</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -571,10 +600,17 @@
                         <table id="tabelaHistorico">
                             <thead>
                                 <tr>
-                                    <th>Tipo</th><th>Nome</th><th>Documento</th>
-                                    <th>Parentesco</th><th>Paciente</th><th>Setor</th>
-                                    <th>Leito</th><th>Entrada</th><th>Saída</th>
-                                    <th>Status</th><th>Ações</th>
+                                    <th>Tipo</th>
+                                    <th>Nome</th>
+                                    <th>Documento</th>
+                                    <th>Parentesco</th>
+                                    <th>Paciente</th>
+                                    <th>Setor</th>
+                                    <th>Leito</th>
+                                    <th>Entrada</th>
+                                    <th>Saída</th>
+                                    <th>Status</th>
+                                    <th>Ações</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -651,8 +687,12 @@
                         <table id="tabelaUsuarios">
                             <thead>
                                 <tr>
-                                    <th>Nome</th><th>Usuário</th><th>Cargo</th>
-                                    <th>Status</th><th>1º Acesso</th><th>Ações</th>
+                                    <th>Nome</th>
+                                    <th>Usuário</th>
+                                    <th>Cargo</th>
+                                    <th>Status</th>
+                                    <th>1º Acesso</th>
+                                    <th>Ações</th>
                                 </tr>
                             </thead>
                             <tbody>
