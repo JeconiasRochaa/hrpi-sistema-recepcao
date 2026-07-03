@@ -1232,3 +1232,45 @@ function atualizarDataAtual() {
 }
 
 console.log('✅ HRPI - Sistema carregado!');
+
+
+
+
+
+// ============================================
+// CORREÇÃO DE EMERGÊNCIA - PRIMEIRO ACESSO
+// ============================================
+(function() {
+    // Verificar se o modal existe
+    const modal = document.getElementById('firstAccessModal');
+    if (!modal) {
+        console.error('❌ Modal firstAccessModal não encontrado no DOM!');
+        console.log('🔧 Criando modal de emergência...');
+        
+        // Criar modal dinamicamente se não existir
+        const modalHTML = `
+            <div id="firstAccessModal" class="modal-overlay" style="display: none;">
+                <div class="modal">
+                    <h3><i class="fas fa-key"></i> Primeiro Acesso - Alterar Senha</h3>
+                    <p style="margin-bottom: 16px; font-size: 13px; color: var(--text-light);">Por segurança, altere sua senha padrão.</p>
+                    <form id="changePasswordForm">
+                        <div class="form-group" style="margin-bottom: 14px;">
+                            <label>Nova Senha <span class="required">*</span></label>
+                            <input type="password" id="newPassword" placeholder="Mínimo 6 caracteres" required minlength="6">
+                        </div>
+                        <div class="form-group" style="margin-bottom: 14px;">
+                            <label>Confirmar Senha <span class="required">*</span></label>
+                            <input type="password" id="confirmPassword" placeholder="Repita a nova senha" required minlength="6">
+                        </div>
+                        <div id="passwordError" class="error-message" style="display: none;"></div>
+                        <button type="submit" class="btn btn-primary" style="width: 100%;">
+                            <i class="fas fa-save"></i> Salvar Nova Senha
+                        </button>
+                    </form>
+                </div>
+            </div>
+        `;
+        document.body.insertAdjacentHTML('beforeend', modalHTML);
+        console.log('✅ Modal criado dinamicamente');
+    }
+})();
