@@ -1,6 +1,6 @@
 // ============================================
 // HRPI - SISTEMA DE CONTROLE DE RECEPÇÃO
-// script.js - CORRIGIDO
+// script.js - VERSÃO CORRIGIDA COM DEBUG
 // ============================================
 
 const firebaseConfig = {
@@ -15,8 +15,9 @@ const firebaseConfig = {
 
 try {
     firebase.initializeApp(firebaseConfig);
+    console.log('✅ Firebase inicializado');
 } catch (error) {
-    console.error('Erro ao inicializar Firebase:', error);
+    console.error('❌ Erro Firebase:', error);
 }
 
 const db = firebase.database();
@@ -28,7 +29,7 @@ let usuarioLogado = null;
 let acompanhantes = {};
 
 // ============================================
-// CONFIGURAÇÕES DE SEGURANÇA
+// CONFIGURAÇÕES
 // ============================================
 const CONFIG = {
     SESSION_TIMEOUT: 30 * 60 * 1000,
@@ -59,6 +60,11 @@ function toast(msg, tipo = 'success') {
     const icon = document.getElementById('toastIcon');
     const message = document.getElementById('toastMessage');
     
+    if (!t || !icon || !message) {
+        alert(msg);
+        return;
+    }
+    
     message.textContent = msg;
     icon.className = tipo === 'error' ? 'fas fa-exclamation-circle' : 'fas fa-check-circle';
     t.className = `toast show ${tipo === 'error' ? 'error' : ''}`;
@@ -75,17 +81,18 @@ function sanitizar(str) {
 }
 
 function fecharModal() {
-    document.getElementById('genericModal').classList.remove('active');
+    const modal = document.getElementById('genericModal');
+    if (modal) modal.classList.remove('active');
 }
 
 // ============================================
-// LOGIN - CORRIGIDO
+// LOGIN - COMPLETAMENTE REESCRITO
 // ============================================
 let loginAttempts = 0;
 let lockoutUntil = null;
 
 document.addEventListener('DOMContentLoaded', function() {
-    console.log('🟢 DOM Carregado - Inicializando sistema...');
+    console.log('🟢 DOM Carregado');
     
     // Atualizar data
     atualizarDataAtual();
@@ -94,10 +101,19 @@ document.addEventListener('DOMContentLoaded', function() {
     carregarConfiguracoes();
     
     // Login form
-    document.getElementById('loginForm').addEventListener('submit', fazerLogin);
+    const loginForm = document.getElementById('loginForm');
+    if (loginForm) {
+        loginForm.addEventListener('submit', fazerLogin);
+        console.log('✅ Evento de login vinculado');
+    } else {
+        console.error('❌ Formulário de login não encontrado!');
+    }
     
     // Troca de senha
-    document.getElementById('changePasswordForm').addEventListener('submit', trocarSenha);
+    const changePassForm = document.getElementById('changePasswordForm');
+    if (changePassForm) {
+        changePassForm.addEventListener('submit', trocarSenha);
+    }
     
     // Navegação
     document.querySelectorAll('.sidebar-nav a[data-page]').forEach(link => {
@@ -111,32 +127,49 @@ document.addEventListener('DOMContentLoaded', function() {
     });
     
     // Mobile menu
-    document.getElementById('mobileMenuBtn').addEventListener('click', function() {
-        document.getElementById('sidebar').classList.add('open');
-        document.getElementById('sidebarOverlay').classList.add('active');
-    });
+    const mobileBtn = document.getElementById('mobileMenuBtn');
+    const sidebarOverlay = document.getElementById('sidebarOverlay');
     
-    document.getElementById('sidebarOverlay').addEventListener('click', function() {
-        document.getElementById('sidebar').classList.remove('open');
-        this.classList.remove('active');
-    });
+    if (mobileBtn) {
+        mobileBtn.addEventListener('click', function() {
+            document.getElementById('sidebar').classList.add('open');
+            if (sidebarOverlay) sidebarOverlay.classList.add('active');
+        });
+    }
+    
+    if (sidebarOverlay) {
+        sidebarOverlay.addEventListener('click', function() {
+            document.getElementById('sidebar').classList.remove('open');
+            this.classList.remove('active');
+        });
+    }
     
     // Logout
-    document.getElementById('logoutBtn').addEventListener('click', function() {
-        if (confirm('Deseja realmente sair do sistema?')) logout();
-    });
+    const logoutBtn = document.getElementById('logoutBtn');
+    if (logoutBtn) {
+        logoutBtn.addEventListener('click', function() {
+            if (confirm('Deseja realmente sair do sistema?')) logout();
+        });
+    }
     
     // Theme toggle
-    document.getElementById('themeToggleBtn').addEventListener('click', toggleTema);
+    const themeBtn = document.getElementById('themeToggleBtn');
+    if (themeBtn) {
+        themeBtn.addEventListener('click', toggleTema);
+    }
     
     // Modal close
     const modalCloseBtn = document.querySelector('#genericModal .modal-close');
     if (modalCloseBtn) {
         modalCloseBtn.addEventListener('click', fecharModal);
     }
-    document.getElementById('genericModal').addEventListener('click', function(e) {
-        if (e.target === this) fecharModal();
-    });
+    
+    const genericModal = document.getElementById('genericModal');
+    if (genericModal) {
+        genericModal.addEventListener('click', function(e) {
+            if (e.target === this) fecharModal();
+        });
+    }
     
     // Configurações
     const uploadLogoEl = document.getElementById('uploadLogo');
@@ -188,83 +221,126 @@ document.addEventListener('DOMContentLoaded', function() {
 
 function fazerLogin(e) {
     e.preventDefault();
-    console.log('🔐 Tentativa de login...');
+    console.log('🔐 ========== TENTATIVA DE LOGIN ==========');
     
+    // Verificar lockout
     if (lockoutUntil && Date.now() < lockoutUntil) {
         const min = Math.ceil((lockoutUntil - Date.now()) / 60000);
-        document.getElementById('loginError').textContent = `Conta bloqueada. Tente em ${min} minuto(s).`;
+        const erroDiv = document.getElementById('loginError');
+        if (erroDiv) erroDiv.textContent = `Conta bloqueada. Tente em ${min} minuto(s).`;
         return;
     }
     
-    const usuario = document.getElementById('username').value.trim();
-    const senha = document.getElementById('password').value;
+    const usernameInput = document.getElementById('username');
+    const passwordInput = document.getElementById('password');
     const erroDiv = document.getElementById('loginError');
     const btnLogin = document.querySelector('.btn-login');
     
-    if (!usuario || !senha) {
-        erroDiv.textContent = 'Preencha todos os campos.';
+    if (!usernameInput || !passwordInput) {
+        console.error('❌ Campos de login não encontrados!');
         return;
     }
     
-    btnLogin.disabled = true;
-    btnLogin.innerHTML = '<span class="spinner"></span> Entrando...';
+    const usuario = usernameInput.value.trim();
+    const senha = passwordInput.value;
     
-    // CORREÇÃO: Buscar usuários e encontrar pelo nome de usuário
+    console.log('📝 Usuário digitado:', usuario);
+    console.log('🔑 Senha digitada:', senha.replace(/./g, '*'));
+    
+    if (!usuario || !senha) {
+        if (erroDiv) erroDiv.textContent = 'Preencha todos os campos.';
+        return;
+    }
+    
+    if (btnLogin) {
+        btnLogin.disabled = true;
+        btnLogin.innerHTML = '<span class="spinner"></span> Entrando...';
+    }
+    
+    // BUSCAR NO FIREBASE
+    console.log('🔍 Buscando usuários no Firebase...');
+    
     db.ref('usuarios').once('value').then(snapshot => {
         const usuarios = snapshot.val();
-        console.log('📦 Usuários encontrados:', usuarios);
+        console.log('📦 Dados brutos do Firebase:', usuarios);
+        console.log('📊 Total de usuários:', usuarios ? Object.keys(usuarios).length : 0);
         
         if (!usuarios) {
-            erroDiv.textContent = 'Nenhum usuário cadastrado. Execute o setup primeiro.';
+            console.error('❌ Nenhum usuário cadastrado no banco!');
+            if (erroDiv) erroDiv.textContent = 'Nenhum usuário cadastrado. Execute o setup primeiro.';
             resetarBtnLogin();
             return;
         }
         
-        // CORREÇÃO: Buscar usuário pelo campo 'usuario' (nome de login)
+        // CORREÇÃO: Converter para array e buscar
         let userEncontrado = null;
+        const listaUsuarios = Object.entries(usuarios);
         
-        Object.entries(usuarios).forEach(([key, user]) => {
-            console.log(`🔍 Verificando: ${user.usuario} (ID: ${key})`);
-            if (user.usuario === usuario && user.senha === senha && user.ativo !== false) {
-                userEncontrado = user;
-                // Garantir que o ID está correto
-                if (!userEncontrado.id || userEncontrado.id !== key) {
-                    userEncontrado.id = key;
+        console.log('🔍 Procurando usuário:', usuario);
+        
+        for (const [key, user] of listaUsuarios) {
+            console.log(`   Verificando: ID=${key}, usuario=${user.usuario}, senha=${user.senha}, ativo=${user.ativo}`);
+            
+            // Verificação exata
+            if (user.usuario === usuario && user.senha === senha) {
+                console.log('   ✅ Usuário e senha conferem!');
+                
+                if (user.ativo === false) {
+                    console.log('   ⚠️ Usuário está INATIVO!');
+                    continue;
+                }
+                
+                userEncontrado = { ...user, id: key };
+                console.log('   🎯 USUÁRIO ENCONTRADO:', userEncontrado);
+                break;
+            } else {
+                if (user.usuario !== usuario) {
+                    console.log(`   ❌ Usuário não confere: "${user.usuario}" !== "${usuario}"`);
+                }
+                if (user.senha !== senha) {
+                    console.log(`   ❌ Senha não confere`);
                 }
             }
-        });
+        }
         
         if (!userEncontrado) {
             loginAttempts++;
-            erroDiv.textContent = 'Usuário ou senha inválidos.';
-            console.log('❌ Usuário não encontrado ou senha incorreta');
+            console.error('❌ USUÁRIO NÃO ENCONTRADO!');
+            console.error(`   Tentativa ${loginAttempts} de ${CONFIG.MAX_LOGIN_ATTEMPTS}`);
+            
+            if (erroDiv) erroDiv.textContent = 'Usuário ou senha inválidos.';
             
             if (loginAttempts >= CONFIG.MAX_LOGIN_ATTEMPTS) {
                 lockoutUntil = Date.now() + CONFIG.LOCKOUT_TIME;
-                erroDiv.textContent = 'Conta bloqueada por 15 minutos.';
+                if (erroDiv) erroDiv.textContent = 'Conta bloqueada por 15 minutos.';
                 loginAttempts = 0;
             }
             resetarBtnLogin();
             return;
         }
         
-        console.log('✅ Usuário encontrado:', userEncontrado.nome);
-        
+        // LOGIN BEM-SUCEDIDO
+        console.log('🎉 LOGIN BEM-SUCEDIDO!');
         loginAttempts = 0;
         lockoutUntil = null;
         
         if (userEncontrado.primeiroAcesso) {
+            console.log('🔐 Primeiro acesso - solicitando troca de senha');
             usuarioLogado = userEncontrado;
-            document.getElementById('firstAccessModal').style.display = 'flex';
+            const firstAccessModal = document.getElementById('firstAccessModal');
+            if (firstAccessModal) {
+                firstAccessModal.style.display = 'flex';
+            }
             resetarBtnLogin();
             return;
         }
         
         completarLogin(userEncontrado);
         resetarBtnLogin();
+        
     }).catch(error => {
-        console.error('🔥 Erro no Firebase:', error);
-        erroDiv.textContent = 'Erro de conexão com o servidor.';
+        console.error('🔥 ERRO NO FIREBASE:', error);
+        if (erroDiv) erroDiv.textContent = 'Erro de conexão com o servidor. Verifique sua internet.';
         resetarBtnLogin();
     });
 }
@@ -279,65 +355,88 @@ function resetarBtnLogin() {
 
 function trocarSenha(e) {
     e.preventDefault();
-    const nova = document.getElementById('newPassword').value;
-    const confirma = document.getElementById('confirmPassword').value;
+    console.log('🔑 Trocando senha...');
+    
+    const novaSenha = document.getElementById('newPassword').value;
+    const confirmaSenha = document.getElementById('confirmPassword').value;
     const erroDiv = document.getElementById('passwordError');
     
-    if (nova !== confirma) {
-        erroDiv.textContent = 'As senhas não conferem.';
-        erroDiv.style.display = 'block';
+    if (novaSenha !== confirmaSenha) {
+        if (erroDiv) {
+            erroDiv.textContent = 'As senhas não conferem.';
+            erroDiv.style.display = 'block';
+        }
         return;
     }
-    if (nova.length < CONFIG.MIN_PASSWORD_LENGTH) {
-        erroDiv.textContent = `Mínimo ${CONFIG.MIN_PASSWORD_LENGTH} caracteres.`;
-        erroDiv.style.display = 'block';
+    
+    if (novaSenha.length < CONFIG.MIN_PASSWORD_LENGTH) {
+        if (erroDiv) {
+            erroDiv.textContent = `Mínimo ${CONFIG.MIN_PASSWORD_LENGTH} caracteres.`;
+            erroDiv.style.display = 'block';
+        }
         return;
     }
     
     if (!usuarioLogado || !usuarioLogado.id) {
-        erroDiv.textContent = 'Erro: usuário não identificado.';
-        erroDiv.style.display = 'block';
+        console.error('❌ usuárioLogado não definido!');
+        if (erroDiv) {
+            erroDiv.textContent = 'Erro interno. Faça login novamente.';
+            erroDiv.style.display = 'block';
+        }
         return;
     }
     
-    console.log('🔑 Alterando senha para usuário ID:', usuarioLogado.id);
+    console.log('📝 Atualizando senha para ID:', usuarioLogado.id);
     
     db.ref('usuarios/' + usuarioLogado.id).update({
-        senha: nova, 
+        senha: novaSenha,
         primeiroAcesso: false
     }).then(() => {
-        console.log('✅ Senha alterada com sucesso!');
-        usuarioLogado.senha = nova;
+        console.log('✅ Senha atualizada!');
+        usuarioLogado.senha = novaSenha;
         usuarioLogado.primeiroAcesso = false;
-        document.getElementById('firstAccessModal').style.display = 'none';
+        
+        const firstAccessModal = document.getElementById('firstAccessModal');
+        if (firstAccessModal) {
+            firstAccessModal.style.display = 'none';
+        }
+        
         completarLogin(usuarioLogado);
         toast('Senha alterada com sucesso!');
     }).catch(error => {
-        console.error('🔥 Erro ao alterar senha:', error);
-        erroDiv.textContent = 'Erro ao alterar senha. Tente novamente.';
-        erroDiv.style.display = 'block';
+        console.error('❌ Erro ao atualizar senha:', error);
+        if (erroDiv) {
+            erroDiv.textContent = 'Erro ao salvar. Tente novamente.';
+            erroDiv.style.display = 'block';
+        }
     });
 }
 
 function completarLogin(user) {
+    console.log('✅ Completando login para:', user.nome, '(ID:', user.id, ')');
+    
     usuarioLogado = user;
     
     // Salvar sessão
     sessionStorage.setItem('hrpi_session', JSON.stringify({
-        id: user.id, 
-        nome: user.nome, 
-        cargo: user.cargo, 
+        id: user.id,
+        nome: user.nome,
+        cargo: user.cargo,
         timestamp: Date.now()
     }));
     
     // Esconder login, mostrar sistema
-    document.getElementById('loginScreen').classList.add('hidden');
-    document.getElementById('mainSystem').classList.add('active');
+    const loginScreen = document.getElementById('loginScreen');
+    const mainSystem = document.getElementById('mainSystem');
     
-    // Atualizar nome do usuário
-    document.getElementById('userName').textContent = user.nome;
+    if (loginScreen) loginScreen.classList.add('hidden');
+    if (mainSystem) mainSystem.classList.add('active');
     
-    // Mostrar/ocultar itens admin
+    // Atualizar nome
+    const userNameEl = document.getElementById('userName');
+    if (userNameEl) userNameEl.textContent = user.nome;
+    
+    // Mostrar/ocultar admin
     const isAdmin = user.cargo === 'Administrador' || user.cargo === 'Supervisor';
     document.querySelectorAll('.admin-only').forEach(el => {
         el.style.display = isAdmin ? '' : 'none';
@@ -346,17 +445,22 @@ function completarLogin(user) {
     iniciarSistema();
     navegarPara('dashboard');
     toast(`Bem-vindo(a), ${user.nome}!`);
-    
-    console.log('✅ Login completo para:', user.nome);
 }
 
 function logout() {
     sessionStorage.removeItem('hrpi_session');
     usuarioLogado = null;
-    document.getElementById('mainSystem').classList.remove('active');
-    document.getElementById('loginScreen').classList.remove('hidden');
-    document.getElementById('loginForm').reset();
-    document.getElementById('loginError').textContent = '';
+    
+    const mainSystem = document.getElementById('mainSystem');
+    const loginScreen = document.getElementById('loginScreen');
+    const loginForm = document.getElementById('loginForm');
+    
+    if (mainSystem) mainSystem.classList.remove('active');
+    if (loginScreen) loginScreen.classList.remove('hidden');
+    if (loginForm) loginForm.reset();
+    
+    const erroDiv = document.getElementById('loginError');
+    if (erroDiv) erroDiv.textContent = '';
 }
 
 function verificarSessao() {
@@ -403,7 +507,7 @@ function navegarPara(pageName) {
 }
 
 // ============================================
-// INICIALIZAÇÃO
+// INICIALIZAÇÃO DO SISTEMA
 // ============================================
 function iniciarSistema() {
     db.ref('acompanhantes').on('value', snapshot => {
@@ -425,21 +529,21 @@ function atualizarDashboard() {
     const ultimos = [];
     
     const agora = new Date();
-    const iniSemana = new Date(agora); 
+    const iniSemana = new Date(agora);
     iniSemana.setDate(agora.getDate() - agora.getDay());
     iniSemana.setHours(0, 0, 0, 0);
     
     const iniMes = new Date(agora.getFullYear(), agora.getMonth(), 1);
     
     Object.values(acompanhantes).forEach(ac => {
-        if (ac.status === 'presente') { 
-            presentes++; 
-            if (ac.tipo === 'visita') visitas++; 
+        if (ac.status === 'presente') {
+            presentes++;
+            if (ac.tipo === 'visita') visitas++;
         }
         if (ac.dataEntrada === hoje) entradas++;
-        if (ac.dataSaida === hoje) { 
-            if (ac.status === 'saiu') saidas++; 
-            if (ac.status === 'trocado') trocas++; 
+        if (ac.dataSaida === hoje) {
+            if (ac.status === 'saiu') saidas++;
+            if (ac.status === 'trocado') trocas++;
         }
         
         const [d, m, a] = ac.dataEntrada.split('-');
@@ -456,29 +560,16 @@ function atualizarDashboard() {
         ultimos.push(ac);
     });
     
-    // Atualizar cards
-    const elPresentes = document.getElementById('countAcompanhantesPresentes');
-    const elVisitas = document.getElementById('countVisitasAtivas');
-    const elEntradas = document.getElementById('countEntradasHoje');
-    const elTrocas = document.getElementById('countTrocasHoje');
-    const elSaidas = document.getElementById('countSaidasHoje');
-    
-    if (elPresentes) elPresentes.textContent = presentes;
-    if (elVisitas) elVisitas.textContent = visitas;
-    if (elEntradas) elEntradas.textContent = entradas;
-    if (elTrocas) elTrocas.textContent = trocas;
-    if (elSaidas) elSaidas.textContent = saidas;
-    
-    // Indicadores avançados
-    const elES = document.getElementById('countEntradasSemana');
-    const elSS = document.getElementById('countSaidasSemana');
-    const elEM = document.getElementById('countEntradasMes');
-    const elSM = document.getElementById('countSaidasMes');
-    
-    if (elES) elES.textContent = entSemana;
-    if (elSS) elSS.textContent = saiSemana;
-    if (elEM) elEM.textContent = entMes;
-    if (elSM) elSM.textContent = saiMes;
+    // Atualizar elementos
+    setText('countAcompanhantesPresentes', presentes);
+    setText('countVisitasAtivas', visitas);
+    setText('countEntradasHoje', entradas);
+    setText('countTrocasHoje', trocas);
+    setText('countSaidasHoje', saidas);
+    setText('countEntradasSemana', entSemana);
+    setText('countSaidasSemana', saiSemana);
+    setText('countEntradasMes', entMes);
+    setText('countSaidasMes', saiMes);
     
     // Últimos registros
     ultimos.sort((a, b) => {
@@ -508,6 +599,11 @@ function atualizarDashboard() {
     }
 }
 
+function setText(id, value) {
+    const el = document.getElementById(id);
+    if (el) el.textContent = value;
+}
+
 // ============================================
 // TABELAS
 // ============================================
@@ -517,7 +613,7 @@ function atualizarAtivos() {
     if (!tbody) return;
     
     if (ativos.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="9" class="empty-table-message"><i class="fas fa-inbox"></i> Nenhum acompanhante ativo</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="9" class="empty-table-message"><i class="fas fa-inbox"></i> Nenhum ativo</td></tr>';
     } else {
         tbody.innerHTML = ativos.map(ac => `
             <tr>
@@ -530,8 +626,8 @@ function atualizarAtivos() {
                 <td>${sanitizar(ac.leito) || '-'}</td>
                 <td>${ac.dataEntrada} ${ac.horaEntrada}</td>
                 <td>
-                    <button class="btn-icon btn-edit" onclick="editarRegistro('${ac.id}')" title="Editar"><i class="fas fa-edit"></i></button>
-                    <button class="btn-icon btn-delete" onclick="excluirRegistro('${ac.id}')" title="Excluir"><i class="fas fa-trash"></i></button>
+                    <button class="btn-icon btn-edit" onclick="editarRegistro('${ac.id}')"><i class="fas fa-edit"></i></button>
+                    <button class="btn-icon btn-delete" onclick="excluirRegistro('${ac.id}')"><i class="fas fa-trash"></i></button>
                 </td>
             </tr>
         `).join('');
@@ -587,7 +683,7 @@ function renderizarTabelaHistorico(registros) {
     if (!tbody) return;
     
     if (registros.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="11" class="empty-table-message"><i class="fas fa-inbox"></i> Nenhum registro encontrado</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="11" class="empty-table-message"><i class="fas fa-inbox"></i> Nenhum registro</td></tr>';
     } else {
         tbody.innerHTML = registros.map(ac => `
             <tr>
@@ -602,8 +698,8 @@ function renderizarTabelaHistorico(registros) {
                 <td>${ac.dataSaida ? ac.dataSaida + ' ' + ac.horaSaida : '-'}</td>
                 <td><span class="badge ${ac.status === 'presente' ? 'badge-success' : ac.status === 'saiu' ? 'badge-danger' : 'badge-warning'}">${ac.status}</span></td>
                 <td>
-                    <button class="btn-icon btn-edit" onclick="editarRegistro('${ac.id}')" title="Editar"><i class="fas fa-edit"></i></button>
-                    <button class="btn-icon btn-delete" onclick="excluirRegistro('${ac.id}')" title="Excluir"><i class="fas fa-trash"></i></button>
+                    <button class="btn-icon btn-edit" onclick="editarRegistro('${ac.id}')"><i class="fas fa-edit"></i></button>
+                    <button class="btn-icon btn-delete" onclick="excluirRegistro('${ac.id}')"><i class="fas fa-trash"></i></button>
                 </td>
             </tr>
         `).join('');
@@ -611,60 +707,61 @@ function renderizarTabelaHistorico(registros) {
 }
 
 // ============================================
-// FORMULÁRIOS DE REGISTRO
+// FORMULÁRIOS
 // ============================================
 function registrarEntrada(e) {
     e.preventDefault();
     const dados = {
         id: gerarId(), tipo: 'acompanhante',
-        nomeAcompanhante: sanitizar(document.getElementById('acNome').value.trim()),
-        documento: sanitizar(document.getElementById('acDocumento').value.trim()),
-        telefone: sanitizar(document.getElementById('acTelefone').value.trim()),
-        parentesco: document.getElementById('acParentesco').value,
-        nomePaciente: sanitizar(document.getElementById('acPaciente').value.trim()),
-        setor: document.getElementById('acSetor').value,
-        leito: sanitizar(document.getElementById('acLeito').value.trim()),
+        nomeAcompanhante: sanitizar(document.getElementById('acNome')?.value?.trim() || ''),
+        documento: sanitizar(document.getElementById('acDocumento')?.value?.trim() || ''),
+        telefone: sanitizar(document.getElementById('acTelefone')?.value?.trim() || ''),
+        parentesco: document.getElementById('acParentesco')?.value || '',
+        nomePaciente: sanitizar(document.getElementById('acPaciente')?.value?.trim() || ''),
+        setor: document.getElementById('acSetor')?.value || '',
+        leito: sanitizar(document.getElementById('acLeito')?.value?.trim() || ''),
         dataEntrada: dataHoje(), horaEntrada: horaAgora(),
         dataSaida: null, horaSaida: null, status: 'presente',
-        recepcionistaEntrada: usuarioLogado?.nome || 'Sistema', 
-        recepcionistaSaida: null,
-        trocas: [], 
-        observacao: sanitizar(document.getElementById('acObservacao').value.trim()),
+        recepcionistaEntrada: usuarioLogado?.nome || 'Sistema',
+        recepcionistaSaida: null, trocas: [],
+        observacao: sanitizar(document.getElementById('acObservacao')?.value?.trim() || ''),
         duracaoVisita: null
     };
+    
     db.ref('acompanhantes/' + dados.id).set(dados).then(() => {
-        toast('Entrada registrada com sucesso!');
+        toast('Entrada registrada!');
         e.target.reset();
-    }).catch(error => {
-        console.error('Erro:', error);
+    }).catch(err => {
+        console.error(err);
         toast('Erro ao registrar.', 'error');
     });
 }
 
 function registrarVisita(e) {
     e.preventDefault();
-    const duracao = parseInt(document.getElementById('visDuracao').value);
+    const duracao = parseInt(document.getElementById('visDuracao')?.value || 30);
     const dados = {
         id: gerarId(), tipo: 'visita',
-        nomeAcompanhante: sanitizar(document.getElementById('visNome').value.trim()),
-        documento: sanitizar(document.getElementById('visDocumento').value.trim()),
-        telefone: sanitizar(document.getElementById('visTelefone').value.trim()),
-        parentesco: document.getElementById('visParentesco').value,
-        nomePaciente: sanitizar(document.getElementById('visPaciente').value.trim()),
-        setor: document.getElementById('visSetor').value,
-        leito: sanitizar(document.getElementById('visLeito').value.trim()),
+        nomeAcompanhante: sanitizar(document.getElementById('visNome')?.value?.trim() || ''),
+        documento: sanitizar(document.getElementById('visDocumento')?.value?.trim() || ''),
+        telefone: sanitizar(document.getElementById('visTelefone')?.value?.trim() || ''),
+        parentesco: document.getElementById('visParentesco')?.value || '',
+        nomePaciente: sanitizar(document.getElementById('visPaciente')?.value?.trim() || ''),
+        setor: document.getElementById('visSetor')?.value || '',
+        leito: sanitizar(document.getElementById('visLeito')?.value?.trim() || ''),
         dataEntrada: dataHoje(), horaEntrada: horaAgora(),
         dataSaida: dataHoje(), horaSaida: calcularHoraSaida(duracao),
         status: 'saiu',
-        recepcionistaEntrada: usuarioLogado?.nome || 'Sistema', 
+        recepcionistaEntrada: usuarioLogado?.nome || 'Sistema',
         recepcionistaSaida: usuarioLogado?.nome || 'Sistema',
         trocas: [], observacao: '', duracaoVisita: duracao
     };
+    
     db.ref('acompanhantes/' + dados.id).set(dados).then(() => {
-        toast('Visita registrada com sucesso!');
+        toast('Visita registrada!');
         e.target.reset();
-    }).catch(error => {
-        console.error('Erro:', error);
+    }).catch(err => {
+        console.error(err);
         toast('Erro ao registrar.', 'error');
     });
 }
@@ -677,7 +774,7 @@ function calcularHoraSaida(minutos) {
 
 function registrarTroca(e) {
     e.preventDefault();
-    const idAntigo = document.getElementById('trocaAcompanhanteAtual').value;
+    const idAntigo = document.getElementById('trocaAcompanhanteAtual')?.value;
     const antigo = acompanhantes[idAntigo];
     if (!antigo) { toast('Selecione um acompanhante.', 'error'); return; }
     
@@ -685,7 +782,7 @@ function registrarTroca(e) {
     trocas.push({
         dataHora: `${dataHoje()} ${horaAgora()}`,
         acompanhanteAntigo: antigo.nomeAcompanhante,
-        acompanhanteNovo: sanitizar(document.getElementById('trocaNovoNome').value.trim()),
+        acompanhanteNovo: sanitizar(document.getElementById('trocaNovoNome')?.value?.trim() || ''),
         recepcionista: usuarioLogado?.nome || 'Sistema'
     });
     
@@ -697,33 +794,34 @@ function registrarTroca(e) {
     const novoId = gerarId();
     db.ref('acompanhantes/' + novoId).set({
         id: novoId, tipo: 'acompanhante',
-        nomeAcompanhante: sanitizar(document.getElementById('trocaNovoNome').value.trim()),
-        documento: sanitizar(document.getElementById('trocaNovoDocumento').value.trim()),
-        telefone: sanitizar(document.getElementById('trocaNovoTelefone').value.trim()),
-        parentesco: document.getElementById('trocaNovoParentesco').value,
+        nomeAcompanhante: sanitizar(document.getElementById('trocaNovoNome')?.value?.trim() || ''),
+        documento: sanitizar(document.getElementById('trocaNovoDocumento')?.value?.trim() || ''),
+        telefone: sanitizar(document.getElementById('trocaNovoTelefone')?.value?.trim() || ''),
+        parentesco: document.getElementById('trocaNovoParentesco')?.value || '',
         nomePaciente: antigo.nomePaciente, setor: antigo.setor, leito: antigo.leito,
         dataEntrada: dataHoje(), horaEntrada: horaAgora(),
         dataSaida: null, horaSaida: null, status: 'presente',
         recepcionistaEntrada: usuarioLogado?.nome || 'Sistema', recepcionistaSaida: null,
         trocas: [], observacao: `Substituiu: ${antigo.nomeAcompanhante}`, duracaoVisita: null
     }).then(() => {
-        toast('Troca registrada com sucesso!');
+        toast('Troca registrada!');
         e.target.reset();
-        document.getElementById('trocaInfoAtual').style.display = 'none';
-    }).catch(error => {
-        console.error('Erro:', error);
+        const info = document.getElementById('trocaInfoAtual');
+        if (info) info.style.display = 'none';
+    }).catch(err => {
+        console.error(err);
         toast('Erro ao registrar.', 'error');
     });
 }
 
 function registrarSaida(e) {
     e.preventDefault();
-    const id = document.getElementById('saidaAcompanhante').value;
-    const motivo = document.getElementById('saidaMotivo').value;
-    if (!id || !motivo) { toast('Selecione acompanhante e motivo.', 'error'); return; }
+    const id = document.getElementById('saidaAcompanhante')?.value;
+    const motivo = document.getElementById('saidaMotivo')?.value;
+    if (!id || !motivo) { toast('Selecione tudo.', 'error'); return; }
     
     const atual = acompanhantes[id];
-    if (!atual) { toast('Acompanhante não encontrado.', 'error'); return; }
+    if (!atual) { toast('Não encontrado.', 'error'); return; }
     
     const obs = atual.observacao ? `${atual.observacao} | Saída: ${motivo}` : `Saída: ${motivo}`;
     
@@ -733,15 +831,16 @@ function registrarSaida(e) {
     }).then(() => {
         toast('Saída registrada!');
         e.target.reset();
-        document.getElementById('saidaInfo').style.display = 'none';
-    }).catch(error => {
-        console.error('Erro:', error);
-        toast('Erro ao registrar.', 'error');
+        const info = document.getElementById('saidaInfo');
+        if (info) info.style.display = 'none';
+    }).catch(err => {
+        console.error(err);
+        toast('Erro.', 'error');
     });
 }
 
 // ============================================
-// ATUALIZAR SELECTS E INFOS
+// ATUALIZAR SELECTS
 // ============================================
 function atualizarSelects() {
     const presentes = Object.values(acompanhantes).filter(a => a.status === 'presente');
@@ -749,19 +848,13 @@ function atualizarSelects() {
     const selSaida = document.getElementById('saidaAcompanhante');
     if (selSaida) {
         selSaida.innerHTML = '<option value="">Selecione...</option>' +
-            presentes.map(ac => {
-                const prefixo = ac.tipo === 'visita' ? '[VISITA]' : '[ACOMP.]';
-                return `<option value="${ac.id}">${prefixo} ${sanitizar(ac.nomeAcompanhante)} - ${sanitizar(ac.nomePaciente)}</option>`;
-            }).join('');
+            presentes.map(ac => `<option value="${ac.id}">${ac.tipo === 'visita' ? '[VISITA]' : '[ACOMP.]'} ${sanitizar(ac.nomeAcompanhante)} - ${sanitizar(ac.nomePaciente)}</option>`).join('');
     }
     
     const selTroca = document.getElementById('trocaAcompanhanteAtual');
     if (selTroca) {
-        const acompanhantesAtivos = presentes.filter(a => a.tipo === 'acompanhante');
         selTroca.innerHTML = '<option value="">Selecione...</option>' +
-            acompanhantesAtivos.map(ac => 
-                `<option value="${ac.id}">${sanitizar(ac.nomeAcompanhante)} - ${sanitizar(ac.nomePaciente)}</option>`
-            ).join('');
+            presentes.filter(a => a.tipo === 'acompanhante').map(ac => `<option value="${ac.id}">${sanitizar(ac.nomeAcompanhante)} - ${sanitizar(ac.nomePaciente)}</option>`).join('');
     }
 }
 
@@ -770,12 +863,12 @@ function atualizarInfoSaida() {
     const info = document.getElementById('saidaInfo');
     if (id && acompanhantes[id]) {
         const ac = acompanhantes[id];
-        document.getElementById('saidaPaciente').textContent = ac.nomePaciente;
-        document.getElementById('saidaSetor').textContent = ac.setor;
-        document.getElementById('saidaEntrada').textContent = `${ac.dataEntrada} ${ac.horaEntrada}`;
-        info.style.display = 'block';
-    } else { 
-        info.style.display = 'none'; 
+        setText('saidaPaciente', ac.nomePaciente);
+        setText('saidaSetor', ac.setor);
+        setText('saidaEntrada', `${ac.dataEntrada} ${ac.horaEntrada}`);
+        if (info) info.style.display = 'block';
+    } else {
+        if (info) info.style.display = 'none';
     }
 }
 
@@ -784,12 +877,12 @@ function atualizarInfoTroca() {
     const info = document.getElementById('trocaInfoAtual');
     if (id && acompanhantes[id]) {
         const ac = acompanhantes[id];
-        document.getElementById('trocaPaciente').textContent = ac.nomePaciente;
-        document.getElementById('trocaSetor').textContent = ac.setor;
-        document.getElementById('trocaLeito').textContent = ac.leito || '-';
-        info.style.display = 'block';
-    } else { 
-        info.style.display = 'none'; 
+        setText('trocaPaciente', ac.nomePaciente);
+        setText('trocaSetor', ac.setor);
+        setText('trocaLeito', ac.leito || '-');
+        if (info) info.style.display = 'block';
+    } else {
+        if (info) info.style.display = 'none';
     }
 }
 
@@ -804,7 +897,7 @@ function editarRegistro(id) {
     document.getElementById('modalBody').innerHTML = `
         <form id="formEditar">
             <div class="form-grid">
-                <div class="form-group"><label>Nome <span class="required">*</span></label><input type="text" id="editNome" value="${sanitizar(ac.nomeAcompanhante)}" required></div>
+                <div class="form-group"><label>Nome *</label><input type="text" id="editNome" value="${sanitizar(ac.nomeAcompanhante)}" required></div>
                 <div class="form-group"><label>Documento</label><input type="text" id="editDoc" value="${sanitizar(ac.documento || '')}"></div>
                 <div class="form-group"><label>Telefone</label><input type="text" id="editTel" value="${sanitizar(ac.telefone || '')}"></div>
                 <div class="form-group"><label>Parentesco</label><select id="editParentesco"><option>Filho(a)</option><option>Pai/Mãe</option><option>Cônjuge</option><option>Irmão/Irmã</option><option>Neto(a)</option><option>Sobrinho(a)</option><option>Amigo(a)</option><option>Cuidador(a)</option><option>Outro</option></select></div>
@@ -833,25 +926,17 @@ function editarRegistro(id) {
                 setor: document.getElementById('editSetor').value,
                 leito: sanitizar(document.getElementById('editLeito').value.trim()),
                 observacao: sanitizar(document.getElementById('editObs').value.trim())
-            }).then(() => { 
-                toast('Atualizado!'); 
-                fecharModal(); 
-            }).catch(error => {
-                console.error('Erro:', error);
-                toast('Erro ao atualizar.', 'error');
-            });
+            }).then(() => { toast('Atualizado!'); fecharModal(); })
+              .catch(err => { console.error(err); toast('Erro.', 'error'); });
         });
     }, 100);
 }
 
 function excluirRegistro(id) {
-    if (confirm('Excluir este registro permanentemente?')) {
+    if (confirm('Excluir permanentemente?')) {
         db.ref('acompanhantes/' + id).remove()
             .then(() => toast('Excluído!'))
-            .catch(error => {
-                console.error('Erro:', error);
-                toast('Erro ao excluir.', 'error');
-            });
+            .catch(err => { console.error(err); toast('Erro.', 'error'); });
     }
 }
 
@@ -863,21 +948,18 @@ function carregarConfiguracoes() {
         const c = snap.val();
         if (c) {
             if (c.logoHospital) {
-                const sidebarLogo = document.getElementById('sidebarLogo');
-                const loginLogo = document.getElementById('loginLogo');
-                if (sidebarLogo) sidebarLogo.innerHTML = `<img src="${c.logoHospital}" alt="Logo">`;
-                if (loginLogo) loginLogo.innerHTML = `<img src="${c.logoHospital}" alt="Logo">`;
+                const sl = document.getElementById('sidebarLogo');
+                const ll = document.getElementById('loginLogo');
+                if (sl) sl.innerHTML = `<img src="${c.logoHospital}" alt="Logo">`;
+                if (ll) ll.innerHTML = `<img src="${c.logoHospital}" alt="Logo">`;
             }
             if (c.fundoLogin) {
-                const loginScreen = document.getElementById('loginScreen');
-                if (loginScreen) loginScreen.style.setProperty('--login-bg-image', `url(${c.fundoLogin})`);
+                const ls = document.getElementById('loginScreen');
+                if (ls) ls.style.setProperty('--login-bg-image', `url(${c.fundoLogin})`);
             }
             if (c.tema) {
-                if (c.tema === 'dark') {
-                    document.body.classList.add('dark-theme');
-                } else {
-                    document.body.classList.remove('dark-theme');
-                }
+                if (c.tema === 'dark') document.body.classList.add('dark-theme');
+                else document.body.classList.remove('dark-theme');
                 const icon = document.querySelector('#themeToggleBtn i');
                 if (icon) icon.className = c.tema === 'dark' ? 'fas fa-sun' : 'fas fa-moon';
             }
@@ -887,17 +969,14 @@ function carregarConfiguracoes() {
 
 function uploadLogo(e) {
     const file = e.target.files[0];
-    if (!file || !file.type.startsWith('image/')) { 
-        toast('Imagem inválida.', 'error'); 
-        return; 
-    }
+    if (!file || !file.type.startsWith('image/')) { toast('Imagem inválida.', 'error'); return; }
     const reader = new FileReader();
     reader.onload = ev => {
         db.ref('configuracoes').update({ logoHospital: ev.target.result }).then(() => {
-            const sidebarLogo = document.getElementById('sidebarLogo');
-            const loginLogo = document.getElementById('loginLogo');
-            if (sidebarLogo) sidebarLogo.innerHTML = `<img src="${ev.target.result}" alt="Logo">`;
-            if (loginLogo) loginLogo.innerHTML = `<img src="${ev.target.result}" alt="Logo">`;
+            const sl = document.getElementById('sidebarLogo');
+            const ll = document.getElementById('loginLogo');
+            if (sl) sl.innerHTML = `<img src="${ev.target.result}" alt="Logo">`;
+            if (ll) ll.innerHTML = `<img src="${ev.target.result}" alt="Logo">`;
             toast('Logo atualizada!');
         });
     };
@@ -906,15 +985,12 @@ function uploadLogo(e) {
 
 function uploadFundo(e) {
     const file = e.target.files[0];
-    if (!file || !file.type.startsWith('image/')) { 
-        toast('Imagem inválida.', 'error'); 
-        return; 
-    }
+    if (!file || !file.type.startsWith('image/')) { toast('Imagem inválida.', 'error'); return; }
     const reader = new FileReader();
     reader.onload = ev => {
         db.ref('configuracoes').update({ fundoLogin: ev.target.result }).then(() => {
-            const loginScreen = document.getElementById('loginScreen');
-            if (loginScreen) loginScreen.style.setProperty('--login-bg-image', `url(${ev.target.result})`);
+            const ls = document.getElementById('loginScreen');
+            if (ls) ls.style.setProperty('--login-bg-image', `url(${ev.target.result})`);
             toast('Fundo atualizado!');
         });
     };
@@ -922,22 +998,22 @@ function uploadFundo(e) {
 }
 
 function removerLogo() {
-    if (confirm('Remover a logo?')) {
+    if (confirm('Remover logo?')) {
         db.ref('configuracoes').update({ logoHospital: null }).then(() => {
-            const sidebarLogo = document.getElementById('sidebarLogo');
-            const loginLogo = document.getElementById('loginLogo');
-            if (sidebarLogo) sidebarLogo.innerHTML = '<i class="fas fa-hospital-alt"></i>';
-            if (loginLogo) loginLogo.innerHTML = '<span class="default-logo"><i class="fas fa-hospital-alt"></i></span>';
+            const sl = document.getElementById('sidebarLogo');
+            const ll = document.getElementById('loginLogo');
+            if (sl) sl.innerHTML = '<i class="fas fa-hospital-alt"></i>';
+            if (ll) ll.innerHTML = '<span class="default-logo"><i class="fas fa-hospital-alt"></i></span>';
             toast('Logo removida.');
         });
     }
 }
 
 function removerFundo() {
-    if (confirm('Remover o fundo?')) {
+    if (confirm('Remover fundo?')) {
         db.ref('configuracoes').update({ fundoLogin: null }).then(() => {
-            const loginScreen = document.getElementById('loginScreen');
-            if (loginScreen) loginScreen.style.removeProperty('--login-bg-image');
+            const ls = document.getElementById('loginScreen');
+            if (ls) ls.style.removeProperty('--login-bg-image');
             toast('Fundo removido.');
         });
     }
@@ -945,19 +1021,11 @@ function removerFundo() {
 
 function resetSenhaUsuario() {
     const userId = document.getElementById('selectUsuarioReset')?.value;
-    if (!userId) { 
-        toast('Selecione um usuário.', 'error'); 
-        return; 
-    }
+    if (!userId) { toast('Selecione um usuário.', 'error'); return; }
     if (confirm('Resetar senha para "123456"?')) {
-        db.ref('usuarios/' + userId).update({ 
-            senha: '123456', 
-            primeiroAcesso: true 
-        }).then(() => toast('Senha resetada! Nova senha: 123456'))
-          .catch(error => {
-              console.error('Erro:', error);
-              toast('Erro ao resetar.', 'error');
-          });
+        db.ref('usuarios/' + userId).update({ senha: '123456', primeiroAcesso: true })
+            .then(() => toast('Senha resetada!'))
+            .catch(err => { console.error(err); toast('Erro.', 'error'); });
     }
 }
 
@@ -969,17 +1037,15 @@ function toggleTema() {
 }
 
 // ============================================
-// USUÁRIOS - CORRIGIDO
+// USUÁRIOS
 // ============================================
 function carregarSelectUsuarios() {
     db.ref('usuarios').on('value', snap => {
         const sel = document.getElementById('selectUsuarioReset');
         if (!sel) return;
         const usuarios = snap.val() || {};
-        sel.innerHTML = '<option value="">Selecione um usuário...</option>' +
-            Object.entries(usuarios).map(([key, u]) => 
-                `<option value="${key}">${sanitizar(u.nome)} (${sanitizar(u.usuario)})</option>`
-            ).join('');
+        sel.innerHTML = '<option value="">Selecione...</option>' +
+            Object.entries(usuarios).map(([key, u]) => `<option value="${key}">${sanitizar(u.nome)} (${sanitizar(u.usuario)})</option>`).join('');
     });
 }
 
@@ -990,7 +1056,7 @@ function carregarUsuarios() {
         if (!tbody) return;
         
         if (Object.keys(usuarios).length === 0) {
-            tbody.innerHTML = '<tr><td colspan="6" class="empty-table-message"><i class="fas fa-inbox"></i> Nenhum usuário cadastrado</td></tr>';
+            tbody.innerHTML = '<tr><td colspan="6" class="empty-table-message"><i class="fas fa-inbox"></i> Nenhum usuário</td></tr>';
             return;
         }
         
@@ -1002,9 +1068,9 @@ function carregarUsuarios() {
                 <td><span class="badge ${u.ativo !== false ? 'badge-success' : 'badge-danger'}">${u.ativo !== false ? 'Ativo' : 'Inativo'}</span></td>
                 <td><span class="badge ${u.primeiroAcesso ? 'badge-warning' : 'badge-info'}">${u.primeiroAcesso ? 'Pendente' : 'OK'}</span></td>
                 <td>
-                    <button class="btn-icon btn-edit" onclick="editarUsuario('${key}')" title="Editar"><i class="fas fa-edit"></i></button>
-                    <button class="btn-icon btn-key" onclick="resetSenhaUser('${key}')" title="Resetar Senha"><i class="fas fa-key"></i></button>
-                    <button class="btn-icon btn-delete" onclick="excluirUsuario('${key}')" title="Excluir"><i class="fas fa-trash"></i></button>
+                    <button class="btn-icon btn-edit" onclick="editarUsuario('${key}')"><i class="fas fa-edit"></i></button>
+                    <button class="btn-icon btn-key" onclick="resetSenhaUser('${key}')"><i class="fas fa-key"></i></button>
+                    <button class="btn-icon btn-delete" onclick="excluirUsuario('${key}')"><i class="fas fa-trash"></i></button>
                 </td>
             </tr>
         `).join('');
@@ -1016,44 +1082,21 @@ function abrirModalNovoUsuario() {
     document.getElementById('modalBody').innerHTML = `
         <form id="formNovoUsuario">
             <div class="form-grid">
-                <div class="form-group">
-                    <label>Nome Completo <span class="required">*</span></label>
-                    <input type="text" id="newUserNome" placeholder="Nome do usuário" required>
-                </div>
-                <div class="form-group">
-                    <label>Nome de Usuário <span class="required">*</span></label>
-                    <input type="text" id="newUserUsername" placeholder="Login do usuário" required>
-                </div>
-                <div class="form-group">
-                    <label>Cargo <span class="required">*</span></label>
-                    <select id="newUserCargo" required>
-                        <option value="">Selecione...</option>
-                        <option>Administrador</option>
-                        <option>Supervisor</option>
-                        <option>Recepcionista</option>
-                    </select>
-                </div>
-                <div class="form-group">
-                    <label>Status</label>
-                    <select id="newUserAtivo">
-                        <option value="true">Ativo</option>
-                        <option value="false">Inativo</option>
-                    </select>
-                </div>
+                <div class="form-group"><label>Nome *</label><input type="text" id="newUserNome" required></div>
+                <div class="form-group"><label>Usuário *</label><input type="text" id="newUserUsername" required></div>
+                <div class="form-group"><label>Cargo *</label><select id="newUserCargo" required><option value="">Selecione...</option><option>Administrador</option><option>Supervisor</option><option>Recepcionista</option></select></div>
+                <div class="form-group"><label>Status</label><select id="newUserAtivo"><option value="true">Ativo</option><option value="false">Inativo</option></select></div>
             </div>
-            <div class="form-actions">
-                <button type="submit" class="btn btn-primary">
-                    <i class="fas fa-save"></i> Criar Usuário
-                </button>
-            </div>
+            <div class="form-actions"><button type="submit" class="btn btn-primary"><i class="fas fa-save"></i> Criar</button></div>
         </form>
     `;
     document.getElementById('genericModal').classList.add('active');
     
     document.getElementById('formNovoUsuario').addEventListener('submit', function(e) {
         e.preventDefault();
-        
-        const novoUsuario = {
+        const novoId = 'user_' + Date.now();
+        const userData = {
+            id: novoId,
             nome: sanitizar(document.getElementById('newUserNome').value.trim()),
             usuario: sanitizar(document.getElementById('newUserUsername').value.trim().toLowerCase()),
             cargo: document.getElementById('newUserCargo').value,
@@ -1062,28 +1105,17 @@ function abrirModalNovoUsuario() {
             primeiroAcesso: true
         };
         
-        console.log('📝 Criando novo usuário:', novoUsuario);
-        
-        // Gerar ID único
-        const novoId = 'user_' + Date.now();
-        
-        // CORREÇÃO: Salvar com o ID correto
-        const userData = {
-            ...novoUsuario,
-            id: novoId
-        };
+        console.log('📝 Criando usuário:', userData);
         
         db.ref('usuarios/' + novoId).set(userData).then(() => {
-            console.log('✅ Usuário criado com ID:', novoId);
-            toast('Usuário criado com sucesso! Senha inicial: 123456');
+            console.log('✅ Usuário criado!');
+            toast('Usuário criado! Senha: 123456');
             fecharModal();
-            if (document.getElementById('usuarios').classList.contains('active')) {
-                carregarUsuarios();
-            }
+            carregarUsuarios();
             carregarSelectUsuarios();
-        }).catch(error => {
-            console.error('🔥 Erro ao criar usuário:', error);
-            toast('Erro ao criar usuário.', 'error');
+        }).catch(err => {
+            console.error('❌ Erro:', err);
+            toast('Erro ao criar.', 'error');
         });
     });
 }
@@ -1091,42 +1123,16 @@ function abrirModalNovoUsuario() {
 function editarUsuario(id) {
     db.ref('usuarios/' + id).once('value').then(snap => {
         const u = snap.val();
-        if (!u) {
-            toast('Usuário não encontrado.', 'error');
-            return;
-        }
-        
         document.getElementById('modalTitle').innerHTML = '<i class="fas fa-edit"></i> Editar Usuário';
         document.getElementById('modalBody').innerHTML = `
             <form id="formEditarUsuario">
                 <div class="form-grid">
-                    <div class="form-group">
-                        <label>Nome <span class="required">*</span></label>
-                        <input type="text" id="editUNome" value="${sanitizar(u.nome)}" required>
-                    </div>
-                    <div class="form-group">
-                        <label>Usuário <span class="required">*</span></label>
-                        <input type="text" id="editUUser" value="${sanitizar(u.usuario)}" required>
-                    </div>
-                    <div class="form-group">
-                        <label>Cargo</label>
-                        <select id="editUCargo">
-                            <option ${u.cargo==='Administrador'?'selected':''}>Administrador</option>
-                            <option ${u.cargo==='Supervisor'?'selected':''}>Supervisor</option>
-                            <option ${u.cargo==='Recepcionista'?'selected':''}>Recepcionista</option>
-                        </select>
-                    </div>
-                    <div class="form-group">
-                        <label>Status</label>
-                        <select id="editUAtivo">
-                            <option value="true" ${u.ativo!==false?'selected':''}>Ativo</option>
-                            <option value="false" ${u.ativo===false?'selected':''}>Inativo</option>
-                        </select>
-                    </div>
+                    <div class="form-group"><label>Nome *</label><input type="text" id="editUNome" value="${sanitizar(u.nome)}" required></div>
+                    <div class="form-group"><label>Usuário *</label><input type="text" id="editUUser" value="${sanitizar(u.usuario)}" required></div>
+                    <div class="form-group"><label>Cargo</label><select id="editUCargo"><option ${u.cargo==='Administrador'?'selected':''}>Administrador</option><option ${u.cargo==='Supervisor'?'selected':''}>Supervisor</option><option ${u.cargo==='Recepcionista'?'selected':''}>Recepcionista</option></select></div>
+                    <div class="form-group"><label>Status</label><select id="editUAtivo"><option value="true" ${u.ativo!==false?'selected':''}>Ativo</option><option value="false" ${u.ativo===false?'selected':''}>Inativo</option></select></div>
                 </div>
-                <div class="form-actions">
-                    <button type="submit" class="btn btn-primary"><i class="fas fa-save"></i> Salvar</button>
-                </div>
+                <div class="form-actions"><button type="submit" class="btn btn-primary"><i class="fas fa-save"></i> Salvar</button></div>
             </form>
         `;
         document.getElementById('genericModal').classList.add('active');
@@ -1138,44 +1144,22 @@ function editarUsuario(id) {
                 usuario: sanitizar(document.getElementById('editUUser').value.trim().toLowerCase()),
                 cargo: document.getElementById('editUCargo').value,
                 ativo: document.getElementById('editUAtivo').value === 'true'
-            }).then(() => { 
-                toast('Usuário atualizado!'); 
-                fecharModal(); 
-                carregarUsuarios(); 
-            }).catch(error => {
-                console.error('Erro:', error);
-                toast('Erro ao atualizar.', 'error');
-            });
+            }).then(() => { toast('Atualizado!'); fecharModal(); carregarUsuarios(); });
         });
     });
 }
 
 function resetSenhaUser(id) {
     if (confirm('Resetar senha para "123456"?')) {
-        db.ref('usuarios/' + id).update({ 
-            senha: '123456', 
-            primeiroAcesso: true 
-        }).then(() => { 
-            toast('Senha resetada!'); 
-            carregarUsuarios(); 
-        }).catch(error => {
-            console.error('Erro:', error);
-            toast('Erro ao resetar.', 'error');
-        });
+        db.ref('usuarios/' + id).update({ senha: '123456', primeiroAcesso: true })
+            .then(() => { toast('Senha resetada!'); carregarUsuarios(); });
     }
 }
 
 function excluirUsuario(id) {
-    if (confirm('Excluir este usuário permanentemente?')) {
+    if (confirm('Excluir permanentemente?')) {
         db.ref('usuarios/' + id).remove()
-            .then(() => { 
-                toast('Usuário excluído!'); 
-                carregarUsuarios(); 
-                carregarSelectUsuarios(); 
-            }).catch(error => {
-                console.error('Erro:', error);
-                toast('Erro ao excluir.', 'error');
-            });
+            .then(() => { toast('Excluído!'); carregarUsuarios(); carregarSelectUsuarios(); });
     }
 }
 
@@ -1183,10 +1167,7 @@ function excluirUsuario(id) {
 // RELATÓRIOS PDF
 // ============================================
 function gerarRelatorio(tipo) {
-    if (typeof window.jspdf === 'undefined') { 
-        toast('Carregando gerador...', 'error'); 
-        return; 
-    }
+    if (typeof window.jspdf === 'undefined') { toast('Carregando...', 'error'); return; }
     
     const { jsPDF } = window.jspdf;
     const doc = new jsPDF('landscape');
@@ -1194,95 +1175,47 @@ function gerarRelatorio(tipo) {
     const hoje = new Date();
     
     switch(tipo) {
-        case 'diario': 
-            dataInicio = dataHoje(); 
-            dataFim = dataHoje(); 
-            titulo = 'Relatório Diário'; 
-            break;
+        case 'diario': dataInicio = dataHoje(); dataFim = dataHoje(); titulo = 'Diário'; break;
         case 'semanal':
-            const is = new Date(); 
-            is.setDate(hoje.getDate() - hoje.getDay());
+            const is = new Date(); is.setDate(hoje.getDate() - hoje.getDay());
             dataInicio = `${String(is.getDate()).padStart(2,'0')}-${String(is.getMonth()+1).padStart(2,'0')}-${is.getFullYear()}`;
-            dataFim = dataHoje(); 
-            titulo = 'Relatório Semanal'; 
-            break;
+            dataFim = dataHoje(); titulo = 'Semanal'; break;
         case 'mensal':
             dataInicio = `01-${String(hoje.getMonth()+1).padStart(2,'0')}-${hoje.getFullYear()}`;
-            dataFim = dataHoje(); 
-            titulo = 'Relatório Mensal'; 
-            break;
+            dataFim = dataHoje(); titulo = 'Mensal'; break;
         case 'personalizado':
             const ini = document.getElementById('dataInicioPersonalizado')?.value;
             const fim = document.getElementById('dataFimPersonalizado')?.value;
-            if (!ini || !fim) { 
-                toast('Selecione as datas.', 'error'); 
-                return; 
-            }
+            if (!ini || !fim) { toast('Selecione datas.', 'error'); return; }
             dataInicio = ini.split('-').reverse().join('-');
             dataFim = fim.split('-').reverse().join('-');
-            titulo = 'Relatório Personalizado'; 
-            break;
+            titulo = 'Personalizado'; break;
     }
     
     db.ref('configuracoes/logoHospital').once('value').then(snapLogo => {
-        const logo = snapLogo.val();
-        if (logo) {
-            try { doc.addImage(logo, 'PNG', 10, 8, 22, 22); } catch(e) {}
-        }
+        if (snapLogo.val()) try { doc.addImage(snapLogo.val(), 'PNG', 10, 8, 22, 22); } catch(e) {}
         
-        doc.setFontSize(16); 
-        doc.setTextColor(26, 107, 122);
+        doc.setFontSize(16); doc.setTextColor(26, 107, 122);
         doc.text('HOSPITAL REGIONAL DE PALMEIRA DOS ÍNDIOS', 148, 15, { align: 'center' });
-        
-        doc.setFontSize(11); 
-        doc.setTextColor(100);
-        doc.text('Sistema de Controle de Recepção - HRPI', 148, 22, { align: 'center' });
-        
-        doc.setFontSize(13); 
-        doc.setTextColor(0);
-        doc.text(`${titulo}: ${dataInicio} a ${dataFim}`, 148, 30, { align: 'center' });
+        doc.setFontSize(11); doc.setTextColor(100);
+        doc.text('Sistema de Controle de Recepção', 148, 22, { align: 'center' });
+        doc.setFontSize(13); doc.setTextColor(0);
+        doc.text(`Relatório ${titulo}: ${dataInicio} a ${dataFim}`, 148, 30, { align: 'center' });
         
         let dados = Object.values(acompanhantes);
-        if (dataInicio) {
-            const [di, mi, ai] = dataInicio.split('-');
-            dados = dados.filter(ac => { 
-                const [d, m, a] = ac.dataEntrada.split('-'); 
-                return new Date(a, m-1, d) >= new Date(ai, mi-1, di); 
-            });
-        }
-        if (dataFim) {
-            const [df, mf, af] = dataFim.split('-');
-            dados = dados.filter(ac => { 
-                const [d, m, a] = ac.dataEntrada.split('-'); 
-                return new Date(a, m-1, d) <= new Date(af, mf-1, df, 23, 59, 59); 
-            });
-        }
+        if (dataInicio) { const [di, mi, ai] = dataInicio.split('-'); dados = dados.filter(ac => { const [d, m, a] = ac.dataEntrada.split('-'); return new Date(a, m-1, d) >= new Date(ai, mi-1, di); }); }
+        if (dataFim) { const [df, mf, af] = dataFim.split('-'); dados = dados.filter(ac => { const [d, m, a] = ac.dataEntrada.split('-'); return new Date(a, m-1, d) <= new Date(af, mf-1, df, 23, 59, 59); }); }
         
         doc.autoTable({
             startY: 38,
-            head: [['Tipo', 'Nome', 'Documento', 'Parentesco', 'Paciente', 'Setor', 'Leito', 'Entrada', 'Saída', 'Status']],
-            body: dados.map(ac => [
-                ac.tipo === 'visita' ? 'Visita' : 'Acomp.', 
-                ac.nomeAcompanhante, 
-                ac.documento || '-', 
-                ac.parentesco, 
-                ac.nomePaciente, 
-                ac.setor, 
-                ac.leito || '-', 
-                ac.dataEntrada + ' ' + ac.horaEntrada, 
-                ac.dataSaida ? ac.dataSaida + ' ' + ac.horaSaida : '-', 
-                ac.status
-            ]),
-            styles: { fontSize: 7.5 }, 
-            headStyles: { fillColor: [26, 107, 122] },
+            head: [['Tipo', 'Nome', 'Doc', 'Parentesco', 'Paciente', 'Setor', 'Leito', 'Entrada', 'Saída', 'Status']],
+            body: dados.map(ac => [ac.tipo==='visita'?'Visita':'Acomp.', ac.nomeAcompanhante, ac.documento||'-', ac.parentesco, ac.nomePaciente, ac.setor, ac.leito||'-', ac.dataEntrada+' '+ac.horaEntrada, ac.dataSaida?ac.dataSaida+' '+ac.horaSaida:'-', ac.status]),
+            styles: { fontSize: 7 }, headStyles: { fillColor: [26, 107, 122] },
             alternateRowStyles: { fillColor: [232, 244, 247] }
         });
         
-        doc.save(`HRPI_Relatorio_${tipo}_${dataHoje()}.pdf`);
-        toast('PDF gerado com sucesso!');
-    }).catch(error => {
-        console.error('Erro:', error);
-        toast('Erro ao gerar PDF.', 'error');
+        doc.save(`HRPI_${titulo}_${dataHoje()}.pdf`);
+        toast('PDF gerado!');
     });
 }
 
@@ -1298,4 +1231,4 @@ function atualizarDataAtual() {
     }
 }
 
-console.log('✅ HRPI - Sistema de Controle de Recepção carregado!');
+console.log('✅ HRPI - Sistema carregado!');
