@@ -509,6 +509,44 @@ body {
 }
 
 /* ============================================ */
+/* TOP HEADER (Cabeçalho global com busca) */
+/* ============================================ */
+.top-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 24px;
+    padding-bottom: 16px;
+    border-bottom: 2px solid var(--border);
+    gap: 16px;
+    flex-wrap: wrap;
+}
+
+.top-header h2 {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--text);
+    white-space: nowrap;
+}
+
+.header-actions {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.current-date {
+    color: var(--text-light);
+    font-size: 0.85rem;
+    background: var(--surface);
+    padding: 8px 16px;
+    border-radius: 20px;
+    box-shadow: var(--shadow-sm);
+    border: 1px solid var(--border);
+    white-space: nowrap;
+}
+
+/* ============================================ */
 /* PÁGINAS */
 /* ============================================ */
 .page {
@@ -1539,4 +1577,296 @@ body.dark-theme .error-message {
     .logo-container img {
         max-height: 50px;
     }
+}
+
+/* ============================================ */
+/* BARRA DE BUSCA GLOBAL */
+/* ============================================ */
+.search-box {
+    position: relative;
+    flex: 1;
+    max-width: 400px;
+    margin: 0 20px;
+}
+
+.search-box i {
+    position: absolute;
+    left: 14px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: #95a5a6;
+    font-size: 14px;
+    pointer-events: none;
+    z-index: 2;
+}
+
+.search-box input {
+    width: 100%;
+    padding: 10px 14px 10px 40px;
+    border: 2px solid var(--border);
+    border-radius: 30px;
+    font-size: 14px;
+    background: var(--surface);
+    color: var(--text);
+    outline: none;
+    transition: var(--transition);
+    font-family: inherit;
+}
+
+.search-box input:focus {
+    border-color: var(--secondary);
+    box-shadow: 0 0 0 3px rgba(44, 154, 175, 0.1);
+    background: #fff;
+}
+
+.search-results {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 0 0 var(--radius-sm) var(--radius-sm);
+    box-shadow: var(--shadow-lg);
+    max-height: 320px;
+    overflow-y: auto;
+    z-index: 50;
+    margin-top: 4px;
+}
+
+.search-result-item {
+    padding: 12px 16px;
+    cursor: pointer;
+    border-bottom: 1px solid var(--border-light);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    transition: background var(--transition-fast);
+}
+
+.search-result-item:hover {
+    background: var(--primary-light);
+}
+
+.search-result-item .info {
+    display: flex;
+    flex-direction: column;
+}
+
+.search-result-item .name {
+    font-weight: 600;
+    font-size: 14px;
+    color: var(--text);
+}
+
+.search-result-item .detail {
+    font-size: 12px;
+    color: var(--text-light);
+}
+
+.search-result-item .badge {
+    flex-shrink: 0;
+    margin-left: 10px;
+}
+
+/* Responsivo */
+@media (max-width: 768px) {
+    .search-box {
+        max-width: 100%;
+        margin: 10px 0;
+        order: 3;
+        width: 100%;
+    }
+    
+    .top-header {
+        flex-wrap: wrap;
+    }
+}
+
+/* ============================================ */
+/* CRACHÁ DE IMPRESSÃO */
+/* ============================================ */
+.cracha-container {
+    width: 350px;
+    margin: 0 auto;
+    border: 2px dashed #1a6b7a;
+    border-radius: 12px;
+    padding: 20px;
+    text-align: center;
+    font-family: 'Segoe UI', Arial, sans-serif;
+    background: linear-gradient(180deg, #f9fdfd 0%, #ffffff 100%);
+    box-sizing: border-box; /* <-- adicionado */
+}
+
+.cracha-logo {
+    font-size: 40px;
+    color: #1a6b7a;
+    margin-bottom: 6px;
+}
+
+.cracha-logo img {
+    max-width: 70px;
+    max-height: 50px;
+    object-fit: contain;
+}
+
+.cracha-titulo {
+    font-size: 13px;
+    font-weight: 700;
+    color: #0f4c58;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: 4px;
+}
+
+.cracha-subtitulo {
+    font-size: 10px;
+    color: #7d8c97;
+    margin-bottom: 16px;
+}
+
+.cracha-nome {
+    font-size: 22px;
+    font-weight: 800;
+    color: #1a1a2e;
+    margin: 12px 0 4px;
+}
+
+.cracha-tipo-badge {
+    display: inline-block;
+    padding: 4px 12px;
+    border-radius: 15px;
+    font-size: 11px;
+    font-weight: 700;
+    margin: 8px 0;
+    background: #e8f4f7;
+    color: #1a6b7a;
+}
+
+.cracha-info {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+    margin: 16px 0;
+    text-align: left;
+    font-size: 12px;
+}
+
+.cracha-info .campo {
+    background: #f4f7f9;
+    padding: 8px;
+    border-radius: 6px;
+}
+
+.cracha-info .campo strong {
+    display: block;
+    font-size: 9px;
+    text-transform: uppercase;
+    color: #7d8c97;
+    letter-spacing: 0.5px;
+}
+
+.cracha-info .campo span {
+    font-size: 14px;
+    font-weight: 600;
+    color: #1a1a2e;
+}
+
+.cracha-codigo {
+    margin-top: 14px;
+    padding: 10px;
+    background: #f0f4f6;
+    border-radius: 8px;
+    font-family: 'Courier New', monospace;
+    font-size: 12px;
+    letter-spacing: 2px;
+    color: #5a6c7d;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+}
+
+.cracha-codigo i {
+    font-size: 18px;
+    color: #1a6b7a;
+}
+
+/* Estilos específicos para impressão */
+@media print {
+    body * {
+        visibility: hidden;
+    }
+    
+    #badgeModal, #badgeModal * {
+        visibility: visible;
+    }
+    
+    #badgeModal {
+        position: absolute;
+        left: 50%;
+        top: 50%;
+        transform: translate(-50%, -50%);
+        box-shadow: none;
+        background: none;
+    }
+    
+    #badgeModal .modal {
+        box-shadow: none;
+        border: 1px solid #000;
+    }
+    
+    #badgeModal button {
+        display: none !important;
+    }
+}
+
+/* ============================================ */
+/* BARRA DE PROGRESSO PARA TEMPO DE VISITA */
+/* ============================================ */
+.tempo-restante {
+    font-size: 0.85rem;
+    font-weight: 600;
+}
+
+.progress-bar {
+    width: 100%;
+    height: 6px;
+    background: #e0e0e0;
+    border-radius: 3px;
+    margin-top: 4px;
+    overflow: hidden;
+}
+
+.progress-bar .fill {
+    height: 100%;
+    border-radius: 3px;
+    transition: width 0.3s ease, background-color 0.3s ease;
+}
+
+.progress-bar .fill.green { background: #2d8b4e; }
+.progress-bar .fill.yellow { background: #c7841a; }
+.progress-bar .fill.red { background: #c0392b; }
+.progress-bar .fill.expired { background: #e74c3c; animation: blink 1s infinite; }
+
+@keyframes blink {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.4; }
+}
+
+/* Botão de estender tempo */
+.btn-extend {
+    background: none;
+    border: 1px solid var(--border);
+    color: var(--primary);
+    padding: 2px 6px;
+    border-radius: 10px;
+    font-size: 11px;
+    cursor: pointer;
+    margin-left: 6px;
+}
+
+.btn-extend:hover {
+    background: var(--primary-light);
+    border-color: var(--primary);
 }
