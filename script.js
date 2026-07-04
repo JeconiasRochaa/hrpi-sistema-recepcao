@@ -1,6 +1,6 @@
 // ============================================
 // HRPI - SISTEMA DE CONTROLE DE RECEPÇÃO
-// script.js - VERSÃO CORRIGIDA COM DEBUG
+// script.js - VERSÃO FINAL CORRIGIDA
 // ============================================
 
 const firebaseConfig = {
@@ -27,6 +27,7 @@ const db = firebase.database();
 // ============================================
 let usuarioLogado = null;
 let acompanhantes = {};
+let logoHospitalCache = null;
 
 // ============================================
 // CONFIGURAÇÕES
@@ -86,7 +87,7 @@ function fecharModal() {
 }
 
 // ============================================
-// LOGIN - COMPLETAMENTE REESCRITO
+// LOGIN
 // ============================================
 let loginAttempts = 0;
 let lockoutUntil = null;
@@ -94,13 +95,9 @@ let lockoutUntil = null;
 document.addEventListener('DOMContentLoaded', function() {
     console.log('🟢 DOM Carregado');
     
-    // Atualizar data
     atualizarDataAtual();
-    
-    // Carregar configurações
     carregarConfiguracoes();
     
-    // Login form
     const loginForm = document.getElementById('loginForm');
     if (loginForm) {
         loginForm.addEventListener('submit', fazerLogin);
@@ -109,13 +106,11 @@ document.addEventListener('DOMContentLoaded', function() {
         console.error('❌ Formulário de login não encontrado!');
     }
     
-    // Troca de senha
     const changePassForm = document.getElementById('changePasswordForm');
     if (changePassForm) {
         changePassForm.addEventListener('submit', trocarSenha);
     }
     
-    // Navegação
     document.querySelectorAll('.sidebar-nav a[data-page]').forEach(link => {
         link.addEventListener('click', function() {
             navegarPara(this.getAttribute('data-page'));
@@ -126,7 +121,6 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
     
-    // Mobile menu
     const mobileBtn = document.getElementById('mobileMenuBtn');
     const sidebarOverlay = document.getElementById('sidebarOverlay');
     
@@ -144,7 +138,6 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
     
-    // Logout
     const logoutBtn = document.getElementById('logoutBtn');
     if (logoutBtn) {
         logoutBtn.addEventListener('click', function() {
@@ -152,13 +145,11 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
     
-    // Theme toggle
     const themeBtn = document.getElementById('themeToggleBtn');
     if (themeBtn) {
         themeBtn.addEventListener('click', toggleTema);
     }
     
-    // Modal close
     const modalCloseBtn = document.querySelector('#genericModal .modal-close');
     if (modalCloseBtn) {
         modalCloseBtn.addEventListener('click', fecharModal);
@@ -171,7 +162,6 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
     
-    // Configurações
     const uploadLogoEl = document.getElementById('uploadLogo');
     const uploadFundoEl = document.getElementById('uploadFundo');
     const btnRemoverLogo = document.getElementById('btnRemoverLogo');
@@ -184,11 +174,9 @@ document.addEventListener('DOMContentLoaded', function() {
     if (btnRemoverFundo) btnRemoverFundo.addEventListener('click', removerFundo);
     if (btnResetSenha) btnResetSenha.addEventListener('click', resetSenhaUsuario);
     
-    // Novo usuário
     const btnNovoUsuario = document.getElementById('btnNovoUsuario');
     if (btnNovoUsuario) btnNovoUsuario.addEventListener('click', abrirModalNovoUsuario);
     
-    // Formulários
     const formEntrada = document.getElementById('formEntradaAcompanhante');
     const formVisita = document.getElementById('formVisita');
     const formTroca = document.getElementById('formTroca');
@@ -199,22 +187,18 @@ document.addEventListener('DOMContentLoaded', function() {
     if (formTroca) formTroca.addEventListener('submit', registrarTroca);
     if (formSaida) formSaida.addEventListener('submit', registrarSaida);
     
-    // Eventos selects
     const saidaSelect = document.getElementById('saidaAcompanhante');
     const trocaSelect = document.getElementById('trocaAcompanhanteAtual');
     
     if (saidaSelect) saidaSelect.addEventListener('change', atualizarInfoSaida);
     if (trocaSelect) trocaSelect.addEventListener('change', atualizarInfoTroca);
     
-    // Filtro
     const btnFiltrar = document.getElementById('btnFiltrar');
     if (btnFiltrar) btnFiltrar.addEventListener('click', filtrarHistorico);
     
-    // Verificar sessão
     verificarSessao();
-    
-    // Carregar usuários para select
     carregarSelectUsuarios();
+    inicializarBuscaGlobal();
     
     console.log('✅ Sistema inicializado!');
 });
@@ -223,7 +207,6 @@ function fazerLogin(e) {
     e.preventDefault();
     console.log('🔐 ========== TENTATIVA DE LOGIN ==========');
     
-    // Verificar lockout
     if (lockoutUntil && Date.now() < lockoutUntil) {
         const min = Math.ceil((lockoutUntil - Date.now()) / 60000);
         const erroDiv = document.getElementById('loginError');
@@ -257,7 +240,6 @@ function fazerLogin(e) {
         btnLogin.innerHTML = '<span class="spinner"></span> Entrando...';
     }
     
-    // BUSCAR NO FIREBASE
     console.log('🔍 Buscando usuários no Firebase...');
     
     db.ref('usuarios').once('value').then(snapshot => {
@@ -272,7 +254,6 @@ function fazerLogin(e) {
             return;
         }
         
-        // CORREÇÃO: Converter para array e buscar
         let userEncontrado = null;
         const listaUsuarios = Object.entries(usuarios);
         
@@ -281,7 +262,6 @@ function fazerLogin(e) {
         for (const [key, user] of listaUsuarios) {
             console.log(`   Verificando: ID=${key}, usuario=${user.usuario}, senha=${user.senha}, ativo=${user.ativo}`);
             
-            // Verificação exata
             if (user.usuario === usuario && user.senha === senha) {
                 console.log('   ✅ Usuário e senha conferem!');
                 
@@ -319,7 +299,6 @@ function fazerLogin(e) {
             return;
         }
         
-        // LOGIN BEM-SUCEDIDO
         console.log('🎉 LOGIN BEM-SUCEDIDO!');
         loginAttempts = 0;
         lockoutUntil = null;
@@ -328,10 +307,7 @@ function fazerLogin(e) {
             console.log('🔐 Primeiro acesso - redirecionando para troca de senha');
             console.log('📝 User ID:', userEncontrado.id);
             
-            // Salvar ID temporariamente
             sessionStorage.setItem('hrpi_user_id_temp', userEncontrado.id);
-            
-            // Redirecionar para página de troca de senha
             window.location.href = 'trocar-senha.html?id=' + userEncontrado.id;
             return;
         }
@@ -418,7 +394,6 @@ function completarLogin(user) {
     
     usuarioLogado = user;
     
-    // Salvar sessão
     sessionStorage.setItem('hrpi_session', JSON.stringify({
         id: user.id,
         nome: user.nome,
@@ -426,18 +401,15 @@ function completarLogin(user) {
         timestamp: Date.now()
     }));
     
-    // Esconder login, mostrar sistema
     const loginScreen = document.getElementById('loginScreen');
     const mainSystem = document.getElementById('mainSystem');
     
     if (loginScreen) loginScreen.classList.add('hidden');
     if (mainSystem) mainSystem.classList.add('active');
     
-    // Atualizar nome
     const userNameEl = document.getElementById('userName');
     if (userNameEl) userNameEl.textContent = user.nome;
     
-    // Mostrar/ocultar admin
     const isAdmin = user.cargo === 'Administrador' || user.cargo === 'Supervisor';
     document.querySelectorAll('.admin-only').forEach(el => {
         el.style.display = isAdmin ? '' : 'none';
@@ -490,6 +462,37 @@ function verificarSessao() {
 }
 
 // ============================================
+// FUNÇÃO DE ESTENDER VISITA
+// ============================================
+function estenderVisita(id) {
+    const ac = acompanhantes[id];
+    if (!ac || ac.tipo !== 'visita') {
+        toast('Registro não encontrado ou não é uma visita.', 'error');
+        return;
+    }
+    
+    // Incrementa 15 minutos na duração
+    const novaDuracao = (ac.duracaoVisita || 30) + 15;
+    const [h, m, s] = ac.horaEntrada.split(':');
+    const entrada = new Date();
+    entrada.setHours(parseInt(h), parseInt(m), parseInt(s), 0);
+    entrada.setMinutes(entrada.getMinutes() + novaDuracao);
+    
+    const novaHoraSaida = `${String(entrada.getHours()).padStart(2,'0')}:${String(entrada.getMinutes()).padStart(2,'0')}:${String(entrada.getSeconds()).padStart(2,'0')}`;
+    
+    db.ref('acompanhantes/' + id).update({
+        duracaoVisita: novaDuracao,
+        horaSaida: novaHoraSaida,   // atualiza a previsão de saída
+        status: 'presente'          // permanece presente
+    }).then(() => {
+        toast('Visita estendida em +15 minutos!');
+    }).catch(err => {
+        console.error(err);
+        toast('Erro ao estender.', 'error');
+    });
+}
+
+// ============================================
 // NAVEGAÇÃO
 // ============================================
 function navegarPara(pageName) {
@@ -517,8 +520,16 @@ function iniciarSistema() {
         atualizarAtivos();
         atualizarHistorico();
         atualizarSelects();
+        atualizarGraficos();
     });
 }
+
+// Atualização automática da tabela de ativos
+setInterval(() => {
+    if (document.getElementById('acompanhantesAtivos').classList.contains('active')) {
+        atualizarAtivos();
+    }
+}, 10000);
 
 // ============================================
 // DASHBOARD
@@ -561,7 +572,6 @@ function atualizarDashboard() {
         ultimos.push(ac);
     });
     
-    // Atualizar elementos
     setText('countAcompanhantesPresentes', presentes);
     setText('countVisitasAtivas', visitas);
     setText('countEntradasHoje', entradas);
@@ -572,7 +582,6 @@ function atualizarDashboard() {
     setText('countEntradasMes', entMes);
     setText('countSaidasMes', saiMes);
     
-    // Últimos registros
     ultimos.sort((a, b) => {
         const [da, ma, aa] = a.dataEntrada.split('-');
         const [db, mb, ab] = b.dataEntrada.split('-');
@@ -606,6 +615,177 @@ function setText(id, value) {
 }
 
 // ============================================
+// GRÁFICOS DO DASHBOARD
+// ============================================
+let graficoSemanalInst = null;
+let graficoSetoresInst = null;
+let graficoTendenciaInst = null;
+
+function atualizarGraficos() {
+    atualizarGraficoSemanal();
+    atualizarGraficoSetores();
+    atualizarGraficoTendencia();
+}
+
+function atualizarGraficoSemanal() {
+    const canvas = document.getElementById('graficoSemanal');
+    if (!canvas) return;
+    
+    if (graficoSemanalInst) graficoSemanalInst.destroy();
+    
+    const dias = [];
+    const entradas = [];
+    const saidas = [];
+    
+    for (let i = 6; i >= 0; i--) {
+        const d = new Date();
+        d.setDate(d.getDate() - i);
+        const dataStr = `${String(d.getDate()).padStart(2,'0')}-${String(d.getMonth()+1).padStart(2,'0')}-${d.getFullYear()}`;
+        const diaSemana = d.toLocaleDateString('pt-BR', { weekday: 'short' });
+        dias.push(diaSemana);
+        
+        let ent = 0, sai = 0;
+        Object.values(acompanhantes).forEach(ac => {
+            if (ac.dataEntrada === dataStr) ent++;
+            if (ac.dataSaida === dataStr && (ac.status === 'saiu' || ac.status === 'trocado')) sai++;
+        });
+        entradas.push(ent);
+        saidas.push(sai);
+    }
+    
+    const ctx = canvas.getContext('2d');
+    graficoSemanalInst = new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: dias,
+            datasets: [
+                {
+                    label: 'Entradas',
+                    data: entradas,
+                    backgroundColor: 'rgba(45, 139, 78, 0.7)',
+                    borderColor: '#2d8b4e',
+                    borderWidth: 1,
+                    borderRadius: 6
+                },
+                {
+                    label: 'Saídas',
+                    data: saidas,
+                    backgroundColor: 'rgba(192, 57, 43, 0.7)',
+                    borderColor: '#c0392b',
+                    borderWidth: 1,
+                    borderRadius: 6
+                }
+            ]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    position: 'bottom',
+                    labels: { usePointStyle: true, padding: 20 }
+                }
+            },
+            scales: {
+                y: { beginAtZero: true, ticks: { stepSize: 1 } }
+            }
+        }
+    });
+}
+
+function atualizarGraficoSetores() {
+    const canvas = document.getElementById('graficoSetores');
+    if (!canvas) return;
+    if (graficoSetoresInst) graficoSetoresInst.destroy();
+    
+    const setoresMap = {};
+    Object.values(acompanhantes).forEach(ac => {
+        if (ac.status === 'presente' && ac.setor) {
+            setoresMap[ac.setor] = (setoresMap[ac.setor] || 0) + 1;
+        }
+    });
+    
+    const labels = Object.keys(setoresMap);
+    const data = Object.values(setoresMap);
+    const cores = ['#2d8b4e', '#1a6b7a', '#c7841a', '#8e44ad', '#c0392b', '#2c9aaf', '#e8913a', '#3498db', '#27ae60', '#e74c3c'];
+    
+    const ctx = canvas.getContext('2d');
+    if (labels.length === 0) {
+        canvas.style.display = 'none';
+        const parent = canvas.parentElement;
+        const msg = document.createElement('div');
+        msg.className = 'empty-table-message';
+        msg.innerHTML = '<i class="fas fa-chart-pie"></i> Nenhum acompanhante ativo';
+        parent.appendChild(msg);
+        return;
+    }
+    
+    graficoSetoresInst = new Chart(ctx, {
+        type: 'doughnut',
+        data: {
+            labels: labels,
+            datasets: [{
+                data: data,
+                backgroundColor: cores.slice(0, labels.length),
+                borderWidth: 2,
+                borderColor: '#fff'
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: { position: 'bottom', labels: { padding: 15, usePointStyle: true } }
+            }
+        }
+    });
+}
+
+function atualizarGraficoTendencia() {
+    const canvas = document.getElementById('graficoTendencia');
+    if (!canvas) return;
+    if (graficoTendenciaInst) graficoTendenciaInst.destroy();
+    
+    const dias = [];
+    const visitasPorDia = [];
+    for (let i = 29; i >= 0; i--) {
+        const d = new Date();
+        d.setDate(d.getDate() - i);
+        const dataStr = `${String(d.getDate()).padStart(2,'0')}-${String(d.getMonth()+1).padStart(2,'0')}-${d.getFullYear()}`;
+        dias.push(dataStr.substring(0, 5));
+        let count = 0;
+        Object.values(acompanhantes).forEach(ac => {
+            if (ac.dataEntrada === dataStr && ac.tipo === 'visita') count++;
+        });
+        visitasPorDia.push(count);
+    }
+    
+    const ctx = canvas.getContext('2d');
+    graficoTendenciaInst = new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: dias,
+            datasets: [{
+                label: 'Visitas',
+                data: visitasPorDia,
+                borderColor: '#8e44ad',
+                backgroundColor: 'rgba(142, 68, 173, 0.1)',
+                fill: true,
+                tension: 0.4,
+                pointRadius: 3,
+                pointHoverRadius: 6
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: { legend: { display: false } },
+            scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } }
+        }
+    });
+}
+
+// ============================================
 // TABELAS
 // ============================================
 function atualizarAtivos() {
@@ -614,9 +794,50 @@ function atualizarAtivos() {
     if (!tbody) return;
     
     if (ativos.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="9" class="empty-table-message"><i class="fas fa-inbox"></i> Nenhum ativo</td></tr>';
-    } else {
-        tbody.innerHTML = ativos.map(ac => `
+        tbody.innerHTML = '<tr><td colspan="10" class="empty-table-message"><i class="fas fa-inbox"></i> Nenhum ativo</td></tr>';
+        return;
+    }
+    
+    tbody.innerHTML = ativos.map(ac => {
+        let tempoRestanteHTML = '<span style="color: var(--text-muted);">-</span>';
+        
+        if (ac.tipo === 'visita' && ac.duracaoVisita) {
+            const agora = new Date();
+            const [h, m, s] = ac.horaEntrada.split(':');
+            const entrada = new Date();
+            entrada.setHours(parseInt(h), parseInt(m), parseInt(s), 0);
+            
+            const decorrido = Math.floor((agora - entrada) / 60000);
+            const duracaoTotal = ac.duracaoVisita;
+            const restante = duracaoTotal - decorrido;
+            const percentual = Math.min(100, Math.max(0, Math.floor((decorrido / duracaoTotal) * 100)));
+            
+            let cor = 'green';
+            let alerta = '';
+            if (restante <= 0) { cor = 'expired'; alerta = 'Expirado!'; }
+            else if (restante <= 5) { cor = 'red'; alerta = 'Crítico'; }
+            else if (restante <= 10) { cor = 'yellow'; alerta = 'Atenção'; }
+            
+            const minutos = Math.floor(restante);
+            const segundos = Math.floor((restante - minutos) * 60);
+            const tempoStr = restante > 0 ? `${minutos}:${String(segundos).padStart(2,'0')}` : '00:00';
+            
+            tempoRestanteHTML = `
+                <div>
+                    <span class="tempo-restante" style="color: ${restante <= 5 ? 'var(--danger)' : restante <= 10 ? 'var(--warning)' : 'var(--text)'};">
+                        ${tempoStr} ${alerta ? `<small>(${alerta})</small>` : ''}
+                    </span>
+                    <button class="btn-extend" onclick="estenderVisita('${ac.id}')" title="Estender +15 min">
+                        <i class="fas fa-plus-circle"></i>
+                    </button>
+                    <div class="progress-bar">
+                        <div class="fill ${cor}" style="width: ${percentual}%;"></div>
+                    </div>
+                </div>
+            `;
+        }
+        
+        return `
             <tr>
                 <td><span class="badge ${ac.tipo === 'visita' ? 'badge-visita' : 'badge-info'}">${ac.tipo === 'visita' ? 'Visita' : 'Acomp.'}</span></td>
                 <td>${sanitizar(ac.nomeAcompanhante)}</td>
@@ -626,13 +847,15 @@ function atualizarAtivos() {
                 <td>${sanitizar(ac.setor)}</td>
                 <td>${sanitizar(ac.leito) || '-'}</td>
                 <td>${ac.dataEntrada} ${ac.horaEntrada}</td>
+                <td>${tempoRestanteHTML}</td>
                 <td>
-                    <button class="btn-icon btn-edit" onclick="editarRegistro('${ac.id}')"><i class="fas fa-edit"></i></button>
-                    <button class="btn-icon btn-delete" onclick="excluirRegistro('${ac.id}')"><i class="fas fa-trash"></i></button>
+                    <button class="btn-icon btn-edit" onclick="editarRegistro('${ac.id}')" title="Editar"><i class="fas fa-edit"></i></button>
+                    <button class="btn-icon" onclick="abrirCracha('${ac.id}')" title="Imprimir Crachá" style="color: #1a6b7a;"><i class="fas fa-id-card"></i></button>
+                    <button class="btn-icon btn-delete" onclick="excluirRegistro('${ac.id}')" title="Excluir"><i class="fas fa-trash"></i></button>
                 </td>
             </tr>
-        `).join('');
-    }
+        `;
+    }).join('');
 }
 
 function atualizarHistorico() {
@@ -652,6 +875,7 @@ function filtrarHistorico() {
     const fim = document.getElementById('filtroDataFim')?.value;
     const status = document.getElementById('filtroStatus')?.value;
     const tipo = document.getElementById('filtroTipo')?.value;
+    const texto = document.getElementById('filtroTexto')?.value?.trim().toLowerCase();
     
     let registros = Object.values(acompanhantes);
     if (status) registros = registros.filter(a => a.status === status);
@@ -666,6 +890,15 @@ function filtrarHistorico() {
         registros = registros.filter(a => {
             const [d, m, an] = a.dataEntrada.split('-');
             return new Date(an, m-1, d) <= new Date(fim + 'T23:59:59');
+        });
+    }
+    if (texto) {
+        registros = registros.filter(ac => {
+            const campos = [
+                ac.nomeAcompanhante, ac.documento, ac.nomePaciente, ac.setor,
+                ac.leito, ac.parentesco, ac.observacao, ac.recepcionistaEntrada, ac.recepcionistaSaida
+            ];
+            return campos.some(campo => campo && campo.toLowerCase().includes(texto));
         });
     }
     
@@ -738,9 +971,17 @@ function registrarEntrada(e) {
     });
 }
 
+// VISITA: status inicial 'presente', sem dataSaida definida
 function registrarVisita(e) {
     e.preventDefault();
     const duracao = parseInt(document.getElementById('visDuracao')?.value || 30);
+    // Calcula a hora prevista de saída (opcional, para referência)
+    const [h, m, s] = horaAgora().split(':');
+    const entrada = new Date();
+    entrada.setHours(parseInt(h), parseInt(m), parseInt(s), 0);
+    entrada.setMinutes(entrada.getMinutes() + duracao);
+    const horaPrevista = `${String(entrada.getHours()).padStart(2,'0')}:${String(entrada.getMinutes()).padStart(2,'0')}:${String(entrada.getSeconds()).padStart(2,'0')}`;
+    
     const dados = {
         id: gerarId(), tipo: 'visita',
         nomeAcompanhante: sanitizar(document.getElementById('visNome')?.value?.trim() || ''),
@@ -751,10 +992,11 @@ function registrarVisita(e) {
         setor: document.getElementById('visSetor')?.value || '',
         leito: sanitizar(document.getElementById('visLeito')?.value?.trim() || ''),
         dataEntrada: dataHoje(), horaEntrada: horaAgora(),
-        dataSaida: dataHoje(), horaSaida: calcularHoraSaida(duracao),
-        status: 'saiu',
+        dataSaida: null,                // <- não preenche data de saída real
+        horaSaida: horaPrevista,        // <- armazena apenas previsão para o timer
+        status: 'presente',            // <- AGORA COMEÇA COMO ATIVO!
         recepcionistaEntrada: usuarioLogado?.nome || 'Sistema',
-        recepcionistaSaida: usuarioLogado?.nome || 'Sistema',
+        recepcionistaSaida: null,
         trocas: [], observacao: '', duracaoVisita: duracao
     };
     
@@ -953,6 +1195,7 @@ function carregarConfiguracoes() {
                 const ll = document.getElementById('loginLogo');
                 if (sl) sl.innerHTML = `<img src="${c.logoHospital}" alt="Logo">`;
                 if (ll) ll.innerHTML = `<img src="${c.logoHospital}" alt="Logo">`;
+                logoHospitalCache = c.logoHospital || null;
             }
             if (c.fundoLogin) {
                 const ls = document.getElementById('loginScreen');
@@ -974,6 +1217,7 @@ function uploadLogo(e) {
     const reader = new FileReader();
     reader.onload = ev => {
         db.ref('configuracoes').update({ logoHospital: ev.target.result }).then(() => {
+            logoHospitalCache = ev.target.result;
             const sl = document.getElementById('sidebarLogo');
             const ll = document.getElementById('loginLogo');
             if (sl) sl.innerHTML = `<img src="${ev.target.result}" alt="Logo">`;
@@ -1001,6 +1245,7 @@ function uploadFundo(e) {
 function removerLogo() {
     if (confirm('Remover logo?')) {
         db.ref('configuracoes').update({ logoHospital: null }).then(() => {
+            logoHospitalCache = null;
             const sl = document.getElementById('sidebarLogo');
             const ll = document.getElementById('loginLogo');
             if (sl) sl.innerHTML = '<i class="fas fa-hospital-alt"></i>';
@@ -1232,46 +1477,167 @@ function atualizarDataAtual() {
     }
 }
 
-console.log('✅ HRPI - Sistema carregado!');
-
-
-
-
-
 // ============================================
-// CORREÇÃO DE EMERGÊNCIA - PRIMEIRO ACESSO
+// BUSCA RÁPIDA GLOBAL
 // ============================================
-(function() {
-    // Verificar se o modal existe
-    const modal = document.getElementById('firstAccessModal');
-    if (!modal) {
-        console.error('❌ Modal firstAccessModal não encontrado no DOM!');
-        console.log('🔧 Criando modal de emergência...');
+function inicializarBuscaGlobal() {
+    const globalSearchInput = document.getElementById('globalSearchInput');
+    const searchResults = document.getElementById('searchResults');
+
+    if (!globalSearchInput || !searchResults) {
+        console.warn('⚠️ Elementos da busca global não encontrados');
+        return;
+    }
+
+    console.log('✅ Barra de busca global ativada');
+
+    globalSearchInput.addEventListener('input', function() {
+        const termo = this.value.trim().toLowerCase();
         
-        // Criar modal dinamicamente se não existir
-        const modalHTML = `
-            <div id="firstAccessModal" class="modal-overlay" style="display: none;">
-                <div class="modal">
-                    <h3><i class="fas fa-key"></i> Primeiro Acesso - Alterar Senha</h3>
-                    <p style="margin-bottom: 16px; font-size: 13px; color: var(--text-light);">Por segurança, altere sua senha padrão.</p>
-                    <form id="changePasswordForm">
-                        <div class="form-group" style="margin-bottom: 14px;">
-                            <label>Nova Senha <span class="required">*</span></label>
-                            <input type="password" id="newPassword" placeholder="Mínimo 6 caracteres" required minlength="6">
-                        </div>
-                        <div class="form-group" style="margin-bottom: 14px;">
-                            <label>Confirmar Senha <span class="required">*</span></label>
-                            <input type="password" id="confirmPassword" placeholder="Repita a nova senha" required minlength="6">
-                        </div>
-                        <div id="passwordError" class="error-message" style="display: none;"></div>
-                        <button type="submit" class="btn btn-primary" style="width: 100%;">
-                            <i class="fas fa-save"></i> Salvar Nova Senha
-                        </button>
-                    </form>
+        if (termo.length < 2) {
+            searchResults.style.display = 'none';
+            searchResults.innerHTML = '';
+            return;
+        }
+        
+        const resultados = Object.values(acompanhantes).filter(ac => {
+            const campos = [
+                ac.nomeAcompanhante,
+                ac.documento,
+                ac.nomePaciente,
+                ac.setor,
+                ac.leito,
+                ac.parentesco,
+                ac.observacao
+            ];
+            return campos.some(campo => campo && campo.toLowerCase().includes(termo));
+        });
+        
+        if (resultados.length === 0) {
+            searchResults.innerHTML = '<div class="search-result-item" style="justify-content:center;color:var(--text-muted);">Nenhum resultado encontrado</div>';
+        } else {
+            searchResults.innerHTML = resultados.slice(0, 10).map(ac => `
+                <div class="search-result-item" onclick="selecionarItemBusca('${ac.id}')">
+                    <div class="info">
+                        <span class="name">${sanitizar(ac.nomeAcompanhante)}</span>
+                        <span class="detail">${sanitizar(ac.nomePaciente)} • ${sanitizar(ac.setor)} ${ac.leito ? '• Leito ' + sanitizar(ac.leito) : ''}</span>
+                    </div>
+                    <span class="badge ${ac.tipo === 'visita' ? 'badge-visita' : 'badge-info'}">${ac.tipo === 'visita' ? 'Visita' : 'Acomp.'}</span>
+                </div>
+            `).join('');
+        }
+        searchResults.style.display = 'block';
+    });
+    
+    document.addEventListener('click', function(e) {
+        const searchBox = document.getElementById('searchBox');
+        if (searchBox && !searchBox.contains(e.target)) {
+            searchResults.style.display = 'none';
+        }
+    });
+    
+    globalSearchInput.addEventListener('blur', function() {
+        setTimeout(() => {
+            searchResults.style.display = 'none';
+        }, 200);
+    });
+}
+
+function selecionarItemBusca(id) {
+    const searchResults = document.getElementById('searchResults');
+    const globalSearchInput = document.getElementById('globalSearchInput');
+    
+    if (searchResults) searchResults.style.display = 'none';
+    if (globalSearchInput) globalSearchInput.value = '';
+    
+    const ac = acompanhantes[id];
+    if (ac) {
+        navegarPara('historico');
+        setTimeout(() => {
+            const campoTexto = document.getElementById('filtroTexto');
+            if (campoTexto) {
+                campoTexto.value = ac.nomeAcompanhante;
+            }
+            filtrarHistorico();
+        }, 300);
+    }
+}
+
+// ============================================
+// IMPRESSÃO DE CRACHÁ
+// ============================================
+function abrirCracha(id) {
+    const ac = acompanhantes[id];
+    if (!ac) {
+        toast('Registro não encontrado.', 'error');
+        return;
+    }
+    
+    const modal = document.getElementById('badgeModal');
+    const content = document.getElementById('badgeContent');
+    
+    if (!modal || !content) {
+        console.error('❌ Modal de crachá não encontrado');
+        return;
+    }
+    
+    const logoHTML = logoHospitalCache
+        ? `<img src="${logoHospitalCache}" alt="Logo">`
+        : '<i class="fas fa-hospital-alt"></i>';
+    
+    content.innerHTML = `
+        <div class="cracha-container">
+            <div class="cracha-logo">${logoHTML}</div>
+            <div class="cracha-titulo">Hospital Regional de Palmeira dos Índios</div>
+            <div class="cracha-subtitulo">Controle de Recepção</div>
+            
+            <div class="cracha-nome">${sanitizar(ac.nomeAcompanhante)}</div>
+            <span class="cracha-tipo-badge">${ac.tipo === 'visita' ? 'VISITANTE' : 'ACOMPANHANTE'}</span>
+            
+            <div class="cracha-info">
+                <div class="campo">
+                    <strong>Paciente</strong>
+                    <span>${sanitizar(ac.nomePaciente)}</span>
+                </div>
+                <div class="campo">
+                    <strong>Setor</strong>
+                    <span>${sanitizar(ac.setor)}</span>
+                </div>
+                <div class="campo">
+                    <strong>Leito</strong>
+                    <span>${sanitizar(ac.leito) || '-'}</span>
+                </div>
+                <div class="campo">
+                    <strong>Entrada</strong>
+                    <span>${ac.dataEntrada} ${ac.horaEntrada}</span>
                 </div>
             </div>
-        `;
-        document.body.insertAdjacentHTML('beforeend', modalHTML);
-        console.log('✅ Modal criado dinamicamente');
-    }
-})();
+            
+            <div class="cracha-codigo">
+                <i class="fas fa-barcode"></i>
+                ${ac.id}
+            </div>
+        </div>
+    `;
+    
+    modal.style.display = 'flex';
+    modal.classList.add('active');
+}
+
+function imprimirCracha() {
+    const modal = document.getElementById('badgeModal');
+    if (!modal) return;
+    
+    modal.style.display = '';
+    modal.classList.add('active');
+    
+    setTimeout(() => {
+        window.print();
+        setTimeout(() => {
+            modal.classList.remove('active');
+            modal.style.display = 'none';
+        }, 500);
+    }, 100);
+}
+
+console.log('✅ HRPI - Sistema carregado!');
