@@ -1,6 +1,6 @@
 // ============================================
 // HRPI - SISTEMA DE CONTROLE DE RECEPÇÃO
-// script.js - VERSÃO FINAL CORRIGIDA
+// script.js - COMPLETO COM LOG DE AUDITORIA
 // ============================================
 
 const firebaseConfig = {
@@ -21,6 +21,25 @@ try {
 }
 
 const db = firebase.database();
+
+// ============================================
+// LOG DE AUDITORIA
+// ============================================
+function registrarLog(acao, descricao, registroId = null) {
+    const log = {
+        id: gerarId(),
+        dataHora: `${dataHoje()} ${horaAgora()}`,
+        usuario: usuarioLogado ? usuarioLogado.nome : 'Sistema',
+        usuarioId: usuarioLogado ? usuarioLogado.id : 'sistema',
+        acao: acao,
+        descricao: descricao,
+        registroId: registroId || ''
+    };
+    
+    db.ref('logs/' + log.id).set(log).catch(err => {
+        console.error('Erro ao registrar log:', err);
+    });
+}
 
 // ============================================
 // VARIÁVEIS GLOBAIS
@@ -93,6 +112,7 @@ let loginAttempts = 0;
 let lockoutUntil = null;
 
 document.addEventListener('DOMContentLoaded', function() {
+    document.getElementById('btnExportarExcel')?.addEventListener('click', exportarExcel);
     console.log('🟢 DOM Carregado');
     
     atualizarDataAtual();
@@ -110,6 +130,14 @@ document.addEventListener('DOMContentLoaded', function() {
     if (changePassForm) {
         changePassForm.addEventListener('submit', trocarSenha);
     }
+
+    const chkBloqueio = document.getElementById('bloqueioRigido');
+if (chkBloqueio) {
+    chkBloqueio.addEventListener('change', function() {
+        bloqueioRigido = this.checked;
+        db.ref('configuracoes').update({ bloqueioRigido: this.checked });
+    });
+}
     
     document.querySelectorAll('.sidebar-nav a[data-page]').forEach(link => {
         link.addEventListener('click', function() {
@@ -195,6 +223,9 @@ document.addEventListener('DOMContentLoaded', function() {
     
     const btnFiltrar = document.getElementById('btnFiltrar');
     if (btnFiltrar) btnFiltrar.addEventListener('click', filtrarHistorico);
+
+    const btnFiltrarLogs = document.getElementById('btnFiltrarLogs');
+    if (btnFiltrarLogs) btnFiltrarLogs.addEventListener('click', filtrarLogs);
     
     verificarSessao();
     carregarSelectUsuarios();
@@ -418,9 +449,13 @@ function completarLogin(user) {
     iniciarSistema();
     navegarPara('dashboard');
     toast(`Bem-vindo(a), ${user.nome}!`);
+    registrarLog('login', `Usuário "${user.nome}" fez login no sistema.`);
 }
 
 function logout() {
+    if (usuarioLogado) {
+        registrarLog('logout', `Usuário "${usuarioLogado.nome}" saiu do sistema.`);
+    }
     sessionStorage.removeItem('hrpi_session');
     usuarioLogado = null;
     
@@ -508,6 +543,10 @@ function navegarPara(pageName) {
     if (pageName === 'usuarios') carregarUsuarios();
     if (pageName === 'acompanhantesAtivos') atualizarAtivos();
     if (pageName === 'historico') atualizarHistorico();
+    if (pageName === 'logs') {
+        carregarLogs();
+        carregarUsuariosFiltroLogs();
+    }
 }
 
 // ============================================
@@ -521,15 +560,15 @@ function iniciarSistema() {
         atualizarHistorico();
         atualizarSelects();
         atualizarGraficos();
+        
+        // Atualizar lista de pacientes para autocomplete
+        atualizarListaPacientes();
     });
+    
+    // Inicializar autocomplete após os dados serem carregados
+    // (também será atualizado sempre que houver mudança nos dados)
+    inicializarAutocompletePacientes();
 }
-
-// Atualização automática da tabela de ativos
-setInterval(() => {
-    if (document.getElementById('acompanhantesAtivos').classList.contains('active')) {
-        atualizarAtivos();
-    }
-}, 10000);
 
 // ============================================
 // DASHBOARD
@@ -622,6 +661,21 @@ let graficoSetoresInst = null;
 let graficoTendenciaInst = null;
 
 function atualizarGraficos() {
+    // Só renderiza gráficos se for admin ou supervisor
+    if (!usuarioLogado || (usuarioLogado.cargo !== 'Administrador' && usuarioLogado.cargo !== 'Supervisor')) {
+        // Esconder os containers dos gráficos
+        const chartsRow = document.querySelector('.charts-row');
+        const tendenciaCard = document.getElementById('graficoTendencia')?.closest('.card');
+        if (chartsRow) chartsRow.style.display = 'none';
+        if (tendenciaCard) tendenciaCard.style.display = 'none';
+        return;
+    }
+    // Mostrar containers
+    const chartsRow = document.querySelector('.charts-row');
+    const tendenciaCard = document.getElementById('graficoTendencia')?.closest('.card');
+    if (chartsRow) chartsRow.style.display = '';
+    if (tendenciaCard) tendenciaCard.style.display = '';
+    
     atualizarGraficoSemanal();
     atualizarGraficoSetores();
     atualizarGraficoTendencia();
@@ -941,71 +995,116 @@ function renderizarTabelaHistorico(registros) {
 }
 
 // ============================================
+// LIMITE DE ACOMPANHANTES POR LEITO
+// ============================================
+let bloqueioRigido = false; // padrão: apenas aviso
+
+function verificarAcompanhanteAtivo(nomePaciente) {
+    // Retorna o acompanhante ativo se já existir, ou null
+    return Object.values(acompanhantes).find(ac => 
+        ac.status === 'presente' && 
+        ac.nomePaciente.toLowerCase() === nomePaciente.toLowerCase()
+    );
+}
+
+function verificarLimiteAcompanhante(nomePaciente, callback) {
+    const ativo = verificarAcompanhanteAtivo(nomePaciente);
+    if (ativo) {
+        const msg = `Já existe um acompanhante ativo para "${nomePaciente}":\n\n` +
+                    `Nome: ${ativo.nomeAcompanhante}\n` +
+                    `Tipo: ${ativo.tipo === 'visita' ? 'Visita' : 'Acompanhante'}\n` +
+                    `Setor: ${ativo.setor}\n` +
+                    `Leito: ${ativo.leito || '-'}\n` +
+                    `Entrada: ${ativo.dataEntrada} ${ativo.horaEntrada}\n\n` +
+                    (bloqueioRigido ? 'Não é permitido múltiplos acompanhantes para o mesmo paciente.' : 'Deseja continuar mesmo assim?');
+        
+        if (bloqueioRigido) {
+            toast(msg, 'error');
+            callback(false);
+        } else {
+            if (confirm(msg)) {
+                callback(true);
+            } else {
+                callback(false);
+            }
+        }
+    } else {
+        callback(true);
+    }
+}
+
+// ============================================
 // FORMULÁRIOS
 // ============================================
 function registrarEntrada(e) {
     e.preventDefault();
-    const dados = {
-        id: gerarId(), tipo: 'acompanhante',
-        nomeAcompanhante: sanitizar(document.getElementById('acNome')?.value?.trim() || ''),
-        documento: sanitizar(document.getElementById('acDocumento')?.value?.trim() || ''),
-        telefone: sanitizar(document.getElementById('acTelefone')?.value?.trim() || ''),
-        parentesco: document.getElementById('acParentesco')?.value || '',
-        nomePaciente: sanitizar(document.getElementById('acPaciente')?.value?.trim() || ''),
-        setor: document.getElementById('acSetor')?.value || '',
-        leito: sanitizar(document.getElementById('acLeito')?.value?.trim() || ''),
-        dataEntrada: dataHoje(), horaEntrada: horaAgora(),
-        dataSaida: null, horaSaida: null, status: 'presente',
-        recepcionistaEntrada: usuarioLogado?.nome || 'Sistema',
-        recepcionistaSaida: null, trocas: [],
-        observacao: sanitizar(document.getElementById('acObservacao')?.value?.trim() || ''),
-        duracaoVisita: null
-    };
+    const nomePaciente = sanitizar(document.getElementById('acPaciente')?.value?.trim() || '');
     
-    db.ref('acompanhantes/' + dados.id).set(dados).then(() => {
-        toast('Entrada registrada!');
-        e.target.reset();
-    }).catch(err => {
-        console.error(err);
-        toast('Erro ao registrar.', 'error');
+    verificarLimiteAcompanhante(nomePaciente, (permitido) => {
+        if (!permitido) return;
+        
+        const dados = {
+            id: gerarId(), tipo: 'acompanhante',
+            nomeAcompanhante: sanitizar(document.getElementById('acNome')?.value?.trim() || ''),
+            documento: sanitizar(document.getElementById('acDocumento')?.value?.trim() || ''),
+            telefone: sanitizar(document.getElementById('acTelefone')?.value?.trim() || ''),
+            parentesco: document.getElementById('acParentesco')?.value || '',
+            nomePaciente: nomePaciente,
+            setor: document.getElementById('acSetor')?.value || '',
+            leito: sanitizar(document.getElementById('acLeito')?.value?.trim() || ''),
+            dataEntrada: dataHoje(), horaEntrada: horaAgora(),
+            dataSaida: null, horaSaida: null, status: 'presente',
+            recepcionistaEntrada: usuarioLogado?.nome || 'Sistema',
+            recepcionistaSaida: null, trocas: [],
+            observacao: sanitizar(document.getElementById('acObservacao')?.value?.trim() || ''),
+            duracaoVisita: null
+        };
+        
+        db.ref('acompanhantes/' + dados.id).set(dados).then(() => {
+            toast('Entrada registrada!');
+            e.target.reset();
+            registrarLog('criar', `Acompanhante "${dados.nomeAcompanhante}" registrado para paciente "${dados.nomePaciente}".`, dados.id);
+        }).catch(err => { console.error(err); toast('Erro.', 'error'); });
     });
 }
 
 // VISITA: status inicial 'presente', sem dataSaida definida
+
 function registrarVisita(e) {
     e.preventDefault();
-    const duracao = parseInt(document.getElementById('visDuracao')?.value || 30);
-    // Calcula a hora prevista de saída (opcional, para referência)
-    const [h, m, s] = horaAgora().split(':');
-    const entrada = new Date();
-    entrada.setHours(parseInt(h), parseInt(m), parseInt(s), 0);
-    entrada.setMinutes(entrada.getMinutes() + duracao);
-    const horaPrevista = `${String(entrada.getHours()).padStart(2,'0')}:${String(entrada.getMinutes()).padStart(2,'0')}:${String(entrada.getSeconds()).padStart(2,'0')}`;
+    const nomePaciente = sanitizar(document.getElementById('visPaciente')?.value?.trim() || '');
     
-    const dados = {
-        id: gerarId(), tipo: 'visita',
-        nomeAcompanhante: sanitizar(document.getElementById('visNome')?.value?.trim() || ''),
-        documento: sanitizar(document.getElementById('visDocumento')?.value?.trim() || ''),
-        telefone: sanitizar(document.getElementById('visTelefone')?.value?.trim() || ''),
-        parentesco: document.getElementById('visParentesco')?.value || '',
-        nomePaciente: sanitizar(document.getElementById('visPaciente')?.value?.trim() || ''),
-        setor: document.getElementById('visSetor')?.value || '',
-        leito: sanitizar(document.getElementById('visLeito')?.value?.trim() || ''),
-        dataEntrada: dataHoje(), horaEntrada: horaAgora(),
-        dataSaida: null,                // <- não preenche data de saída real
-        horaSaida: horaPrevista,        // <- armazena apenas previsão para o timer
-        status: 'presente',            // <- AGORA COMEÇA COMO ATIVO!
-        recepcionistaEntrada: usuarioLogado?.nome || 'Sistema',
-        recepcionistaSaida: null,
-        trocas: [], observacao: '', duracaoVisita: duracao
-    };
-    
-    db.ref('acompanhantes/' + dados.id).set(dados).then(() => {
-        toast('Visita registrada!');
-        e.target.reset();
-    }).catch(err => {
-        console.error(err);
-        toast('Erro ao registrar.', 'error');
+    verificarLimiteAcompanhante(nomePaciente, (permitido) => {
+        if (!permitido) return;
+        
+        const duracao = parseInt(document.getElementById('visDuracao')?.value || 30);
+        const [h, m, s] = horaAgora().split(':');
+        const entrada = new Date(); entrada.setHours(parseInt(h), parseInt(m), parseInt(s), 0);
+        entrada.setMinutes(entrada.getMinutes() + duracao);
+        const horaPrevista = `${String(entrada.getHours()).padStart(2,'0')}:${String(entrada.getMinutes()).padStart(2,'0')}:${String(entrada.getSeconds()).padStart(2,'0')}`;
+        
+        const dados = {
+            id: gerarId(), tipo: 'visita',
+            nomeAcompanhante: sanitizar(document.getElementById('visNome')?.value?.trim() || ''),
+            documento: sanitizar(document.getElementById('visDocumento')?.value?.trim() || ''),
+            telefone: sanitizar(document.getElementById('visTelefone')?.value?.trim() || ''),
+            parentesco: document.getElementById('visParentesco')?.value || '',
+            nomePaciente: nomePaciente,
+            setor: document.getElementById('visSetor')?.value || '',
+            leito: sanitizar(document.getElementById('visLeito')?.value?.trim() || ''),
+            dataEntrada: dataHoje(), horaEntrada: horaAgora(),
+            dataSaida: null, horaSaida: horaPrevista,
+            status: 'presente',
+            recepcionistaEntrada: usuarioLogado?.nome || 'Sistema',
+            recepcionistaSaida: null, trocas: [], observacao: '',
+            duracaoVisita: duracao
+        };
+        
+        db.ref('acompanhantes/' + dados.id).set(dados).then(() => {
+            toast('Visita registrada!');
+            e.target.reset();
+            registrarLog('criar', `Visita de "${dados.nomeAcompanhante}" registrada para paciente "${dados.nomePaciente}".`, dados.id);
+        }).catch(err => { console.error(err); toast('Erro.', 'error'); });
     });
 }
 
@@ -1051,6 +1150,7 @@ function registrarTroca(e) {
         e.target.reset();
         const info = document.getElementById('trocaInfoAtual');
         if (info) info.style.display = 'none';
+        registrarLog('troca', `Troca: "${antigo.nomeAcompanhante}" substituído por "${document.getElementById('trocaNovoNome')?.value}".`, novoId);
     }).catch(err => {
         console.error(err);
         toast('Erro ao registrar.', 'error');
@@ -1076,6 +1176,7 @@ function registrarSaida(e) {
         e.target.reset();
         const info = document.getElementById('saidaInfo');
         if (info) info.style.display = 'none';
+        registrarLog('saida', `Saída registrada: "${atual.nomeAcompanhante}" - Motivo: ${motivo}.`, id);
     }).catch(err => {
         console.error(err);
         toast('Erro.', 'error');
@@ -1169,16 +1270,24 @@ function editarRegistro(id) {
                 setor: document.getElementById('editSetor').value,
                 leito: sanitizar(document.getElementById('editLeito').value.trim()),
                 observacao: sanitizar(document.getElementById('editObs').value.trim())
-            }).then(() => { toast('Atualizado!'); fecharModal(); })
+            }).then(() => { 
+                toast('Atualizado!'); 
+                fecharModal(); 
+                registrarLog('editar', `Registro "${ac.nomeAcompanhante}" editado.`, id);
+            })
               .catch(err => { console.error(err); toast('Erro.', 'error'); });
         });
     }, 100);
 }
 
 function excluirRegistro(id) {
+    const nome = acompanhantes[id]?.nomeAcompanhante || id;
     if (confirm('Excluir permanentemente?')) {
         db.ref('acompanhantes/' + id).remove()
-            .then(() => toast('Excluído!'))
+            .then(() => {
+                toast('Excluído!');
+                registrarLog('excluir', `Registro "${nome}" excluído.`, id);
+            })
             .catch(err => { console.error(err); toast('Erro.', 'error'); });
     }
 }
@@ -1207,6 +1316,11 @@ function carregarConfiguracoes() {
                 const icon = document.querySelector('#themeToggleBtn i');
                 if (icon) icon.className = c.tema === 'dark' ? 'fas fa-sun' : 'fas fa-moon';
             }
+            if (c.bloqueioRigido !== undefined) {
+    bloqueioRigido = c.bloqueioRigido;
+    const chkBloqueio = document.getElementById('bloqueioRigido');
+    if (chkBloqueio) chkBloqueio.checked = bloqueioRigido;
+}
         }
     });
 }
@@ -1223,6 +1337,7 @@ function uploadLogo(e) {
             if (sl) sl.innerHTML = `<img src="${ev.target.result}" alt="Logo">`;
             if (ll) ll.innerHTML = `<img src="${ev.target.result}" alt="Logo">`;
             toast('Logo atualizada!');
+            registrarLog('config', 'Logo do sistema atualizada.');
         });
     };
     reader.readAsDataURL(file);
@@ -1237,6 +1352,7 @@ function uploadFundo(e) {
             const ls = document.getElementById('loginScreen');
             if (ls) ls.style.setProperty('--login-bg-image', `url(${ev.target.result})`);
             toast('Fundo atualizado!');
+            registrarLog('config', 'Fundo de login atualizado.');
         });
     };
     reader.readAsDataURL(file);
@@ -1251,6 +1367,7 @@ function removerLogo() {
             if (sl) sl.innerHTML = '<i class="fas fa-hospital-alt"></i>';
             if (ll) ll.innerHTML = '<span class="default-logo"><i class="fas fa-hospital-alt"></i></span>';
             toast('Logo removida.');
+            registrarLog('config', 'Logo do sistema removida.');
         });
     }
 }
@@ -1261,6 +1378,7 @@ function removerFundo() {
             const ls = document.getElementById('loginScreen');
             if (ls) ls.style.removeProperty('--login-bg-image');
             toast('Fundo removido.');
+            registrarLog('config', 'Fundo de login removido.');
         });
     }
 }
@@ -1270,7 +1388,10 @@ function resetSenhaUsuario() {
     if (!userId) { toast('Selecione um usuário.', 'error'); return; }
     if (confirm('Resetar senha para "123456"?')) {
         db.ref('usuarios/' + userId).update({ senha: '123456', primeiroAcesso: true })
-            .then(() => toast('Senha resetada!'))
+            .then(() => {
+                toast('Senha resetada!');
+                registrarLog('usuario', `Senha do usuário "${userId}" resetada pelo admin.`);
+            })
             .catch(err => { console.error(err); toast('Erro.', 'error'); });
     }
 }
@@ -1359,6 +1480,7 @@ function abrirModalNovoUsuario() {
             fecharModal();
             carregarUsuarios();
             carregarSelectUsuarios();
+            registrarLog('usuario', `Novo usuário "${userData.usuario}" criado.`, novoId);
         }).catch(err => {
             console.error('❌ Erro:', err);
             toast('Erro ao criar.', 'error');
@@ -1390,7 +1512,12 @@ function editarUsuario(id) {
                 usuario: sanitizar(document.getElementById('editUUser').value.trim().toLowerCase()),
                 cargo: document.getElementById('editUCargo').value,
                 ativo: document.getElementById('editUAtivo').value === 'true'
-            }).then(() => { toast('Atualizado!'); fecharModal(); carregarUsuarios(); });
+            }).then(() => { 
+                toast('Atualizado!'); 
+                fecharModal(); 
+                carregarUsuarios();
+                registrarLog('usuario', `Usuário "${u.usuario}" editado.`, id);
+            });
         });
     });
 }
@@ -1398,14 +1525,23 @@ function editarUsuario(id) {
 function resetSenhaUser(id) {
     if (confirm('Resetar senha para "123456"?')) {
         db.ref('usuarios/' + id).update({ senha: '123456', primeiroAcesso: true })
-            .then(() => { toast('Senha resetada!'); carregarUsuarios(); });
+            .then(() => { 
+                toast('Senha resetada!'); 
+                carregarUsuarios();
+                registrarLog('usuario', `Senha do usuário "${id}" resetada.`);
+            });
     }
 }
 
 function excluirUsuario(id) {
     if (confirm('Excluir permanentemente?')) {
         db.ref('usuarios/' + id).remove()
-            .then(() => { toast('Excluído!'); carregarUsuarios(); carregarSelectUsuarios(); });
+            .then(() => { 
+                toast('Excluído!'); 
+                carregarUsuarios(); 
+                carregarSelectUsuarios();
+                registrarLog('usuario', `Usuário "${id}" excluído.`);
+            });
     }
 }
 
@@ -1638,6 +1774,224 @@ function imprimirCracha() {
             modal.style.display = 'none';
         }, 500);
     }, 100);
+}
+
+// ============================================
+// AUTO-SUGESTÃO DE PACIENTES
+// ============================================
+let listaPacientesUnicos = [];
+
+function atualizarListaPacientes() {
+    const pacientesMap = new Map();
+    
+    Object.values(acompanhantes).forEach(ac => {
+        if (ac.nomePaciente) {
+            const nome = ac.nomePaciente.trim();
+            if (!pacientesMap.has(nome)) {
+                pacientesMap.set(nome, {
+                    nome: nome,
+                    setor: ac.setor || '',
+                    leito: ac.leito || ''
+                });
+            }
+        }
+    });
+    
+    listaPacientesUnicos = Array.from(pacientesMap.values());
+    listaPacientesUnicos.sort((a, b) => a.nome.localeCompare(b.nome));
+}
+
+function configurarAutocompletePaciente(inputId, sugestoesId, setorId = null, leitoId = null) {
+    const input = document.getElementById(inputId);
+    const sugestoesDiv = document.getElementById(sugestoesId);
+    
+    if (!input || !sugestoesDiv) return;
+    
+    const formGroup = input.closest('.form-group');
+    if (formGroup) {
+        formGroup.style.position = 'relative';
+    }
+    
+    input.addEventListener('input', function() {
+        const termo = this.value.trim().toLowerCase();
+        
+        if (termo.length < 2) {
+            sugestoesDiv.style.display = 'none';
+            sugestoesDiv.innerHTML = '';
+            return;
+        }
+        
+        const sugestoes = listaPacientesUnicos.filter(p => 
+            p.nome.toLowerCase().includes(termo)
+        );
+        
+        if (sugestoes.length === 0) {
+            sugestoesDiv.style.display = 'none';
+            sugestoesDiv.innerHTML = '';
+            return;
+        }
+        
+        sugestoesDiv.innerHTML = sugestoes.slice(0, 8).map(p => `
+            <div class="sugestao-item" data-nome="${sanitizar(p.nome)}" data-setor="${sanitizar(p.setor)}" data-leito="${sanitizar(p.leito)}">
+                <span class="paciente-nome">${sanitizar(p.nome)}</span>
+                <span class="paciente-info">${p.setor ? sanitizar(p.setor) : ''} ${p.leito ? '· Leito ' + sanitizar(p.leito) : ''}</span>
+            </div>
+        `).join('');
+        
+        sugestoesDiv.style.display = 'block';
+        
+        sugestoesDiv.querySelectorAll('.sugestao-item').forEach(item => {
+            item.addEventListener('click', function() {
+                const nome = this.getAttribute('data-nome');
+                const setor = this.getAttribute('data-setor');
+                const leito = this.getAttribute('data-leito');
+                
+                input.value = nome;
+                sugestoesDiv.style.display = 'none';
+                
+                if (setorId && setor) {
+                    const setorEl = document.getElementById(setorId);
+                    if (setorEl && setorEl.tagName === 'SELECT') {
+                        const option = Array.from(setorEl.options).find(o => o.value === setor);
+                        if (option) setorEl.value = setor;
+                    }
+                }
+                if (leitoId && leito) {
+                    const leitoEl = document.getElementById(leitoId);
+                    if (leitoEl) leitoEl.value = leito;
+                }
+            });
+        });
+    });
+    
+    document.addEventListener('click', function(e) {
+        if (!input.contains(e.target) && !sugestoesDiv.contains(e.target)) {
+            sugestoesDiv.style.display = 'none';
+        }
+    });
+    
+    input.addEventListener('blur', function() {
+        setTimeout(() => {
+            sugestoesDiv.style.display = 'none';
+        }, 200);
+    });
+}
+
+function inicializarAutocompletePacientes() {
+    configurarAutocompletePaciente('acPaciente', 'sugestoesAcPaciente', 'acSetor', 'acLeito');
+    configurarAutocompletePaciente('visPaciente', 'sugestoesVisPaciente', 'visSetor', 'visLeito');
+}
+
+// ============================================
+// CARREGAR E EXIBIR LOGS
+// ============================================
+function carregarLogs() {
+    db.ref('logs').once('value').then(snap => {
+        const logs = snap.val() || {};
+        const arrayLogs = Object.values(logs);
+        arrayLogs.sort((a, b) => b.dataHora.localeCompare(a.dataHora));
+        renderizarTabelaLogs(arrayLogs);
+    });
+}
+
+function filtrarLogs() {
+    const inicio = document.getElementById('filtroLogDataInicio')?.value;
+    const fim = document.getElementById('filtroLogDataFim')?.value;
+    const usuario = document.getElementById('filtroLogUsuario')?.value;
+    const acao = document.getElementById('filtroLogAcao')?.value;
+
+    db.ref('logs').once('value').then(snap => {
+        let logs = Object.values(snap.val() || {});
+        
+        if (inicio) {
+            logs = logs.filter(log => {
+                const [d, h] = log.dataHora.split(' ');
+                const [dd, mm, aa] = d.split('-');
+                return new Date(aa, mm-1, dd) >= new Date(inicio + 'T00:00:00');
+            });
+        }
+        if (fim) {
+            logs = logs.filter(log => {
+                const [d, h] = log.dataHora.split(' ');
+                const [dd, mm, aa] = d.split('-');
+                return new Date(aa, mm-1, dd) <= new Date(fim + 'T23:59:59');
+            });
+        }
+        if (usuario) {
+            logs = logs.filter(log => log.usuarioId === usuario);
+        }
+        if (acao) {
+            logs = logs.filter(log => log.acao === acao);
+        }
+        
+        logs.sort((a, b) => b.dataHora.localeCompare(a.dataHora));
+        renderizarTabelaLogs(logs);
+    });
+}
+
+function renderizarTabelaLogs(logs) {
+    const tbody = document.querySelector('#tabelaLogs tbody');
+    if (!tbody) return;
+    
+    if (logs.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="5" class="empty-table-message"><i class="fas fa-inbox"></i> Nenhum log encontrado</td></tr>';
+        return;
+    }
+    
+    tbody.innerHTML = logs.map(log => `
+        <tr>
+            <td>${log.dataHora}</td>
+            <td>${sanitizar(log.usuario)}</td>
+            <td><span class="log-destaque log-acao-${log.acao}">${log.acao.toUpperCase()}</span></td>
+            <td>${sanitizar(log.descricao)}</td>
+            <td style="font-size:11px;color:var(--text-muted);">${log.registroId ? log.registroId.substring(0, 12) + '...' : '-'}</td>
+        </tr>
+    `).join('');
+}
+
+function carregarUsuariosFiltroLogs() {
+    db.ref('usuarios').once('value').then(snap => {
+        const sel = document.getElementById('filtroLogUsuario');
+        if (!sel) return;
+        const usuarios = snap.val() || {};
+        sel.innerHTML = '<option value="">Todos os Usuários</option>' +
+            Object.entries(usuarios).map(([key, u]) => `<option value="${key}">${sanitizar(u.nome)}</option>`).join('');
+    });
+}
+
+// ============================================
+// EXPORTAR EXCEL (CSV)
+// ============================================
+function exportarExcel() {
+    // Usa os mesmos filtros do histórico
+    const inicio = document.getElementById('filtroDataInicio')?.value;
+    const fim = document.getElementById('filtroDataFim')?.value;
+    const status = document.getElementById('filtroStatus')?.value;
+    const tipo = document.getElementById('filtroTipo')?.value;
+    const texto = document.getElementById('filtroTexto')?.value?.trim().toLowerCase();
+    
+    let registros = Object.values(acompanhantes);
+    if (status) registros = registros.filter(a => a.status === status);
+    if (tipo) registros = registros.filter(a => a.tipo === tipo);
+    if (inicio) registros = registros.filter(a => new Date(a.dataEntrada.split('-')[2], a.dataEntrada.split('-')[1]-1, a.dataEntrada.split('-')[0]) >= new Date(inicio+'T00:00:00'));
+    if (fim) registros = registros.filter(a => new Date(a.dataEntrada.split('-')[2], a.dataEntrada.split('-')[1]-1, a.dataEntrada.split('-')[0]) <= new Date(fim+'T23:59:59'));
+    if (texto) registros = registros.filter(a => ['nomeAcompanhante','documento','nomePaciente','setor','leito','parentesco','observacao'].some(c => a[c] && a[c].toLowerCase().includes(texto)));
+    
+    // Criar CSV
+    let csv = 'Tipo;Nome;Documento;Parentesco;Paciente;Setor;Leito;Entrada;Saída;Status\n';
+    registros.forEach(ac => {
+        csv += `${ac.tipo};"${ac.nomeAcompanhante}";"${ac.documento||''}";"${ac.parentesco}";"${ac.nomePaciente}";"${ac.setor}";"${ac.leito||''}";"${ac.dataEntrada} ${ac.horaEntrada}";"${ac.dataSaida?ac.dataSaida+' '+ac.horaSaida:''}";"${ac.status}"\n`;
+    });
+    
+    // Download
+    const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `HRPI_export_${dataHoje()}.csv`;
+    link.click();
+    URL.revokeObjectURL(url);
+    toast(`${registros.length} registro(s) exportado(s)!`);
 }
 
 console.log('✅ HRPI - Sistema carregado!');
