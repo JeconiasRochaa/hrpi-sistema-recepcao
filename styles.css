@@ -1870,3 +1870,82 @@ body.dark-theme .error-message {
     background: var(--primary-light);
     border-color: var(--primary);
 }
+
+/* ============================================ */
+/* AUTO-SUGESTÃO DE PACIENTES */
+/* ============================================ */
+.sugestoes-paciente {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 0 0 var(--radius-sm) var(--radius-sm);
+    box-shadow: var(--shadow-md);
+    max-height: 200px;
+    overflow-y: auto;
+    z-index: 50;
+    display: none;
+}
+
+.sugestoes-paciente .sugestao-item {
+    padding: 10px 14px;
+    cursor: pointer;
+    font-size: 14px;
+    border-bottom: 1px solid var(--border-light);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    transition: background var(--transition-fast);
+}
+
+.sugestoes-paciente .sugestao-item:hover {
+    background: var(--primary-light);
+}
+
+.sugestoes-paciente .sugestao-item .paciente-nome {
+    font-weight: 600;
+    color: var(--text);
+}
+
+.sugestoes-paciente .sugestao-item .paciente-info {
+    font-size: 11px;
+    color: var(--text-light);
+}
+
+/* Ajuste para posicionamento relativo do form-group */
+.form-group {
+    position: relative;
+}
+
+/* ============================================ */
+/* LOGS DE AUDITORIA */
+/* ============================================ */
+.log-destaque {
+    font-weight: 600;
+}
+.log-acao-criar { color: #2d8b4e; }
+.log-acao-editar { color: #2c9aaf; }
+.log-acao-excluir { color: #c0392b; }
+.log-acao-login { color: #1a6b7a; }
+.log-acao-logout { color: #7d8c97; }
+.log-acao-troca { color: #c7841a; }
+.log-acao-saida { color: #e8913a; }
+.log-acao-usuario { color: #8e44ad; }
+.log-acao-config { color: #3498db; }
+
+/* Linha de visita expirada */
+.linha-expirada {
+    background-color: #ffe0e0 !important;
+    animation: piscar 0.8s infinite alternate;
+}
+
+body.dark-theme .linha-expirada {
+    background-color: #4a2020 !important;
+}
+
+@keyframes piscar {
+    from { opacity: 1; }
+    to { opacity: 0.5; }
+}
