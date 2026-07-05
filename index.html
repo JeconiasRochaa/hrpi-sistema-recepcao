@@ -152,11 +152,15 @@
                 <a data-page="relatorios" class="admin-only" style="display: none;">
                     <i class="fas fa-file-pdf"></i> Relatórios
                 </a>
+                
                 <a data-page="usuarios" class="admin-only" style="display: none;">
                     <i class="fas fa-user-cog"></i> Usuários
                 </a>
                 <a data-page="configuracoes" class="admin-only" style="display: none;">
                     <i class="fas fa-cog"></i> Configurações
+                </a>
+                <a data-page="logs" class="admin-only" style="display: none;">
+                    <i class="fas fa-clipboard-list"></i> Logs
                 </a>
             </nav>
             
@@ -171,6 +175,7 @@
                 <button id="logoutBtn" class="btn-logout">
                     <i class="fas fa-sign-out-alt"></i> Sair
                 </button>
+                
             </div>
         </aside>
 
@@ -333,163 +338,165 @@
                 </div>
             </div>
 
-            <!-- ============================================ -->
-            <!-- ENTRADA DE ACOMPANHANTE -->
-            <!-- ============================================ -->
-            <div id="entradaAcompanhante" class="page">
-                <div class="page-header">
-                    <h1><i class="fas fa-user-plus"></i> Entrada de Acompanhante</h1>
-                    <p class="breadcrumb">Registrar novo acompanhante no sistema</p>
+           <!-- ============================================ -->
+<!-- ENTRADA DE ACOMPANHANTE -->
+<!-- ============================================ -->
+<div id="entradaAcompanhante" class="page">
+    <div class="page-header">
+        <h1><i class="fas fa-user-plus"></i> Entrada de Acompanhante</h1>
+        <p class="breadcrumb">Registrar novo acompanhante no sistema</p>
+    </div>
+    
+    <div class="card">
+        <div class="card-header">
+            <h3><i class="fas fa-clipboard-list"></i> Formulário de Entrada</h3>
+        </div>
+        <form id="formEntradaAcompanhante">
+            <div class="form-grid">
+                <div class="form-group">
+                    <label>Nome do Acompanhante <span class="required">*</span></label>
+                    <input type="text" id="acNome" placeholder="Nome completo" required>
                 </div>
-                
-                <div class="card">
-                    <div class="card-header">
-                        <h3><i class="fas fa-clipboard-list"></i> Formulário de Entrada</h3>
-                    </div>
-                    <form id="formEntradaAcompanhante">
-                        <div class="form-grid">
-                            <div class="form-group">
-                                <label>Nome do Acompanhante <span class="required">*</span></label>
-                                <input type="text" id="acNome" placeholder="Nome completo" required>
-                            </div>
-                            <div class="form-group">
-                                <label>Documento</label>
-                                <input type="text" id="acDocumento" placeholder="RG, CPF ou outro">
-                            </div>
-                            <div class="form-group">
-                                <label>Telefone</label>
-                                <input type="tel" id="acTelefone" placeholder="(00) 00000-0000">
-                            </div>
-                            <div class="form-group">
-                                <label>Parentesco <span class="required">*</span></label>
-                                <select id="acParentesco" required>
-                                    <option value="">Selecione...</option>
-                                    <option>Filho(a)</option>
-                                    <option>Pai/Mãe</option>
-                                    <option>Cônjuge</option>
-                                    <option>Irmão/Irmã</option>
-                                    <option>Neto(a)</option>
-                                    <option>Sobrinho(a)</option>
-                                    <option>Amigo(a)</option>
-                                    <option>Cuidador(a)</option>
-                                    <option>Outro</option>
-                                </select>
-                            </div>
-                            <div class="form-group">
-                                <label>Nome do Paciente <span class="required">*</span></label>
-                                <input type="text" id="acPaciente" placeholder="Nome do paciente" required>
-                            </div>
-                            <div class="form-group">
-                                <label>Setor <span class="required">*</span></label>
-                                <select id="acSetor" required>
-                                    <option value="">Selecione...</option>
-                                    <option>Oncologia I</option>
-                                    <option>Oncologia II</option>
-                                    <option>UTI I</option>
-                                    <option>UTI II</option>
-                                    <option>Clínica Médica I</option>
-                                    <option>Clínica Médica II</option>
-                                    <option>Clínica Cirúrgica</option>
-                                    <option>Pediatria</option>
-                                    <option>Saúde Mental</option>
-                                </select>
-                            </div>
-                            <div class="form-group">
-                                <label>Leito</label>
-                                <input type="text" id="acLeito" placeholder="Número do leito">
-                            </div>
-                            <div class="form-group">
-                                <label>Observação</label>
-                                <textarea id="acObservacao" rows="2" placeholder="Informações adicionais..."></textarea>
-                            </div>
-                        </div>
-                        <div class="form-actions">
-                            <button type="submit" class="btn btn-primary">
-                                <i class="fas fa-save"></i> Registrar Entrada
-                            </button>
-                        </div>
-                    </form>
+                <div class="form-group">
+                    <label>Documento</label>
+                    <input type="text" id="acDocumento" placeholder="RG, CPF ou outro">
+                </div>
+                <div class="form-group">
+                    <label>Telefone</label>
+                    <input type="tel" id="acTelefone" placeholder="(00) 00000-0000">
+                </div>
+                <div class="form-group">
+                    <label>Parentesco <span class="required">*</span></label>
+                    <select id="acParentesco" required>
+                        <option value="">Selecione...</option>
+                        <option>Filho(a)</option>
+                        <option>Pai/Mãe</option>
+                        <option>Cônjuge</option>
+                        <option>Irmão/Irmã</option>
+                        <option>Neto(a)</option>
+                        <option>Sobrinho(a)</option>
+                        <option>Amigo(a)</option>
+                        <option>Cuidador(a)</option>
+                        <option>Outro</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Nome do Paciente <span class="required">*</span></label>
+                    <input type="text" id="acPaciente" placeholder="Nome do paciente" required autocomplete="off">
+                    <div class="sugestoes-paciente" id="sugestoesAcPaciente"></div>
+                </div>
+                <div class="form-group">
+                    <label>Setor <span class="required">*</span></label>
+                    <select id="acSetor" required>
+                        <option value="">Selecione...</option>
+                        <option>Oncologia I</option>
+                        <option>Oncologia II</option>
+                        <option>UTI I</option>
+                        <option>UTI II</option>
+                        <option>Clínica Médica I</option>
+                        <option>Clínica Médica II</option>
+                        <option>Clínica Cirúrgica</option>
+                        <option>Pediatria</option>
+                        <option>Saúde Mental</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Leito</label>
+                    <input type="text" id="acLeito" placeholder="Número do leito">
+                </div>
+                <div class="form-group">
+                    <label>Observação</label>
+                    <textarea id="acObservacao" rows="2" placeholder="Informações adicionais..."></textarea>
                 </div>
             </div>
+            <div class="form-actions">
+                <button type="submit" class="btn btn-primary">
+                    <i class="fas fa-save"></i> Registrar Entrada
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
 
             <!-- ============================================ -->
-            <!-- REGISTRO DE VISITA -->
-            <!-- ============================================ -->
-            <div id="registroVisita" class="page">
-                <div class="page-header">
-                    <h1><i class="fas fa-clock"></i> Registro de Visita</h1>
-                    <p class="breadcrumb">Registrar visita de curta duração</p>
+<!-- REGISTRO DE VISITA -->
+<!-- ============================================ -->
+<div id="registroVisita" class="page">
+    <div class="page-header">
+        <h1><i class="fas fa-clock"></i> Registro de Visita</h1>
+        <p class="breadcrumb">Registrar visita de curta duração</p>
+    </div>
+    
+    <div class="card">
+        <div class="card-header">
+            <h3><i class="fas fa-clipboard-list"></i> Formulário de Visita</h3>
+        </div>
+        <form id="formVisita">
+            <div class="form-grid">
+                <div class="form-group">
+                    <label>Nome do Visitante <span class="required">*</span></label>
+                    <input type="text" id="visNome" placeholder="Nome completo" required>
                 </div>
-                
-                <div class="card">
-                    <div class="card-header">
-                        <h3><i class="fas fa-clipboard-list"></i> Formulário de Visita</h3>
-                    </div>
-                    <form id="formVisita">
-                        <div class="form-grid">
-                            <div class="form-group">
-                                <label>Nome do Visitante <span class="required">*</span></label>
-                                <input type="text" id="visNome" placeholder="Nome completo" required>
-                            </div>
-                            <div class="form-group">
-                                <label>Documento</label>
-                                <input type="text" id="visDocumento" placeholder="RG, CPF ou outro">
-                            </div>
-                            <div class="form-group">
-                                <label>Telefone</label>
-                                <input type="tel" id="visTelefone" placeholder="(00) 00000-0000">
-                            </div>
-                            <div class="form-group">
-                                <label>Parentesco <span class="required">*</span></label>
-                                <select id="visParentesco" required>
-                                    <option value="">Selecione...</option>
-                                    <option>Filho(a)</option>
-                                    <option>Pai/Mãe</option>
-                                    <option>Cônjuge</option>
-                                    <option>Irmão/Irmã</option>
-                                    <option>Neto(a)</option>
-                                    <option>Sobrinho(a)</option>
-                                    <option>Amigo(a)</option>
-                                    <option>Cuidador(a)</option>
-                                    <option>Outro</option>
-                                </select>
-                            </div>
-                            <div class="form-group">
-                                <label>Nome do Paciente <span class="required">*</span></label>
-                                <input type="text" id="visPaciente" placeholder="Nome do paciente" required>
-                            </div>
-                            <div class="form-group">
-                                <label>Setor <span class="required">*</span></label>
-                                <select id="visSetor" required>
-                                    <option value="">Selecione...</option>
-                                    <option>Oncologia I</option>
-                                    <option>Oncologia II</option>
-                                    <option>UTI I</option>
-                                    <option>UTI II</option>
-                                    <option>Clínica Médica I</option>
-                                    <option>Clínica Médica II</option>
-                                    <option>Clínica Cirúrgica</option>
-                                    <option>Pediatria</option>
-                                    <option>Saúde Mental</option>
-                                </select>
-                            </div>
-                            <div class="form-group">
-                                <label>Leito</label>
-                                <input type="text" id="visLeito" placeholder="Número do leito">
-                            </div>
-                            <div class="form-group">
-                                <label>Duração (minutos) <span class="required">*</span></label>
-                                <input type="number" id="visDuracao" placeholder="Ex: 30" min="1" max="480" required>
-                            </div>
-                        </div>
-                        <div class="form-actions">
-                            <button type="submit" class="btn btn-primary">
-                                <i class="fas fa-save"></i> Registrar Visita
-                            </button>
-                        </div>
-                    </form>
+                <div class="form-group">
+                    <label>Documento</label>
+                    <input type="text" id="visDocumento" placeholder="RG, CPF ou outro">
+                </div>
+                <div class="form-group">
+                    <label>Telefone</label>
+                    <input type="tel" id="visTelefone" placeholder="(00) 00000-0000">
+                </div>
+                <div class="form-group">
+                    <label>Parentesco <span class="required">*</span></label>
+                    <select id="visParentesco" required>
+                        <option value="">Selecione...</option>
+                        <option>Filho(a)</option>
+                        <option>Pai/Mãe</option>
+                        <option>Cônjuge</option>
+                        <option>Irmão/Irmã</option>
+                        <option>Neto(a)</option>
+                        <option>Sobrinho(a)</option>
+                        <option>Amigo(a)</option>
+                        <option>Cuidador(a)</option>
+                        <option>Outro</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Nome do Paciente <span class="required">*</span></label>
+                    <input type="text" id="visPaciente" placeholder="Nome do paciente" required autocomplete="off">
+                    <div class="sugestoes-paciente" id="sugestoesVisPaciente"></div>
+                </div>
+                <div class="form-group">
+                    <label>Setor <span class="required">*</span></label>
+                    <select id="visSetor" required>
+                        <option value="">Selecione...</option>
+                        <option>Oncologia I</option>
+                        <option>Oncologia II</option>
+                        <option>UTI I</option>
+                        <option>UTI II</option>
+                        <option>Clínica Médica I</option>
+                        <option>Clínica Médica II</option>
+                        <option>Clínica Cirúrgica</option>
+                        <option>Pediatria</option>
+                        <option>Saúde Mental</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Leito</label>
+                    <input type="text" id="visLeito" placeholder="Número do leito">
+                </div>
+                <div class="form-group">
+                    <label>Duração (minutos) <span class="required">*</span></label>
+                    <input type="number" id="visDuracao" placeholder="Ex: 30" min="1" max="480" required>
                 </div>
             </div>
+            <div class="form-actions">
+                <button type="submit" class="btn btn-primary">
+                    <i class="fas fa-save"></i> Registrar Visita
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
 
             <!-- ============================================ -->
             <!-- TROCA DE ACOMPANHANTE -->
@@ -670,6 +677,9 @@
                         <button id="btnFiltrar" class="btn btn-outline btn-sm">
                             <i class="fas fa-search"></i> Filtrar
                         </button>
+                        <button id="btnExportarExcel" class="btn btn-outline btn-sm">
+    <i class="fas fa-file-excel"></i> Exportar Excel
+</button>
                     </div>
                     
                     <div class="table-container">
@@ -741,6 +751,14 @@
                             <i class="fas fa-file-pdf"></i> Gerar PDF
                         </button>
                     </div>
+                    </div>
+                    <div class="report-card">
+                    <i class="fas fa-file-excel"></i>
+                    <h4>Exportar Dados</h4>
+                    <p>Baixar registros em formato CSV</p>
+                    <button class="btn btn-primary btn-sm" onclick="exportarExcel()">
+                    <i class="fas fa-download"></i> Exportar CSV
+                    </button>
                 </div>
             </div>
 
@@ -823,8 +841,73 @@
                             <i class="fas fa-key"></i> Resetar Senha
                         </button>
                     </div>
+                    <div class="config-card">
+    <h4><i class="fas fa-users-slash"></i> Limite de Acompanhantes</h4>
+    <p>Controlar múltiplos acompanhantes por paciente</p>
+    <label style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
+        <input type="checkbox" id="bloqueioRigido" style="width: auto;">
+        Bloqueio rígido (impedir múltiplos)
+    </label>
+    <small style="color: var(--text-light);">Se desmarcado, apenas exibe um aviso.</small>
+</div>
+</div>
                 </div>
             </div>
+            <!-- ============================================ -->
+<!-- LOGS DE AUDITORIA -->
+<!-- ============================================ -->
+                        <div id="logs" class="page">
+                        <div class="page-header">
+                        <h1><i class="fas fa-clipboard-list"></i> Logs de Auditoria</h1>
+                        <p class="breadcrumb">Registro de todas as ações do sistema</p>
+                        </div>
+
+                        <div class="card">
+                        <div class="card-header">
+                        <h3><i class="fas fa-filter"></i> Filtros</h3>
+                    </div>
+                <div class="filter-row" style="margin-bottom: 16px;">
+            <input type="date" id="filtroLogDataInicio" title="Data Início">
+            <input type="date" id="filtroLogDataFim" title="Data Fim">
+            <select id="filtroLogUsuario">
+                <option value="">Todos os Usuários</option>
+            </select>
+            <select id="filtroLogAcao">
+                <option value="">Todas as Ações</option>
+                <option value="login">Login</option>
+                <option value="logout">Logout</option>
+                <option value="criar">Criação</option>
+                <option value="editar">Edição</option>
+                <option value="excluir">Exclusão</option>
+                <option value="troca">Troca de Acompanhante</option>
+                <option value="saida">Registro de Saída</option>
+                <option value="usuario">Gerenciamento de Usuários</option>
+                <option value="config">Configurações</option>
+            </select>
+            <button id="btnFiltrarLogs" class="btn btn-outline btn-sm">
+                <i class="fas fa-search"></i> Filtrar
+            </button>
+        </div>
+
+        <div class="table-container">
+            <table id="tabelaLogs">
+                <thead>
+                    <tr>
+                        <th>Data/Hora</th>
+                        <th>Usuário</th>
+                        <th>Ação</th>
+                        <th>Descrição</th>
+                        <th>Registro ID</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr><td colspan="5" class="empty-table-message">
+                        <i class="fas fa-inbox"></i> Nenhum log encontrado</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
         </main>
     </div>
 
