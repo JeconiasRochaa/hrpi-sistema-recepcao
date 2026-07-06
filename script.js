@@ -1595,13 +1595,13 @@ function gerarRelatorio(tipo) {
             titulo = 'Diário';
             break;
         case 'semanal':
-    const inicioSemana = new Date(agora);
-    inicioSemana.setDate(agora.getDate() - 6); // últimos 7 dias (inclui hoje)
-    dataInicio = new Date(inicioSemana);
-    dataFim = new Date(agora);
-    dataFim.setHours(23, 59, 59, 999);
-    titulo = 'Semanal';
-    break;
+            const inicioSemana = new Date(agora);
+            inicioSemana.setDate(agora.getDate() - 6); // últimos 7 dias (inclui hoje)
+            dataInicio = new Date(inicioSemana);
+            dataFim = new Date(agora);
+            dataFim.setHours(23, 59, 59, 999);
+            titulo = 'Semanal';
+            break;
         case 'mensal':
             dataInicio = new Date(agora.getFullYear(), agora.getMonth(), 1);
             dataFim = new Date(agora);
@@ -1618,11 +1618,6 @@ function gerarRelatorio(tipo) {
             break;
     }
     
-    console.log('📅 Relatório:', titulo);
-    console.log('Início:', dataInicio.toLocaleString());
-    console.log('Fim:', dataFim.toLocaleString());
-    
-    // Converte para strings de exibição (dd-mm-aaaa)
     const formatar = (d) => `${String(d.getDate()).padStart(2,'0')}-${String(d.getMonth()+1).padStart(2,'0')}-${d.getFullYear()}`;
     const strInicio = formatar(dataInicio);
     const strFim = formatar(dataFim);
@@ -1630,21 +1625,22 @@ function gerarRelatorio(tipo) {
     db.ref('configuracoes/logoHospital').once('value').then(snapLogo => {
         if (snapLogo.val()) try { doc.addImage(snapLogo.val(), 'PNG', 10, 8, 22, 22); } catch(e) {}
         
+        // Cabeçalho
         doc.setFontSize(16); doc.setTextColor(26, 107, 122);
+        doc.setFont('helvetica', 'bold');
         doc.text('HOSPITAL REGIONAL DE PALMEIRA DOS ÍNDIOS', 148, 15, { align: 'center' });
         doc.setFontSize(11); doc.setTextColor(100);
+        doc.setFont('helvetica', 'normal');
         doc.text('Sistema de Controle de Recepção', 148, 22, { align: 'center' });
         doc.setFontSize(13); doc.setTextColor(0);
         doc.text(`Relatório ${titulo}: ${strInicio} a ${strFim}`, 148, 30, { align: 'center' });
         
-        // Filtra usando timestamps reais
+        // Filtrar dados
         let dados = Object.values(acompanhantes).filter(ac => {
             const [d, m, a] = ac.dataEntrada.split('-');
             const dataRegistro = new Date(a, m-1, d);
             return dataRegistro >= dataInicio && dataRegistro <= dataFim;
         });
-        
-        console.log(`📊 Registros encontrados: ${dados.length}`);
         
         dados.sort((a, b) => {
             const da = new Date(a.dataEntrada.split('-')[2], a.dataEntrada.split('-')[1]-1, a.dataEntrada.split('-')[0]);
@@ -1652,13 +1648,73 @@ function gerarRelatorio(tipo) {
             return db - da || b.horaEntrada.localeCompare(a.horaEntrada);
         });
         
+        // ========== ESTATÍSTICAS ==========
+        const totalGeral = dados.length;
+        const totalAcompanhantes = dados.filter(ac => ac.tipo === 'acompanhante').length;
+        const totalVisitas = dados.filter(ac => ac.tipo === 'visita').length;
+        const totalPresentes = dados.filter(ac => ac.status === 'presente').length;
+        const totalSaiu = dados.filter(ac => ac.status === 'saiu').length;
+        const totalTrocado = dados.filter(ac => ac.status === 'trocado').length;
+        
+        // Linha decorativa
+        doc.setDrawColor(26, 107, 122);
+        doc.setLineWidth(0.3);
+        doc.line(14, 34, 283, 34);
+        
+        // Bloco de estatísticas
+        doc.setFontSize(10);
+        doc.setTextColor(0);
+        doc.setFont('helvetica', 'bold');
+        doc.text('RESUMO DO PERÍODO', 14, 40);
+        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(9);
+        
+        const statsY = 47;
+        const col1 = 14;
+        const col2 = 100;
+        const col3 = 190;
+        
+        doc.text(`Total Geral de Registros: ${totalGeral}`, col1, statsY);
+        doc.text(`Acompanhantes: ${totalAcompanhantes}`, col2, statsY);
+        doc.text(`Visitas: ${totalVisitas}`, col3, statsY);
+        
+        doc.text(`Presentes: ${totalPresentes}`, col1, statsY + 7);
+        doc.text(`Saídas: ${totalSaiu}`, col2, statsY + 7);
+        doc.text(`Trocas: ${totalTrocado}`, col3, statsY + 7);
+        
+        // Linha após estatísticas
+        doc.setDrawColor(200);
+        doc.line(14, statsY + 13, 283, statsY + 13);
+        
+        // ========== TABELA ==========
         doc.autoTable({
-            startY: 38,
+            startY: statsY + 17,
             head: [['Tipo', 'Nome', 'Doc', 'Parentesco', 'Paciente', 'Setor', 'Leito', 'Entrada', 'Saída', 'Status']],
-            body: dados.map(ac => [ac.tipo==='visita'?'Visita':'Acomp.', ac.nomeAcompanhante, ac.documento||'-', ac.parentesco, ac.nomePaciente, ac.setor, ac.leito||'-', ac.dataEntrada+' '+ac.horaEntrada, ac.dataSaida?ac.dataSaida+' '+ac.horaSaida:'-', ac.status]),
-            styles: { fontSize: 7 }, headStyles: { fillColor: [26, 107, 122] },
-            alternateRowStyles: { fillColor: [232, 244, 247] }
+            body: dados.map(ac => [
+                ac.tipo === 'visita' ? 'Visita' : 'Acomp.',
+                ac.nomeAcompanhante,
+                ac.documento || '-',
+                ac.parentesco,
+                ac.nomePaciente,
+                ac.setor,
+                ac.leito || '-',
+                ac.dataEntrada + ' ' + ac.horaEntrada,
+                ac.dataSaida ? ac.dataSaida + ' ' + ac.horaSaida : '-',
+                ac.status
+            ]),
+            styles: { fontSize: 7 },
+            headStyles: { fillColor: [26, 107, 122], textColor: 255, fontStyle: 'bold' },
+            alternateRowStyles: { fillColor: [232, 244, 247] },
+            margin: { left: 14, right: 14 }
         });
+        
+        // Rodapé com data de geração
+        const finalY = doc.lastAutoTable.finalY + 10;
+        doc.setFontSize(8);
+        doc.setTextColor(128);
+        doc.setFont('helvetica', 'italic');
+        const dataGeracao = new Date().toLocaleString('pt-BR');
+        doc.text(`Documento gerado em: ${dataGeracao} — Total de registros: ${totalGeral}`, 148, finalY, { align: 'center' });
         
         doc.save(`HRPI_${titulo}_${formatar(agora)}.pdf`);
         toast('PDF gerado!');
