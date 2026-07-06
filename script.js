@@ -1325,37 +1325,67 @@ function carregarConfiguracoes() {
     });
 }
 
-function uploadLogo(e) {
-    const file = e.target.files[0];
-    if (!file || !file.type.startsWith('image/')) { toast('Imagem inválida.', 'error'); return; }
-    const reader = new FileReader();
-    reader.onload = ev => {
-        db.ref('configuracoes').update({ logoHospital: ev.target.result }).then(() => {
-            logoHospitalCache = ev.target.result;
-            const sl = document.getElementById('sidebarLogo');
-            const ll = document.getElementById('loginLogo');
-            if (sl) sl.innerHTML = `<img src="${ev.target.result}" alt="Logo">`;
-            if (ll) ll.innerHTML = `<img src="${ev.target.result}" alt="Logo">`;
-            toast('Logo atualizada!');
-            registrarLog('config', 'Logo do sistema atualizada.');
-        });
-    };
-    reader.readAsDataURL(file);
+function comprimirImagem(file, maxWidth, maxHeight, qualidade = 0.6) {
+    return new Promise((resolve) => {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            const img = new Image();
+            img.onload = () => {
+                const canvas = document.createElement('canvas');
+                let width = img.width;
+                let height = img.height;
+                
+                if (width > maxWidth) {
+                    height = (maxWidth / width) * height;
+                    width = maxWidth;
+                }
+                if (height > maxHeight) {
+                    width = (maxHeight / height) * width;
+                    height = maxHeight;
+                }
+                
+                canvas.width = width;
+                canvas.height = height;
+                const ctx = canvas.getContext('2d');
+                ctx.drawImage(img, 0, 0, width, height);
+                resolve(canvas.toDataURL('image/jpeg', qualidade));
+            };
+            img.src = e.target.result;
+        };
+        reader.readAsDataURL(file);
+    });
 }
 
-function uploadFundo(e) {
+async function uploadLogo(e) {
     const file = e.target.files[0];
-    if (!file || !file.type.startsWith('image/')) { toast('Imagem inválida.', 'error'); return; }
-    const reader = new FileReader();
-    reader.onload = ev => {
-        db.ref('configuracoes').update({ fundoLogin: ev.target.result }).then(() => {
-            const ls = document.getElementById('loginScreen');
-            if (ls) ls.style.setProperty('--login-bg-image', `url(${ev.target.result})`);
-            toast('Fundo atualizado!');
-            registrarLog('config', 'Fundo de login atualizado.');
-        });
-    };
-    reader.readAsDataURL(file);
+    if (!file || !file.type.startsWith('image/')) {
+        toast('Imagem inválida.', 'error'); return;
+    }
+    
+    const base64 = await comprimirImagem(file, 200, 80, 0.5); // logo pequena
+    db.ref('configuracoes').update({ logoHospital: base64 }).then(() => {
+        logoHospitalCache = base64;
+        sessionStorage.setItem('hrpi_logo', base64); // cache local
+        document.getElementById('sidebarLogo').innerHTML = `<img src="${base64}" alt="Logo">`;
+        document.getElementById('loginLogo').innerHTML = `<img src="${base64}" alt="Logo">`;
+        toast('Logo atualizada!');
+        registrarLog('config', 'Logo atualizada.');
+    });
+}
+
+async function uploadFundo(e) {
+    const file = e.target.files[0];
+    if (!file || !file.type.startsWith('image/')) {
+        toast('Imagem inválida.', 'error'); return;
+    }
+    
+    const base64 = await comprimirImagem(file, 1200, 800, 0.4); // fundo maior, mas comprimido
+    db.ref('configuracoes').update({ fundoLogin: base64 }).then(() => {
+        sessionStorage.setItem('hrpi_fundo', base64); // cache local
+        aplicarFundoLogin(base64);
+        toast('Fundo atualizado!');
+        registrarLog('config', 'Fundo atualizado.');
+    });
 }
 
 function removerLogo() {
@@ -1554,25 +1584,48 @@ function gerarRelatorio(tipo) {
     const { jsPDF } = window.jspdf;
     const doc = new jsPDF('landscape');
     let dataInicio, dataFim, titulo;
-    const hoje = new Date();
+    const agora = new Date();
+    agora.setHours(0,0,0,0); // hoje 00:00:00
     
     switch(tipo) {
-        case 'diario': dataInicio = dataHoje(); dataFim = dataHoje(); titulo = 'Diário'; break;
+        case 'diario':
+            dataInicio = new Date(agora);
+            dataFim = new Date(agora);
+            dataFim.setHours(23,59,59,999);
+            titulo = 'Diário';
+            break;
         case 'semanal':
-            const is = new Date(); is.setDate(hoje.getDate() - hoje.getDay());
-            dataInicio = `${String(is.getDate()).padStart(2,'0')}-${String(is.getMonth()+1).padStart(2,'0')}-${is.getFullYear()}`;
-            dataFim = dataHoje(); titulo = 'Semanal'; break;
+    const inicioSemana = new Date(agora);
+    inicioSemana.setDate(agora.getDate() - 6); // últimos 7 dias (inclui hoje)
+    dataInicio = new Date(inicioSemana);
+    dataFim = new Date(agora);
+    dataFim.setHours(23, 59, 59, 999);
+    titulo = 'Semanal';
+    break;
         case 'mensal':
-            dataInicio = `01-${String(hoje.getMonth()+1).padStart(2,'0')}-${hoje.getFullYear()}`;
-            dataFim = dataHoje(); titulo = 'Mensal'; break;
+            dataInicio = new Date(agora.getFullYear(), agora.getMonth(), 1);
+            dataFim = new Date(agora);
+            dataFim.setHours(23,59,59,999);
+            titulo = 'Mensal';
+            break;
         case 'personalizado':
             const ini = document.getElementById('dataInicioPersonalizado')?.value;
             const fim = document.getElementById('dataFimPersonalizado')?.value;
             if (!ini || !fim) { toast('Selecione datas.', 'error'); return; }
-            dataInicio = ini.split('-').reverse().join('-');
-            dataFim = fim.split('-').reverse().join('-');
-            titulo = 'Personalizado'; break;
+            dataInicio = new Date(ini + 'T00:00:00');
+            dataFim = new Date(fim + 'T23:59:59');
+            titulo = 'Personalizado';
+            break;
     }
+    
+    console.log('📅 Relatório:', titulo);
+    console.log('Início:', dataInicio.toLocaleString());
+    console.log('Fim:', dataFim.toLocaleString());
+    
+    // Converte para strings de exibição (dd-mm-aaaa)
+    const formatar = (d) => `${String(d.getDate()).padStart(2,'0')}-${String(d.getMonth()+1).padStart(2,'0')}-${d.getFullYear()}`;
+    const strInicio = formatar(dataInicio);
+    const strFim = formatar(dataFim);
     
     db.ref('configuracoes/logoHospital').once('value').then(snapLogo => {
         if (snapLogo.val()) try { doc.addImage(snapLogo.val(), 'PNG', 10, 8, 22, 22); } catch(e) {}
@@ -1582,11 +1635,22 @@ function gerarRelatorio(tipo) {
         doc.setFontSize(11); doc.setTextColor(100);
         doc.text('Sistema de Controle de Recepção', 148, 22, { align: 'center' });
         doc.setFontSize(13); doc.setTextColor(0);
-        doc.text(`Relatório ${titulo}: ${dataInicio} a ${dataFim}`, 148, 30, { align: 'center' });
+        doc.text(`Relatório ${titulo}: ${strInicio} a ${strFim}`, 148, 30, { align: 'center' });
         
-        let dados = Object.values(acompanhantes);
-        if (dataInicio) { const [di, mi, ai] = dataInicio.split('-'); dados = dados.filter(ac => { const [d, m, a] = ac.dataEntrada.split('-'); return new Date(a, m-1, d) >= new Date(ai, mi-1, di); }); }
-        if (dataFim) { const [df, mf, af] = dataFim.split('-'); dados = dados.filter(ac => { const [d, m, a] = ac.dataEntrada.split('-'); return new Date(a, m-1, d) <= new Date(af, mf-1, df, 23, 59, 59); }); }
+        // Filtra usando timestamps reais
+        let dados = Object.values(acompanhantes).filter(ac => {
+            const [d, m, a] = ac.dataEntrada.split('-');
+            const dataRegistro = new Date(a, m-1, d);
+            return dataRegistro >= dataInicio && dataRegistro <= dataFim;
+        });
+        
+        console.log(`📊 Registros encontrados: ${dados.length}`);
+        
+        dados.sort((a, b) => {
+            const da = new Date(a.dataEntrada.split('-')[2], a.dataEntrada.split('-')[1]-1, a.dataEntrada.split('-')[0]);
+            const db = new Date(b.dataEntrada.split('-')[2], b.dataEntrada.split('-')[1]-1, b.dataEntrada.split('-')[0]);
+            return db - da || b.horaEntrada.localeCompare(a.horaEntrada);
+        });
         
         doc.autoTable({
             startY: 38,
@@ -1596,7 +1660,7 @@ function gerarRelatorio(tipo) {
             alternateRowStyles: { fillColor: [232, 244, 247] }
         });
         
-        doc.save(`HRPI_${titulo}_${dataHoje()}.pdf`);
+        doc.save(`HRPI_${titulo}_${formatar(agora)}.pdf`);
         toast('PDF gerado!');
     });
 }
