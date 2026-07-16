@@ -1,6 +1,6 @@
 // ============================================
 // HRPI - SISTEMA DE CONTROLE DE RECEPÇÃO
-// script.js - COMPLETO COM LOG DE AUDITORIA
+// script.js - COMPLETO E CORRIGIDO
 // ============================================
 
 const firebaseConfig = {
@@ -23,30 +23,12 @@ try {
 const db = firebase.database();
 
 // ============================================
-// LOG DE AUDITORIA
-// ============================================
-function registrarLog(acao, descricao, registroId = null) {
-    const log = {
-        id: gerarId(),
-        dataHora: `${dataHoje()} ${horaAgora()}`,
-        usuario: usuarioLogado ? usuarioLogado.nome : 'Sistema',
-        usuarioId: usuarioLogado ? usuarioLogado.id : 'sistema',
-        acao: acao,
-        descricao: descricao,
-        registroId: registroId || ''
-    };
-    
-    db.ref('logs/' + log.id).set(log).catch(err => {
-        console.error('Erro ao registrar log:', err);
-    });
-}
-
-// ============================================
 // VARIÁVEIS GLOBAIS
 // ============================================
 let usuarioLogado = null;
 let acompanhantes = {};
 let logoHospitalCache = null;
+let bloqueioRigido = false;
 
 // ============================================
 // CONFIGURAÇÕES
@@ -105,14 +87,34 @@ function fecharModal() {
     if (modal) modal.classList.remove('active');
 }
 
-// ============================================
-// LOGIN
-// ============================================
-let loginAttempts = 0;
-let lockoutUntil = null;
+function setText(id, value) {
+    const el = document.getElementById(id);
+    if (el) el.textContent = value;
+}
 
+// ============================================
+// LOG DE AUDITORIA
+// ============================================
+function registrarLog(acao, descricao, registroId = null) {
+    const log = {
+        id: gerarId(),
+        dataHora: `${dataHoje()} ${horaAgora()}`,
+        usuario: usuarioLogado ? usuarioLogado.nome : 'Sistema',
+        usuarioId: usuarioLogado ? usuarioLogado.id : 'sistema',
+        acao: acao,
+        descricao: descricao,
+        registroId: registroId || ''
+    };
+    
+    db.ref('logs/' + log.id).set(log).catch(err => {
+        console.error('Erro ao registrar log:', err);
+    });
+}
+
+// ============================================
+// INICIALIZAÇÃO
+// ============================================
 document.addEventListener('DOMContentLoaded', function() {
-    document.getElementById('btnExportarExcel')?.addEventListener('click', exportarExcel);
     console.log('🟢 DOM Carregado');
     
     atualizarDataAtual();
@@ -132,12 +134,12 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     const chkBloqueio = document.getElementById('bloqueioRigido');
-if (chkBloqueio) {
-    chkBloqueio.addEventListener('change', function() {
-        bloqueioRigido = this.checked;
-        db.ref('configuracoes').update({ bloqueioRigido: this.checked });
-    });
-}
+    if (chkBloqueio) {
+        chkBloqueio.addEventListener('change', function() {
+            bloqueioRigido = this.checked;
+            db.ref('configuracoes').update({ bloqueioRigido: this.checked });
+        });
+    }
     
     document.querySelectorAll('.sidebar-nav a[data-page]').forEach(link => {
         link.addEventListener('click', function() {
@@ -227,6 +229,9 @@ if (chkBloqueio) {
     const btnFiltrarLogs = document.getElementById('btnFiltrarLogs');
     if (btnFiltrarLogs) btnFiltrarLogs.addEventListener('click', filtrarLogs);
     
+    const btnExportarExcel = document.getElementById('btnExportarExcel');
+    if (btnExportarExcel) btnExportarExcel.addEventListener('click', exportarExcel);
+    
     verificarSessao();
     carregarSelectUsuarios();
     inicializarBuscaGlobal();
@@ -234,9 +239,15 @@ if (chkBloqueio) {
     console.log('✅ Sistema inicializado!');
 });
 
+// ============================================
+// LOGIN
+// ============================================
+let loginAttempts = 0;
+let lockoutUntil = null;
+
 function fazerLogin(e) {
     e.preventDefault();
-    console.log('🔐 ========== TENTATIVA DE LOGIN ==========');
+    console.log('🔐 Tentativa de login...');
     
     if (lockoutUntil && Date.now() < lockoutUntil) {
         const min = Math.ceil((lockoutUntil - Date.now()) / 60000);
@@ -258,9 +269,6 @@ function fazerLogin(e) {
     const usuario = usernameInput.value.trim();
     const senha = passwordInput.value;
     
-    console.log('📝 Usuário digitado:', usuario);
-    console.log('🔑 Senha digitada:', senha.replace(/./g, '*'));
-    
     if (!usuario || !senha) {
         if (erroDiv) erroDiv.textContent = 'Preencha todos os campos.';
         return;
@@ -271,54 +279,26 @@ function fazerLogin(e) {
         btnLogin.innerHTML = '<span class="spinner"></span> Entrando...';
     }
     
-    console.log('🔍 Buscando usuários no Firebase...');
-    
     db.ref('usuarios').once('value').then(snapshot => {
         const usuarios = snapshot.val();
-        console.log('📦 Dados brutos do Firebase:', usuarios);
-        console.log('📊 Total de usuários:', usuarios ? Object.keys(usuarios).length : 0);
         
         if (!usuarios) {
-            console.error('❌ Nenhum usuário cadastrado no banco!');
-            if (erroDiv) erroDiv.textContent = 'Nenhum usuário cadastrado. Execute o setup primeiro.';
+            if (erroDiv) erroDiv.textContent = 'Nenhum usuário cadastrado.';
             resetarBtnLogin();
             return;
         }
         
         let userEncontrado = null;
-        const listaUsuarios = Object.entries(usuarios);
         
-        console.log('🔍 Procurando usuário:', usuario);
-        
-        for (const [key, user] of listaUsuarios) {
-            console.log(`   Verificando: ID=${key}, usuario=${user.usuario}, senha=${user.senha}, ativo=${user.ativo}`);
-            
-            if (user.usuario === usuario && user.senha === senha) {
-                console.log('   ✅ Usuário e senha conferem!');
-                
-                if (user.ativo === false) {
-                    console.log('   ⚠️ Usuário está INATIVO!');
-                    continue;
-                }
-                
+        for (const [key, user] of Object.entries(usuarios)) {
+            if (user.usuario === usuario && user.senha === senha && user.ativo !== false) {
                 userEncontrado = { ...user, id: key };
-                console.log('   🎯 USUÁRIO ENCONTRADO:', userEncontrado);
                 break;
-            } else {
-                if (user.usuario !== usuario) {
-                    console.log(`   ❌ Usuário não confere: "${user.usuario}" !== "${usuario}"`);
-                }
-                if (user.senha !== senha) {
-                    console.log(`   ❌ Senha não confere`);
-                }
             }
         }
         
         if (!userEncontrado) {
             loginAttempts++;
-            console.error('❌ USUÁRIO NÃO ENCONTRADO!');
-            console.error(`   Tentativa ${loginAttempts} de ${CONFIG.MAX_LOGIN_ATTEMPTS}`);
-            
             if (erroDiv) erroDiv.textContent = 'Usuário ou senha inválidos.';
             
             if (loginAttempts >= CONFIG.MAX_LOGIN_ATTEMPTS) {
@@ -330,16 +310,14 @@ function fazerLogin(e) {
             return;
         }
         
-        console.log('🎉 LOGIN BEM-SUCEDIDO!');
         loginAttempts = 0;
         lockoutUntil = null;
         
         if (userEncontrado.primeiroAcesso) {
-            console.log('🔐 Primeiro acesso - redirecionando para troca de senha');
-            console.log('📝 User ID:', userEncontrado.id);
-            
             sessionStorage.setItem('hrpi_user_id_temp', userEncontrado.id);
-            window.location.href = 'trocar-senha.html?id=' + userEncontrado.id;
+            document.getElementById('firstAccessModal').style.display = 'flex';
+            usuarioLogado = userEncontrado;
+            resetarBtnLogin();
             return;
         }
         
@@ -347,8 +325,8 @@ function fazerLogin(e) {
         resetarBtnLogin();
         
     }).catch(error => {
-        console.error('🔥 ERRO NO FIREBASE:', error);
-        if (erroDiv) erroDiv.textContent = 'Erro de conexão com o servidor. Verifique sua internet.';
+        console.error('🔥 ERRO:', error);
+        if (erroDiv) erroDiv.textContent = 'Erro de conexão.';
         resetarBtnLogin();
     });
 }
@@ -363,7 +341,6 @@ function resetarBtnLogin() {
 
 function trocarSenha(e) {
     e.preventDefault();
-    console.log('🔑 Trocando senha...');
     
     const novaSenha = document.getElementById('newPassword').value;
     const confirmaSenha = document.getElementById('confirmPassword').value;
@@ -386,7 +363,6 @@ function trocarSenha(e) {
     }
     
     if (!usuarioLogado || !usuarioLogado.id) {
-        console.error('❌ usuárioLogado não definido!');
         if (erroDiv) {
             erroDiv.textContent = 'Erro interno. Faça login novamente.';
             erroDiv.style.display = 'block';
@@ -394,35 +370,26 @@ function trocarSenha(e) {
         return;
     }
     
-    console.log('📝 Atualizando senha para ID:', usuarioLogado.id);
-    
     db.ref('usuarios/' + usuarioLogado.id).update({
         senha: novaSenha,
         primeiroAcesso: false
     }).then(() => {
-        console.log('✅ Senha atualizada!');
         usuarioLogado.senha = novaSenha;
         usuarioLogado.primeiroAcesso = false;
         
-        const firstAccessModal = document.getElementById('firstAccessModal');
-        if (firstAccessModal) {
-            firstAccessModal.style.display = 'none';
-        }
-        
+        document.getElementById('firstAccessModal').style.display = 'none';
         completarLogin(usuarioLogado);
         toast('Senha alterada com sucesso!');
     }).catch(error => {
-        console.error('❌ Erro ao atualizar senha:', error);
+        console.error('❌ Erro:', error);
         if (erroDiv) {
-            erroDiv.textContent = 'Erro ao salvar. Tente novamente.';
+            erroDiv.textContent = 'Erro ao salvar.';
             erroDiv.style.display = 'block';
         }
     });
 }
 
 function completarLogin(user) {
-    console.log('✅ Completando login para:', user.nome, '(ID:', user.id, ')');
-    
     usuarioLogado = user;
     
     sessionStorage.setItem('hrpi_session', JSON.stringify({
@@ -449,12 +416,12 @@ function completarLogin(user) {
     iniciarSistema();
     navegarPara('dashboard');
     toast(`Bem-vindo(a), ${user.nome}!`);
-    registrarLog('login', `Usuário "${user.nome}" fez login no sistema.`);
+    registrarLog('login', `Usuário "${user.nome}" fez login.`);
 }
 
 function logout() {
     if (usuarioLogado) {
-        registrarLog('logout', `Usuário "${usuarioLogado.nome}" saiu do sistema.`);
+        registrarLog('logout', `Usuário "${usuarioLogado.nome}" saiu.`);
     }
     sessionStorage.removeItem('hrpi_session');
     usuarioLogado = null;
@@ -466,9 +433,6 @@ function logout() {
     if (mainSystem) mainSystem.classList.remove('active');
     if (loginScreen) loginScreen.classList.remove('hidden');
     if (loginForm) loginForm.reset();
-    
-    const erroDiv = document.getElementById('loginError');
-    if (erroDiv) erroDiv.textContent = '';
 }
 
 function verificarSessao() {
@@ -494,37 +458,6 @@ function verificarSessao() {
             sessionStorage.removeItem('hrpi_session');
         }
     }
-}
-
-// ============================================
-// FUNÇÃO DE ESTENDER VISITA
-// ============================================
-function estenderVisita(id) {
-    const ac = acompanhantes[id];
-    if (!ac || ac.tipo !== 'visita') {
-        toast('Registro não encontrado ou não é uma visita.', 'error');
-        return;
-    }
-    
-    // Incrementa 15 minutos na duração
-    const novaDuracao = (ac.duracaoVisita || 30) + 15;
-    const [h, m, s] = ac.horaEntrada.split(':');
-    const entrada = new Date();
-    entrada.setHours(parseInt(h), parseInt(m), parseInt(s), 0);
-    entrada.setMinutes(entrada.getMinutes() + novaDuracao);
-    
-    const novaHoraSaida = `${String(entrada.getHours()).padStart(2,'0')}:${String(entrada.getMinutes()).padStart(2,'0')}:${String(entrada.getSeconds()).padStart(2,'0')}`;
-    
-    db.ref('acompanhantes/' + id).update({
-        duracaoVisita: novaDuracao,
-        horaSaida: novaHoraSaida,   // atualiza a previsão de saída
-        status: 'presente'          // permanece presente
-    }).then(() => {
-        toast('Visita estendida em +15 minutos!');
-    }).catch(err => {
-        console.error(err);
-        toast('Erro ao estender.', 'error');
-    });
 }
 
 // ============================================
@@ -560,13 +493,9 @@ function iniciarSistema() {
         atualizarHistorico();
         atualizarSelects();
         atualizarGraficos();
-        
-        // Atualizar lista de pacientes para autocomplete
         atualizarListaPacientes();
     });
     
-    // Inicializar autocomplete após os dados serem carregados
-    // (também será atualizado sempre que houver mudança nos dados)
     inicializarAutocompletePacientes();
 }
 
@@ -575,7 +504,7 @@ function iniciarSistema() {
 // ============================================
 function atualizarDashboard() {
     const hoje = dataHoje();
-    let presentes = 0, visitas = 0, entradas = 0, trocas = 0, saidas = 0;
+    let presentes = 0, visitasHoje = 0, entradas = 0, trocas = 0, saidas = 0;
     let entSemana = 0, saiSemana = 0, entMes = 0, saiMes = 0;
     const ultimos = [];
     
@@ -587,10 +516,16 @@ function atualizarDashboard() {
     const iniMes = new Date(agora.getFullYear(), agora.getMonth(), 1);
     
     Object.values(acompanhantes).forEach(ac => {
-        if (ac.status === 'presente') {
+        // Acompanhantes presentes (apenas tipo 'acompanhante')
+        if (ac.status === 'presente' && ac.tipo === 'acompanhante') {
             presentes++;
-            if (ac.tipo === 'visita') visitas++;
         }
+        
+        // Visitas registradas hoje
+        if (ac.tipo === 'visita' && ac.dataEntrada === hoje) {
+            visitasHoje++;
+        }
+        
         if (ac.dataEntrada === hoje) entradas++;
         if (ac.dataSaida === hoje) {
             if (ac.status === 'saiu') saidas++;
@@ -612,7 +547,7 @@ function atualizarDashboard() {
     });
     
     setText('countAcompanhantesPresentes', presentes);
-    setText('countVisitasAtivas', visitas);
+    setText('countVisitasAtivas', visitasHoje);
     setText('countEntradasHoje', entradas);
     setText('countTrocasHoje', trocas);
     setText('countSaidasHoje', saidas);
@@ -648,29 +583,21 @@ function atualizarDashboard() {
     }
 }
 
-function setText(id, value) {
-    const el = document.getElementById(id);
-    if (el) el.textContent = value;
-}
-
 // ============================================
-// GRÁFICOS DO DASHBOARD
+// GRÁFICOS
 // ============================================
 let graficoSemanalInst = null;
 let graficoSetoresInst = null;
 let graficoTendenciaInst = null;
 
 function atualizarGraficos() {
-    // Só renderiza gráficos se for admin ou supervisor
     if (!usuarioLogado || (usuarioLogado.cargo !== 'Administrador' && usuarioLogado.cargo !== 'Supervisor')) {
-        // Esconder os containers dos gráficos
         const chartsRow = document.querySelector('.charts-row');
         const tendenciaCard = document.getElementById('graficoTendencia')?.closest('.card');
         if (chartsRow) chartsRow.style.display = 'none';
         if (tendenciaCard) tendenciaCard.style.display = 'none';
         return;
     }
-    // Mostrar containers
     const chartsRow = document.querySelector('.charts-row');
     const tendenciaCard = document.getElementById('graficoTendencia')?.closest('.card');
     if (chartsRow) chartsRow.style.display = '';
@@ -684,7 +611,6 @@ function atualizarGraficos() {
 function atualizarGraficoSemanal() {
     const canvas = document.getElementById('graficoSemanal');
     if (!canvas) return;
-    
     if (graficoSemanalInst) graficoSemanalInst.destroy();
     
     const dias = [];
@@ -713,36 +639,14 @@ function atualizarGraficoSemanal() {
         data: {
             labels: dias,
             datasets: [
-                {
-                    label: 'Entradas',
-                    data: entradas,
-                    backgroundColor: 'rgba(45, 139, 78, 0.7)',
-                    borderColor: '#2d8b4e',
-                    borderWidth: 1,
-                    borderRadius: 6
-                },
-                {
-                    label: 'Saídas',
-                    data: saidas,
-                    backgroundColor: 'rgba(192, 57, 43, 0.7)',
-                    borderColor: '#c0392b',
-                    borderWidth: 1,
-                    borderRadius: 6
-                }
+                { label: 'Entradas', data: entradas, backgroundColor: 'rgba(45, 139, 78, 0.7)', borderColor: '#2d8b4e', borderWidth: 1, borderRadius: 6 },
+                { label: 'Saídas', data: saidas, backgroundColor: 'rgba(192, 57, 43, 0.7)', borderColor: '#c0392b', borderWidth: 1, borderRadius: 6 }
             ]
         },
         options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: {
-                legend: {
-                    position: 'bottom',
-                    labels: { usePointStyle: true, padding: 20 }
-                }
-            },
-            scales: {
-                y: { beginAtZero: true, ticks: { stepSize: 1 } }
-            }
+            responsive: true, maintainAspectRatio: false,
+            plugins: { legend: { position: 'bottom', labels: { usePointStyle: true, padding: 20 } } },
+            scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } }
         }
     });
 }
@@ -761,36 +665,20 @@ function atualizarGraficoSetores() {
     
     const labels = Object.keys(setoresMap);
     const data = Object.values(setoresMap);
-    const cores = ['#2d8b4e', '#1a6b7a', '#c7841a', '#8e44ad', '#c0392b', '#2c9aaf', '#e8913a', '#3498db', '#27ae60', '#e74c3c'];
+    const cores = ['#2d8b4e', '#1a6b7a', '#c7841a', '#8e44ad', '#c0392b', '#2c9aaf', '#e8913a', '#3498db'];
     
     const ctx = canvas.getContext('2d');
     if (labels.length === 0) {
         canvas.style.display = 'none';
-        const parent = canvas.parentElement;
-        const msg = document.createElement('div');
-        msg.className = 'empty-table-message';
-        msg.innerHTML = '<i class="fas fa-chart-pie"></i> Nenhum acompanhante ativo';
-        parent.appendChild(msg);
         return;
     }
     
     graficoSetoresInst = new Chart(ctx, {
         type: 'doughnut',
-        data: {
-            labels: labels,
-            datasets: [{
-                data: data,
-                backgroundColor: cores.slice(0, labels.length),
-                borderWidth: 2,
-                borderColor: '#fff'
-            }]
-        },
+        data: { labels, datasets: [{ data, backgroundColor: cores.slice(0, labels.length), borderWidth: 2, borderColor: '#fff' }] },
         options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: {
-                legend: { position: 'bottom', labels: { padding: 15, usePointStyle: true } }
-            }
+            responsive: true, maintainAspectRatio: false,
+            plugins: { legend: { position: 'bottom', labels: { padding: 15, usePointStyle: true } } }
         }
     });
 }
@@ -819,20 +707,10 @@ function atualizarGraficoTendencia() {
         type: 'line',
         data: {
             labels: dias,
-            datasets: [{
-                label: 'Visitas',
-                data: visitasPorDia,
-                borderColor: '#8e44ad',
-                backgroundColor: 'rgba(142, 68, 173, 0.1)',
-                fill: true,
-                tension: 0.4,
-                pointRadius: 3,
-                pointHoverRadius: 6
-            }]
+            datasets: [{ label: 'Visitas', data: visitasPorDia, borderColor: '#8e44ad', backgroundColor: 'rgba(142, 68, 173, 0.1)', fill: true, tension: 0.4, pointRadius: 3, pointHoverRadius: 6 }]
         },
         options: {
-            responsive: true,
-            maintainAspectRatio: false,
+            responsive: true, maintainAspectRatio: false,
             plugins: { legend: { display: false } },
             scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } }
         }
@@ -843,73 +721,33 @@ function atualizarGraficoTendencia() {
 // TABELAS
 // ============================================
 function atualizarAtivos() {
-    const ativos = Object.values(acompanhantes).filter(a => a.status === 'presente');
+    // APENAS acompanhantes (não visitas) com status 'presente'
+    const ativos = Object.values(acompanhantes).filter(a => a.status === 'presente' && a.tipo === 'acompanhante');
     const tbody = document.querySelector('#tabelaAtivos tbody');
     if (!tbody) return;
     
     if (ativos.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="10" class="empty-table-message"><i class="fas fa-inbox"></i> Nenhum ativo</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="9" class="empty-table-message"><i class="fas fa-inbox"></i> Nenhum acompanhante ativo</td></tr>';
         return;
     }
     
-    tbody.innerHTML = ativos.map(ac => {
-        let tempoRestanteHTML = '<span style="color: var(--text-muted);">-</span>';
-        
-        if (ac.tipo === 'visita' && ac.duracaoVisita) {
-            const agora = new Date();
-            const [h, m, s] = ac.horaEntrada.split(':');
-            const entrada = new Date();
-            entrada.setHours(parseInt(h), parseInt(m), parseInt(s), 0);
-            
-            const decorrido = Math.floor((agora - entrada) / 60000);
-            const duracaoTotal = ac.duracaoVisita;
-            const restante = duracaoTotal - decorrido;
-            const percentual = Math.min(100, Math.max(0, Math.floor((decorrido / duracaoTotal) * 100)));
-            
-            let cor = 'green';
-            let alerta = '';
-            if (restante <= 0) { cor = 'expired'; alerta = 'Expirado!'; }
-            else if (restante <= 5) { cor = 'red'; alerta = 'Crítico'; }
-            else if (restante <= 10) { cor = 'yellow'; alerta = 'Atenção'; }
-            
-            const minutos = Math.floor(restante);
-            const segundos = Math.floor((restante - minutos) * 60);
-            const tempoStr = restante > 0 ? `${minutos}:${String(segundos).padStart(2,'0')}` : '00:00';
-            
-            tempoRestanteHTML = `
-                <div>
-                    <span class="tempo-restante" style="color: ${restante <= 5 ? 'var(--danger)' : restante <= 10 ? 'var(--warning)' : 'var(--text)'};">
-                        ${tempoStr} ${alerta ? `<small>(${alerta})</small>` : ''}
-                    </span>
-                    <button class="btn-extend" onclick="estenderVisita('${ac.id}')" title="Estender +15 min">
-                        <i class="fas fa-plus-circle"></i>
-                    </button>
-                    <div class="progress-bar">
-                        <div class="fill ${cor}" style="width: ${percentual}%;"></div>
-                    </div>
-                </div>
-            `;
-        }
-        
-        return `
-            <tr>
-                <td><span class="badge ${ac.tipo === 'visita' ? 'badge-visita' : 'badge-info'}">${ac.tipo === 'visita' ? 'Visita' : 'Acomp.'}</span></td>
-                <td>${sanitizar(ac.nomeAcompanhante)}</td>
-                <td>${sanitizar(ac.documento) || '-'}</td>
-                <td>${sanitizar(ac.parentesco)}</td>
-                <td>${sanitizar(ac.nomePaciente)}</td>
-                <td>${sanitizar(ac.setor)}</td>
-                <td>${sanitizar(ac.leito) || '-'}</td>
-                <td>${ac.dataEntrada} ${ac.horaEntrada}</td>
-                <td>${tempoRestanteHTML}</td>
-                <td>
-                    <button class="btn-icon btn-edit" onclick="editarRegistro('${ac.id}')" title="Editar"><i class="fas fa-edit"></i></button>
-                    <button class="btn-icon" onclick="abrirCracha('${ac.id}')" title="Imprimir Crachá" style="color: #1a6b7a;"><i class="fas fa-id-card"></i></button>
-                    <button class="btn-icon btn-delete" onclick="excluirRegistro('${ac.id}')" title="Excluir"><i class="fas fa-trash"></i></button>
-                </td>
-            </tr>
-        `;
-    }).join('');
+    tbody.innerHTML = ativos.map(ac => `
+        <tr>
+            <td><span class="badge badge-info">Acomp.</span></td>
+            <td>${sanitizar(ac.nomeAcompanhante)}</td>
+            <td>${sanitizar(ac.documento) || '-'}</td>
+            <td>${sanitizar(ac.parentesco)}</td>
+            <td>${sanitizar(ac.nomePaciente)}</td>
+            <td>${sanitizar(ac.setor)}</td>
+            <td>${sanitizar(ac.leito) || '-'}</td>
+            <td>${ac.dataEntrada} ${ac.horaEntrada}</td>
+            <td>
+                <button class="btn-icon btn-edit" onclick="editarRegistro('${ac.id}')" title="Editar"><i class="fas fa-edit"></i></button>
+                <button class="btn-icon" onclick="abrirCracha('${ac.id}')" title="Imprimir Crachá" style="color: #1a6b7a;"><i class="fas fa-id-card"></i></button>
+                <button class="btn-icon btn-delete" onclick="excluirRegistro('${ac.id}')" title="Excluir"><i class="fas fa-trash"></i></button>
+            </td>
+        </tr>
+    `).join('');
 }
 
 function atualizarHistorico() {
@@ -948,10 +786,7 @@ function filtrarHistorico() {
     }
     if (texto) {
         registros = registros.filter(ac => {
-            const campos = [
-                ac.nomeAcompanhante, ac.documento, ac.nomePaciente, ac.setor,
-                ac.leito, ac.parentesco, ac.observacao, ac.recepcionistaEntrada, ac.recepcionistaSaida
-            ];
+            const campos = [ac.nomeAcompanhante, ac.documento, ac.nomePaciente, ac.setor, ac.leito, ac.parentesco, ac.observacao, ac.recepcionistaEntrada, ac.recepcionistaSaida];
             return campos.some(campo => campo && campo.toLowerCase().includes(texto));
         });
     }
@@ -995,14 +830,12 @@ function renderizarTabelaHistorico(registros) {
 }
 
 // ============================================
-// LIMITE DE ACOMPANHANTES POR LEITO
+// LIMITE DE ACOMPANHANTES
 // ============================================
-let bloqueioRigido = false; // padrão: apenas aviso
-
 function verificarAcompanhanteAtivo(nomePaciente) {
-    // Retorna o acompanhante ativo se já existir, ou null
     return Object.values(acompanhantes).find(ac => 
         ac.status === 'presente' && 
+        ac.tipo === 'acompanhante' &&
         ac.nomePaciente.toLowerCase() === nomePaciente.toLowerCase()
     );
 }
@@ -1012,11 +845,10 @@ function verificarLimiteAcompanhante(nomePaciente, callback) {
     if (ativo) {
         const msg = `Já existe um acompanhante ativo para "${nomePaciente}":\n\n` +
                     `Nome: ${ativo.nomeAcompanhante}\n` +
-                    `Tipo: ${ativo.tipo === 'visita' ? 'Visita' : 'Acompanhante'}\n` +
                     `Setor: ${ativo.setor}\n` +
                     `Leito: ${ativo.leito || '-'}\n` +
                     `Entrada: ${ativo.dataEntrada} ${ativo.horaEntrada}\n\n` +
-                    (bloqueioRigido ? 'Não é permitido múltiplos acompanhantes para o mesmo paciente.' : 'Deseja continuar mesmo assim?');
+                    (bloqueioRigido ? 'Não é permitido múltiplos acompanhantes.' : 'Deseja continuar mesmo assim?');
         
         if (bloqueioRigido) {
             toast(msg, 'error');
@@ -1044,7 +876,8 @@ function registrarEntrada(e) {
         if (!permitido) return;
         
         const dados = {
-            id: gerarId(), tipo: 'acompanhante',
+            id: gerarId(),
+            tipo: 'acompanhante',
             nomeAcompanhante: sanitizar(document.getElementById('acNome')?.value?.trim() || ''),
             documento: sanitizar(document.getElementById('acDocumento')?.value?.trim() || ''),
             telefone: sanitizar(document.getElementById('acTelefone')?.value?.trim() || ''),
@@ -1052,10 +885,14 @@ function registrarEntrada(e) {
             nomePaciente: nomePaciente,
             setor: document.getElementById('acSetor')?.value || '',
             leito: sanitizar(document.getElementById('acLeito')?.value?.trim() || ''),
-            dataEntrada: dataHoje(), horaEntrada: horaAgora(),
-            dataSaida: null, horaSaida: null, status: 'presente',
+            dataEntrada: dataHoje(),
+            horaEntrada: horaAgora(),
+            dataSaida: null,
+            horaSaida: null,
+            status: 'presente',
             recepcionistaEntrada: usuarioLogado?.nome || 'Sistema',
-            recepcionistaSaida: null, trocas: [],
+            recepcionistaSaida: null,
+            trocas: [],
             observacao: sanitizar(document.getElementById('acObservacao')?.value?.trim() || ''),
             duracaoVisita: null
         };
@@ -1063,55 +900,46 @@ function registrarEntrada(e) {
         db.ref('acompanhantes/' + dados.id).set(dados).then(() => {
             toast('Entrada registrada!');
             e.target.reset();
-            registrarLog('criar', `Acompanhante "${dados.nomeAcompanhante}" registrado para paciente "${dados.nomePaciente}".`, dados.id);
+            registrarLog('criar', `Acompanhante "${dados.nomeAcompanhante}" registrado.`, dados.id);
         }).catch(err => { console.error(err); toast('Erro.', 'error'); });
     });
 }
-
-// VISITA: status inicial 'presente', sem dataSaida definida
 
 function registrarVisita(e) {
     e.preventDefault();
     const nomePaciente = sanitizar(document.getElementById('visPaciente')?.value?.trim() || '');
     
-    verificarLimiteAcompanhante(nomePaciente, (permitido) => {
-        if (!permitido) return;
-        
-        const duracao = parseInt(document.getElementById('visDuracao')?.value || 30);
-        const [h, m, s] = horaAgora().split(':');
-        const entrada = new Date(); entrada.setHours(parseInt(h), parseInt(m), parseInt(s), 0);
-        entrada.setMinutes(entrada.getMinutes() + duracao);
-        const horaPrevista = `${String(entrada.getHours()).padStart(2,'0')}:${String(entrada.getMinutes()).padStart(2,'0')}:${String(entrada.getSeconds()).padStart(2,'0')}`;
-        
-        const dados = {
-            id: gerarId(), tipo: 'visita',
-            nomeAcompanhante: sanitizar(document.getElementById('visNome')?.value?.trim() || ''),
-            documento: sanitizar(document.getElementById('visDocumento')?.value?.trim() || ''),
-            telefone: sanitizar(document.getElementById('visTelefone')?.value?.trim() || ''),
-            parentesco: document.getElementById('visParentesco')?.value || '',
-            nomePaciente: nomePaciente,
-            setor: document.getElementById('visSetor')?.value || '',
-            leito: sanitizar(document.getElementById('visLeito')?.value?.trim() || ''),
-            dataEntrada: dataHoje(), horaEntrada: horaAgora(),
-            dataSaida: null, horaSaida: horaPrevista,
-            status: 'presente',
-            recepcionistaEntrada: usuarioLogado?.nome || 'Sistema',
-            recepcionistaSaida: null, trocas: [], observacao: '',
-            duracaoVisita: duracao
-        };
-        
-        db.ref('acompanhantes/' + dados.id).set(dados).then(() => {
-            toast('Visita registrada!');
-            e.target.reset();
-            registrarLog('criar', `Visita de "${dados.nomeAcompanhante}" registrada para paciente "${dados.nomePaciente}".`, dados.id);
-        }).catch(err => { console.error(err); toast('Erro.', 'error'); });
-    });
-}
-
-function calcularHoraSaida(minutos) {
-    const d = new Date();
-    d.setMinutes(d.getMinutes() + minutos);
-    return `${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}:${String(d.getSeconds()).padStart(2,'0')}`;
+    const duracao = parseInt(document.getElementById('visDuracao')?.value || 30);
+    const agora = new Date();
+    const saida = new Date(agora.getTime() + duracao * 60000);
+    
+    const dados = {
+        id: gerarId(),
+        tipo: 'visita',
+        nomeAcompanhante: sanitizar(document.getElementById('visNome')?.value?.trim() || ''),
+        documento: sanitizar(document.getElementById('visDocumento')?.value?.trim() || ''),
+        telefone: sanitizar(document.getElementById('visTelefone')?.value?.trim() || ''),
+        parentesco: document.getElementById('visParentesco')?.value || '',
+        nomePaciente: nomePaciente,
+        setor: document.getElementById('visSetor')?.value || '',
+        leito: sanitizar(document.getElementById('visLeito')?.value?.trim() || ''),
+        dataEntrada: dataHoje(),
+        horaEntrada: horaAgora(),
+        dataSaida: `${String(saida.getDate()).padStart(2,'0')}-${String(saida.getMonth()+1).padStart(2,'0')}-${saida.getFullYear()}`,
+        horaSaida: `${String(saida.getHours()).padStart(2,'0')}:${String(saida.getMinutes()).padStart(2,'0')}:${String(saida.getSeconds()).padStart(2,'0')}`,
+        status: 'saiu',
+        recepcionistaEntrada: usuarioLogado?.nome || 'Sistema',
+        recepcionistaSaida: usuarioLogado?.nome || 'Sistema',
+        trocas: [],
+        observacao: sanitizar(document.getElementById('visObservacao')?.value?.trim() || ''),
+        duracaoVisita: duracao
+    };
+    
+    db.ref('acompanhantes/' + dados.id).set(dados).then(() => {
+        toast('Visita registrada!');
+        e.target.reset();
+        registrarLog('criar', `Visita de "${dados.nomeAcompanhante}" registrada.`, dados.id);
+    }).catch(err => { console.error(err); toast('Erro.', 'error'); });
 }
 
 function registrarTroca(e) {
@@ -1129,32 +957,41 @@ function registrarTroca(e) {
     });
     
     db.ref('acompanhantes/' + idAntigo).update({
-        status: 'trocado', dataSaida: dataHoje(), horaSaida: horaAgora(),
-        recepcionistaSaida: usuarioLogado?.nome || 'Sistema', trocas: trocas
+        status: 'trocado',
+        dataSaida: dataHoje(),
+        horaSaida: horaAgora(),
+        recepcionistaSaida: usuarioLogado?.nome || 'Sistema',
+        trocas: trocas
     });
     
     const novoId = gerarId();
     db.ref('acompanhantes/' + novoId).set({
-        id: novoId, tipo: 'acompanhante',
+        id: novoId,
+        tipo: 'acompanhante',
         nomeAcompanhante: sanitizar(document.getElementById('trocaNovoNome')?.value?.trim() || ''),
         documento: sanitizar(document.getElementById('trocaNovoDocumento')?.value?.trim() || ''),
         telefone: sanitizar(document.getElementById('trocaNovoTelefone')?.value?.trim() || ''),
         parentesco: document.getElementById('trocaNovoParentesco')?.value || '',
-        nomePaciente: antigo.nomePaciente, setor: antigo.setor, leito: antigo.leito,
-        dataEntrada: dataHoje(), horaEntrada: horaAgora(),
-        dataSaida: null, horaSaida: null, status: 'presente',
-        recepcionistaEntrada: usuarioLogado?.nome || 'Sistema', recepcionistaSaida: null,
-        trocas: [], observacao: `Substituiu: ${antigo.nomeAcompanhante}`, duracaoVisita: null
+        nomePaciente: antigo.nomePaciente,
+        setor: antigo.setor,
+        leito: antigo.leito,
+        dataEntrada: dataHoje(),
+        horaEntrada: horaAgora(),
+        dataSaida: null,
+        horaSaida: null,
+        status: 'presente',
+        recepcionistaEntrada: usuarioLogado?.nome || 'Sistema',
+        recepcionistaSaida: null,
+        trocas: [],
+        observacao: `Substituiu: ${antigo.nomeAcompanhante}`,
+        duracaoVisita: null
     }).then(() => {
         toast('Troca registrada!');
         e.target.reset();
         const info = document.getElementById('trocaInfoAtual');
         if (info) info.style.display = 'none';
-        registrarLog('troca', `Troca: "${antigo.nomeAcompanhante}" substituído por "${document.getElementById('trocaNovoNome')?.value}".`, novoId);
-    }).catch(err => {
-        console.error(err);
-        toast('Erro ao registrar.', 'error');
-    });
+        registrarLog('troca', `Troca: "${antigo.nomeAcompanhante}" substituído.`, novoId);
+    }).catch(err => { console.error(err); toast('Erro.', 'error'); });
 }
 
 function registrarSaida(e) {
@@ -1169,18 +1006,18 @@ function registrarSaida(e) {
     const obs = atual.observacao ? `${atual.observacao} | Saída: ${motivo}` : `Saída: ${motivo}`;
     
     db.ref('acompanhantes/' + id).update({
-        status: 'saiu', dataSaida: dataHoje(), horaSaida: horaAgora(),
-        recepcionistaSaida: usuarioLogado?.nome || 'Sistema', observacao: obs
+        status: 'saiu',
+        dataSaida: dataHoje(),
+        horaSaida: horaAgora(),
+        recepcionistaSaida: usuarioLogado?.nome || 'Sistema',
+        observacao: obs
     }).then(() => {
         toast('Saída registrada!');
         e.target.reset();
         const info = document.getElementById('saidaInfo');
         if (info) info.style.display = 'none';
-        registrarLog('saida', `Saída registrada: "${atual.nomeAcompanhante}" - Motivo: ${motivo}.`, id);
-    }).catch(err => {
-        console.error(err);
-        toast('Erro.', 'error');
-    });
+        registrarLog('saida', `Saída: "${atual.nomeAcompanhante}" - Motivo: ${motivo}.`, id);
+    }).catch(err => { console.error(err); toast('Erro.', 'error'); });
 }
 
 // ============================================
@@ -1203,7 +1040,7 @@ function atualizarSelects() {
 }
 
 function atualizarInfoSaida() {
-    const id = this.value;
+    const id = document.getElementById('saidaAcompanhante')?.value;
     const info = document.getElementById('saidaInfo');
     if (id && acompanhantes[id]) {
         const ac = acompanhantes[id];
@@ -1217,7 +1054,7 @@ function atualizarInfoSaida() {
 }
 
 function atualizarInfoTroca() {
-    const id = this.value;
+    const id = document.getElementById('trocaAcompanhanteAtual')?.value;
     const info = document.getElementById('trocaInfoAtual');
     if (id && acompanhantes[id]) {
         const ac = acompanhantes[id];
@@ -1273,9 +1110,8 @@ function editarRegistro(id) {
             }).then(() => { 
                 toast('Atualizado!'); 
                 fecharModal(); 
-                registrarLog('editar', `Registro "${ac.nomeAcompanhante}" editado.`, id);
-            })
-              .catch(err => { console.error(err); toast('Erro.', 'error'); });
+                registrarLog('editar', `Registro editado.`, id);
+            }).catch(err => { console.error(err); toast('Erro.', 'error'); });
         });
     }, 100);
 }
@@ -1317,10 +1153,10 @@ function carregarConfiguracoes() {
                 if (icon) icon.className = c.tema === 'dark' ? 'fas fa-sun' : 'fas fa-moon';
             }
             if (c.bloqueioRigido !== undefined) {
-    bloqueioRigido = c.bloqueioRigido;
-    const chkBloqueio = document.getElementById('bloqueioRigido');
-    if (chkBloqueio) chkBloqueio.checked = bloqueioRigido;
-}
+                bloqueioRigido = c.bloqueioRigido;
+                const chkBloqueio = document.getElementById('bloqueioRigido');
+                if (chkBloqueio) chkBloqueio.checked = bloqueioRigido;
+            }
         }
     });
 }
@@ -1335,14 +1171,8 @@ function comprimirImagem(file, maxWidth, maxHeight, qualidade = 0.6) {
                 let width = img.width;
                 let height = img.height;
                 
-                if (width > maxWidth) {
-                    height = (maxWidth / width) * height;
-                    width = maxWidth;
-                }
-                if (height > maxHeight) {
-                    width = (maxHeight / height) * width;
-                    height = maxHeight;
-                }
+                if (width > maxWidth) { height = (maxWidth / width) * height; width = maxWidth; }
+                if (height > maxHeight) { width = (maxHeight / height) * width; height = maxHeight; }
                 
                 canvas.width = width;
                 canvas.height = height;
@@ -1358,14 +1188,10 @@ function comprimirImagem(file, maxWidth, maxHeight, qualidade = 0.6) {
 
 async function uploadLogo(e) {
     const file = e.target.files[0];
-    if (!file || !file.type.startsWith('image/')) {
-        toast('Imagem inválida.', 'error'); return;
-    }
-    
-    const base64 = await comprimirImagem(file, 200, 80, 0.5); // logo pequena
+    if (!file || !file.type.startsWith('image/')) { toast('Imagem inválida.', 'error'); return; }
+    const base64 = await comprimirImagem(file, 200, 80, 0.5);
     db.ref('configuracoes').update({ logoHospital: base64 }).then(() => {
         logoHospitalCache = base64;
-        sessionStorage.setItem('hrpi_logo', base64); // cache local
         document.getElementById('sidebarLogo').innerHTML = `<img src="${base64}" alt="Logo">`;
         document.getElementById('loginLogo').innerHTML = `<img src="${base64}" alt="Logo">`;
         toast('Logo atualizada!');
@@ -1375,14 +1201,11 @@ async function uploadLogo(e) {
 
 async function uploadFundo(e) {
     const file = e.target.files[0];
-    if (!file || !file.type.startsWith('image/')) {
-        toast('Imagem inválida.', 'error'); return;
-    }
-    
-    const base64 = await comprimirImagem(file, 1200, 800, 0.4); // fundo maior, mas comprimido
+    if (!file || !file.type.startsWith('image/')) { toast('Imagem inválida.', 'error'); return; }
+    const base64 = await comprimirImagem(file, 1200, 800, 0.4);
     db.ref('configuracoes').update({ fundoLogin: base64 }).then(() => {
-        sessionStorage.setItem('hrpi_fundo', base64); // cache local
-        aplicarFundoLogin(base64);
+        const ls = document.getElementById('loginScreen');
+        if (ls) ls.style.setProperty('--login-bg-image', `url(${base64})`);
         toast('Fundo atualizado!');
         registrarLog('config', 'Fundo atualizado.');
     });
@@ -1392,12 +1215,9 @@ function removerLogo() {
     if (confirm('Remover logo?')) {
         db.ref('configuracoes').update({ logoHospital: null }).then(() => {
             logoHospitalCache = null;
-            const sl = document.getElementById('sidebarLogo');
-            const ll = document.getElementById('loginLogo');
-            if (sl) sl.innerHTML = '<i class="fas fa-hospital-alt"></i>';
-            if (ll) ll.innerHTML = '<span class="default-logo"><i class="fas fa-hospital-alt"></i></span>';
+            document.getElementById('sidebarLogo').innerHTML = '<i class="fas fa-hospital-alt"></i>';
+            document.getElementById('loginLogo').innerHTML = '<span class="default-logo"><i class="fas fa-hospital-alt"></i></span>';
             toast('Logo removida.');
-            registrarLog('config', 'Logo do sistema removida.');
         });
     }
 }
@@ -1408,7 +1228,6 @@ function removerFundo() {
             const ls = document.getElementById('loginScreen');
             if (ls) ls.style.removeProperty('--login-bg-image');
             toast('Fundo removido.');
-            registrarLog('config', 'Fundo de login removido.');
         });
     }
 }
@@ -1418,11 +1237,7 @@ function resetSenhaUsuario() {
     if (!userId) { toast('Selecione um usuário.', 'error'); return; }
     if (confirm('Resetar senha para "123456"?')) {
         db.ref('usuarios/' + userId).update({ senha: '123456', primeiroAcesso: true })
-            .then(() => {
-                toast('Senha resetada!');
-                registrarLog('usuario', `Senha do usuário "${userId}" resetada pelo admin.`);
-            })
-            .catch(err => { console.error(err); toast('Erro.', 'error'); });
+            .then(() => toast('Senha resetada!'));
     }
 }
 
@@ -1492,7 +1307,7 @@ function abrirModalNovoUsuario() {
     document.getElementById('formNovoUsuario').addEventListener('submit', function(e) {
         e.preventDefault();
         const novoId = 'user_' + Date.now();
-        const userData = {
+        db.ref('usuarios/' + novoId).set({
             id: novoId,
             nome: sanitizar(document.getElementById('newUserNome').value.trim()),
             usuario: sanitizar(document.getElementById('newUserUsername').value.trim().toLowerCase()),
@@ -1500,21 +1315,13 @@ function abrirModalNovoUsuario() {
             ativo: document.getElementById('newUserAtivo').value === 'true',
             senha: '123456',
             primeiroAcesso: true
-        };
-        
-        console.log('📝 Criando usuário:', userData);
-        
-        db.ref('usuarios/' + novoId).set(userData).then(() => {
-            console.log('✅ Usuário criado!');
+        }).then(() => {
             toast('Usuário criado! Senha: 123456');
             fecharModal();
             carregarUsuarios();
             carregarSelectUsuarios();
-            registrarLog('usuario', `Novo usuário "${userData.usuario}" criado.`, novoId);
-        }).catch(err => {
-            console.error('❌ Erro:', err);
-            toast('Erro ao criar.', 'error');
-        });
+            registrarLog('usuario', 'Novo usuário criado.', novoId);
+        }).catch(err => { console.error(err); toast('Erro.', 'error'); });
     });
 }
 
@@ -1546,7 +1353,6 @@ function editarUsuario(id) {
                 toast('Atualizado!'); 
                 fecharModal(); 
                 carregarUsuarios();
-                registrarLog('usuario', `Usuário "${u.usuario}" editado.`, id);
             });
         });
     });
@@ -1555,23 +1361,14 @@ function editarUsuario(id) {
 function resetSenhaUser(id) {
     if (confirm('Resetar senha para "123456"?')) {
         db.ref('usuarios/' + id).update({ senha: '123456', primeiroAcesso: true })
-            .then(() => { 
-                toast('Senha resetada!'); 
-                carregarUsuarios();
-                registrarLog('usuario', `Senha do usuário "${id}" resetada.`);
-            });
+            .then(() => { toast('Senha resetada!'); carregarUsuarios(); });
     }
 }
 
 function excluirUsuario(id) {
     if (confirm('Excluir permanentemente?')) {
         db.ref('usuarios/' + id).remove()
-            .then(() => { 
-                toast('Excluído!'); 
-                carregarUsuarios(); 
-                carregarSelectUsuarios();
-                registrarLog('usuario', `Usuário "${id}" excluído.`);
-            });
+            .then(() => { toast('Excluído!'); carregarUsuarios(); carregarSelectUsuarios(); });
     }
 }
 
@@ -1585,7 +1382,7 @@ function gerarRelatorio(tipo) {
     const doc = new jsPDF('landscape');
     let dataInicio, dataFim, titulo;
     const agora = new Date();
-    agora.setHours(0,0,0,0); // hoje 00:00:00
+    agora.setHours(0,0,0,0);
     
     switch(tipo) {
         case 'diario':
@@ -1596,7 +1393,7 @@ function gerarRelatorio(tipo) {
             break;
         case 'semanal':
             const inicioSemana = new Date(agora);
-            inicioSemana.setDate(agora.getDate() - 6); // últimos 7 dias (inclui hoje)
+            inicioSemana.setDate(agora.getDate() - 6);
             dataInicio = new Date(inicioSemana);
             dataFim = new Date(agora);
             dataFim.setHours(23, 59, 59, 999);
@@ -1625,7 +1422,6 @@ function gerarRelatorio(tipo) {
     db.ref('configuracoes/logoHospital').once('value').then(snapLogo => {
         if (snapLogo.val()) try { doc.addImage(snapLogo.val(), 'PNG', 10, 8, 22, 22); } catch(e) {}
         
-        // Cabeçalho
         doc.setFontSize(16); doc.setTextColor(26, 107, 122);
         doc.setFont('helvetica', 'bold');
         doc.text('HOSPITAL REGIONAL DE PALMEIRA DOS ÍNDIOS', 148, 15, { align: 'center' });
@@ -1635,7 +1431,6 @@ function gerarRelatorio(tipo) {
         doc.setFontSize(13); doc.setTextColor(0);
         doc.text(`Relatório ${titulo}: ${strInicio} a ${strFim}`, 148, 30, { align: 'center' });
         
-        // Filtrar dados
         let dados = Object.values(acompanhantes).filter(ac => {
             const [d, m, a] = ac.dataEntrada.split('-');
             const dataRegistro = new Date(a, m-1, d);
@@ -1643,12 +1438,11 @@ function gerarRelatorio(tipo) {
         });
         
         dados.sort((a, b) => {
-            const da = new Date(a.dataEntrada.split('-')[2], a.dataEntrada.split('-')[1]-1, a.dataEntrada.split('-')[0]);
-            const db = new Date(b.dataEntrada.split('-')[2], b.dataEntrada.split('-')[1]-1, b.dataEntrada.split('-')[0]);
-            return db - da || b.horaEntrada.localeCompare(a.horaEntrada);
+            const [da, ma, aa] = a.dataEntrada.split('-');
+            const [db, mb, ab] = b.dataEntrada.split('-');
+            return new Date(ab, mb-1, db) - new Date(aa, ma-1, da);
         });
         
-        // ========== ESTATÍSTICAS ==========
         const totalGeral = dados.length;
         const totalAcompanhantes = dados.filter(ac => ac.tipo === 'acompanhante').length;
         const totalVisitas = dados.filter(ac => ac.tipo === 'visita').length;
@@ -1656,12 +1450,10 @@ function gerarRelatorio(tipo) {
         const totalSaiu = dados.filter(ac => ac.status === 'saiu').length;
         const totalTrocado = dados.filter(ac => ac.status === 'trocado').length;
         
-        // Linha decorativa
         doc.setDrawColor(26, 107, 122);
         doc.setLineWidth(0.3);
         doc.line(14, 34, 283, 34);
         
-        // Bloco de estatísticas
         doc.setFontSize(10);
         doc.setTextColor(0);
         doc.setFont('helvetica', 'bold');
@@ -1670,23 +1462,16 @@ function gerarRelatorio(tipo) {
         doc.setFontSize(9);
         
         const statsY = 47;
-        const col1 = 14;
-        const col2 = 100;
-        const col3 = 190;
+        doc.text(`Total Geral: ${totalGeral}`, 14, statsY);
+        doc.text(`Acompanhantes: ${totalAcompanhantes}`, 80, statsY);
+        doc.text(`Visitas: ${totalVisitas}`, 160, statsY);
+        doc.text(`Presentes: ${totalPresentes}`, 220, statsY);
+        doc.text(`Saídas: ${totalSaiu}`, 14, statsY + 7);
+        doc.text(`Trocas: ${totalTrocado}`, 80, statsY + 7);
         
-        doc.text(`Total Geral de Registros: ${totalGeral}`, col1, statsY);
-        doc.text(`Acompanhantes: ${totalAcompanhantes}`, col2, statsY);
-        doc.text(`Visitas: ${totalVisitas}`, col3, statsY);
-        
-        doc.text(`Presentes: ${totalPresentes}`, col1, statsY + 7);
-        doc.text(`Saídas: ${totalSaiu}`, col2, statsY + 7);
-        doc.text(`Trocas: ${totalTrocado}`, col3, statsY + 7);
-        
-        // Linha após estatísticas
         doc.setDrawColor(200);
         doc.line(14, statsY + 13, 283, statsY + 13);
         
-        // ========== TABELA ==========
         doc.autoTable({
             startY: statsY + 17,
             head: [['Tipo', 'Nome', 'Doc', 'Parentesco', 'Paciente', 'Setor', 'Leito', 'Entrada', 'Saída', 'Status']],
@@ -1708,17 +1493,47 @@ function gerarRelatorio(tipo) {
             margin: { left: 14, right: 14 }
         });
         
-        // Rodapé com data de geração
         const finalY = doc.lastAutoTable.finalY + 10;
         doc.setFontSize(8);
         doc.setTextColor(128);
         doc.setFont('helvetica', 'italic');
-        const dataGeracao = new Date().toLocaleString('pt-BR');
-        doc.text(`Documento gerado em: ${dataGeracao} — Total de registros: ${totalGeral}`, 148, finalY, { align: 'center' });
+        doc.text(`Gerado em: ${new Date().toLocaleString('pt-BR')} — Total: ${totalGeral}`, 148, finalY, { align: 'center' });
         
         doc.save(`HRPI_${titulo}_${formatar(agora)}.pdf`);
         toast('PDF gerado!');
     });
+}
+
+// ============================================
+// EXPORTAR EXCEL
+// ============================================
+function exportarExcel() {
+    const inicio = document.getElementById('filtroDataInicio')?.value;
+    const fim = document.getElementById('filtroDataFim')?.value;
+    const status = document.getElementById('filtroStatus')?.value;
+    const tipo = document.getElementById('filtroTipo')?.value;
+    const texto = document.getElementById('filtroTexto')?.value?.trim().toLowerCase();
+    
+    let registros = Object.values(acompanhantes);
+    if (status) registros = registros.filter(a => a.status === status);
+    if (tipo) registros = registros.filter(a => a.tipo === tipo);
+    if (inicio) registros = registros.filter(a => new Date(a.dataEntrada.split('-')[2], a.dataEntrada.split('-')[1]-1, a.dataEntrada.split('-')[0]) >= new Date(inicio+'T00:00:00'));
+    if (fim) registros = registros.filter(a => new Date(a.dataEntrada.split('-')[2], a.dataEntrada.split('-')[1]-1, a.dataEntrada.split('-')[0]) <= new Date(fim+'T23:59:59'));
+    if (texto) registros = registros.filter(a => ['nomeAcompanhante','documento','nomePaciente','setor','leito','parentesco','observacao'].some(c => a[c] && a[c].toLowerCase().includes(texto)));
+    
+    let csv = 'Tipo;Nome;Documento;Parentesco;Paciente;Setor;Leito;Entrada;Saída;Status\n';
+    registros.forEach(ac => {
+        csv += `${ac.tipo};"${ac.nomeAcompanhante}";"${ac.documento||''}";"${ac.parentesco}";"${ac.nomePaciente}";"${ac.setor}";"${ac.leito||''}";"${ac.dataEntrada} ${ac.horaEntrada}";"${ac.dataSaida?ac.dataSaida+' '+ac.horaSaida:''}";"${ac.status}"\n`;
+    });
+    
+    const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `HRPI_export_${dataHoje()}.csv`;
+    link.click();
+    URL.revokeObjectURL(url);
+    toast(`${registros.length} registro(s) exportado(s)!`);
 }
 
 // ============================================
@@ -1734,49 +1549,35 @@ function atualizarDataAtual() {
 }
 
 // ============================================
-// BUSCA RÁPIDA GLOBAL
+// BUSCA GLOBAL
 // ============================================
 function inicializarBuscaGlobal() {
     const globalSearchInput = document.getElementById('globalSearchInput');
     const searchResults = document.getElementById('searchResults');
 
-    if (!globalSearchInput || !searchResults) {
-        console.warn('⚠️ Elementos da busca global não encontrados');
-        return;
-    }
-
-    console.log('✅ Barra de busca global ativada');
+    if (!globalSearchInput || !searchResults) return;
 
     globalSearchInput.addEventListener('input', function() {
         const termo = this.value.trim().toLowerCase();
         
         if (termo.length < 2) {
             searchResults.style.display = 'none';
-            searchResults.innerHTML = '';
             return;
         }
         
         const resultados = Object.values(acompanhantes).filter(ac => {
-            const campos = [
-                ac.nomeAcompanhante,
-                ac.documento,
-                ac.nomePaciente,
-                ac.setor,
-                ac.leito,
-                ac.parentesco,
-                ac.observacao
-            ];
+            const campos = [ac.nomeAcompanhante, ac.documento, ac.nomePaciente, ac.setor, ac.leito, ac.parentesco, ac.observacao];
             return campos.some(campo => campo && campo.toLowerCase().includes(termo));
         });
         
         if (resultados.length === 0) {
-            searchResults.innerHTML = '<div class="search-result-item" style="justify-content:center;color:var(--text-muted);">Nenhum resultado encontrado</div>';
+            searchResults.innerHTML = '<div class="search-result-item" style="justify-content:center;color:var(--text-muted);">Nenhum resultado</div>';
         } else {
             searchResults.innerHTML = resultados.slice(0, 10).map(ac => `
                 <div class="search-result-item" onclick="selecionarItemBusca('${ac.id}')">
                     <div class="info">
                         <span class="name">${sanitizar(ac.nomeAcompanhante)}</span>
-                        <span class="detail">${sanitizar(ac.nomePaciente)} • ${sanitizar(ac.setor)} ${ac.leito ? '• Leito ' + sanitizar(ac.leito) : ''}</span>
+                        <span class="detail">${sanitizar(ac.nomePaciente)} • ${sanitizar(ac.setor)}</span>
                     </div>
                     <span class="badge ${ac.tipo === 'visita' ? 'badge-visita' : 'badge-info'}">${ac.tipo === 'visita' ? 'Visita' : 'Acomp.'}</span>
                 </div>
@@ -1791,12 +1592,6 @@ function inicializarBuscaGlobal() {
             searchResults.style.display = 'none';
         }
     });
-    
-    globalSearchInput.addEventListener('blur', function() {
-        setTimeout(() => {
-            searchResults.style.display = 'none';
-        }, 200);
-    });
 }
 
 function selecionarItemBusca(id) {
@@ -1806,36 +1601,24 @@ function selecionarItemBusca(id) {
     if (searchResults) searchResults.style.display = 'none';
     if (globalSearchInput) globalSearchInput.value = '';
     
-    const ac = acompanhantes[id];
-    if (ac) {
-        navegarPara('historico');
-        setTimeout(() => {
-            const campoTexto = document.getElementById('filtroTexto');
-            if (campoTexto) {
-                campoTexto.value = ac.nomeAcompanhante;
-            }
-            filtrarHistorico();
-        }, 300);
-    }
+    navegarPara('historico');
+    setTimeout(() => {
+        const campoTexto = document.getElementById('filtroTexto');
+        if (campoTexto) campoTexto.value = acompanhantes[id]?.nomeAcompanhante || '';
+        filtrarHistorico();
+    }, 300);
 }
 
 // ============================================
-// IMPRESSÃO DE CRACHÁ
+// CRACHÁ
 // ============================================
 function abrirCracha(id) {
     const ac = acompanhantes[id];
-    if (!ac) {
-        toast('Registro não encontrado.', 'error');
-        return;
-    }
+    if (!ac) { toast('Não encontrado.', 'error'); return; }
     
     const modal = document.getElementById('badgeModal');
     const content = document.getElementById('badgeContent');
-    
-    if (!modal || !content) {
-        console.error('❌ Modal de crachá não encontrado');
-        return;
-    }
+    if (!modal || !content) return;
     
     const logoHTML = logoHospitalCache
         ? `<img src="${logoHospitalCache}" alt="Logo">`
@@ -1846,33 +1629,15 @@ function abrirCracha(id) {
             <div class="cracha-logo">${logoHTML}</div>
             <div class="cracha-titulo">Hospital Regional de Palmeira dos Índios</div>
             <div class="cracha-subtitulo">Controle de Recepção</div>
-            
             <div class="cracha-nome">${sanitizar(ac.nomeAcompanhante)}</div>
-            <span class="cracha-tipo-badge">${ac.tipo === 'visita' ? 'VISITANTE' : 'ACOMPANHANTE'}</span>
-            
+            <span class="cracha-tipo-badge">ACOMPANHANTE</span>
             <div class="cracha-info">
-                <div class="campo">
-                    <strong>Paciente</strong>
-                    <span>${sanitizar(ac.nomePaciente)}</span>
-                </div>
-                <div class="campo">
-                    <strong>Setor</strong>
-                    <span>${sanitizar(ac.setor)}</span>
-                </div>
-                <div class="campo">
-                    <strong>Leito</strong>
-                    <span>${sanitizar(ac.leito) || '-'}</span>
-                </div>
-                <div class="campo">
-                    <strong>Entrada</strong>
-                    <span>${ac.dataEntrada} ${ac.horaEntrada}</span>
-                </div>
+                <div class="campo"><strong>Paciente</strong><span>${sanitizar(ac.nomePaciente)}</span></div>
+                <div class="campo"><strong>Setor</strong><span>${sanitizar(ac.setor)}</span></div>
+                <div class="campo"><strong>Leito</strong><span>${sanitizar(ac.leito) || '-'}</span></div>
+                <div class="campo"><strong>Entrada</strong><span>${ac.dataEntrada} ${ac.horaEntrada}</span></div>
             </div>
-            
-            <div class="cracha-codigo">
-                <i class="fas fa-barcode"></i>
-                ${ac.id}
-            </div>
+            <div class="cracha-codigo"><i class="fas fa-barcode"></i> ${ac.id}</div>
         </div>
     `;
     
@@ -1881,42 +1646,24 @@ function abrirCracha(id) {
 }
 
 function imprimirCracha() {
-    const modal = document.getElementById('badgeModal');
-    if (!modal) return;
-    
-    modal.style.display = '';
-    modal.classList.add('active');
-    
-    setTimeout(() => {
-        window.print();
-        setTimeout(() => {
-            modal.classList.remove('active');
-            modal.style.display = 'none';
-        }, 500);
-    }, 100);
+    window.print();
 }
 
 // ============================================
-// AUTO-SUGESTÃO DE PACIENTES
+// AUTOCOMPLETE PACIENTES
 // ============================================
 let listaPacientesUnicos = [];
 
 function atualizarListaPacientes() {
     const pacientesMap = new Map();
-    
     Object.values(acompanhantes).forEach(ac => {
         if (ac.nomePaciente) {
             const nome = ac.nomePaciente.trim();
             if (!pacientesMap.has(nome)) {
-                pacientesMap.set(nome, {
-                    nome: nome,
-                    setor: ac.setor || '',
-                    leito: ac.leito || ''
-                });
+                pacientesMap.set(nome, { nome, setor: ac.setor || '', leito: ac.leito || '' });
             }
         }
     });
-    
     listaPacientesUnicos = Array.from(pacientesMap.values());
     listaPacientesUnicos.sort((a, b) => a.nome.localeCompare(b.nome));
 }
@@ -1924,32 +1671,14 @@ function atualizarListaPacientes() {
 function configurarAutocompletePaciente(inputId, sugestoesId, setorId = null, leitoId = null) {
     const input = document.getElementById(inputId);
     const sugestoesDiv = document.getElementById(sugestoesId);
-    
     if (!input || !sugestoesDiv) return;
-    
-    const formGroup = input.closest('.form-group');
-    if (formGroup) {
-        formGroup.style.position = 'relative';
-    }
     
     input.addEventListener('input', function() {
         const termo = this.value.trim().toLowerCase();
+        if (termo.length < 2) { sugestoesDiv.style.display = 'none'; return; }
         
-        if (termo.length < 2) {
-            sugestoesDiv.style.display = 'none';
-            sugestoesDiv.innerHTML = '';
-            return;
-        }
-        
-        const sugestoes = listaPacientesUnicos.filter(p => 
-            p.nome.toLowerCase().includes(termo)
-        );
-        
-        if (sugestoes.length === 0) {
-            sugestoesDiv.style.display = 'none';
-            sugestoesDiv.innerHTML = '';
-            return;
-        }
+        const sugestoes = listaPacientesUnicos.filter(p => p.nome.toLowerCase().includes(termo));
+        if (sugestoes.length === 0) { sugestoesDiv.style.display = 'none'; return; }
         
         sugestoesDiv.innerHTML = sugestoes.slice(0, 8).map(p => `
             <div class="sugestao-item" data-nome="${sanitizar(p.nome)}" data-setor="${sanitizar(p.setor)}" data-leito="${sanitizar(p.leito)}">
@@ -1957,28 +1686,22 @@ function configurarAutocompletePaciente(inputId, sugestoesId, setorId = null, le
                 <span class="paciente-info">${p.setor ? sanitizar(p.setor) : ''} ${p.leito ? '· Leito ' + sanitizar(p.leito) : ''}</span>
             </div>
         `).join('');
-        
         sugestoesDiv.style.display = 'block';
         
         sugestoesDiv.querySelectorAll('.sugestao-item').forEach(item => {
             item.addEventListener('click', function() {
-                const nome = this.getAttribute('data-nome');
-                const setor = this.getAttribute('data-setor');
-                const leito = this.getAttribute('data-leito');
-                
-                input.value = nome;
+                input.value = this.getAttribute('data-nome');
                 sugestoesDiv.style.display = 'none';
-                
-                if (setorId && setor) {
+                if (setorId) {
                     const setorEl = document.getElementById(setorId);
                     if (setorEl && setorEl.tagName === 'SELECT') {
-                        const option = Array.from(setorEl.options).find(o => o.value === setor);
-                        if (option) setorEl.value = setor;
+                        const option = Array.from(setorEl.options).find(o => o.value === this.getAttribute('data-setor'));
+                        if (option) setorEl.value = this.getAttribute('data-setor');
                     }
                 }
-                if (leitoId && leito) {
+                if (leitoId) {
                     const leitoEl = document.getElementById(leitoId);
-                    if (leitoEl) leitoEl.value = leito;
+                    if (leitoEl) leitoEl.value = this.getAttribute('data-leito');
                 }
             });
         });
@@ -1989,12 +1712,6 @@ function configurarAutocompletePaciente(inputId, sugestoesId, setorId = null, le
             sugestoesDiv.style.display = 'none';
         }
     });
-    
-    input.addEventListener('blur', function() {
-        setTimeout(() => {
-            sugestoesDiv.style.display = 'none';
-        }, 200);
-    });
 }
 
 function inicializarAutocompletePacientes() {
@@ -2003,14 +1720,13 @@ function inicializarAutocompletePacientes() {
 }
 
 // ============================================
-// CARREGAR E EXIBIR LOGS
+// LOGS
 // ============================================
 function carregarLogs() {
     db.ref('logs').once('value').then(snap => {
-        const logs = snap.val() || {};
-        const arrayLogs = Object.values(logs);
-        arrayLogs.sort((a, b) => b.dataHora.localeCompare(a.dataHora));
-        renderizarTabelaLogs(arrayLogs);
+        const logs = Object.values(snap.val() || {});
+        logs.sort((a, b) => b.dataHora.localeCompare(a.dataHora));
+        renderizarTabelaLogs(logs);
     });
 }
 
@@ -2022,28 +1738,10 @@ function filtrarLogs() {
 
     db.ref('logs').once('value').then(snap => {
         let logs = Object.values(snap.val() || {});
-        
-        if (inicio) {
-            logs = logs.filter(log => {
-                const [d, h] = log.dataHora.split(' ');
-                const [dd, mm, aa] = d.split('-');
-                return new Date(aa, mm-1, dd) >= new Date(inicio + 'T00:00:00');
-            });
-        }
-        if (fim) {
-            logs = logs.filter(log => {
-                const [d, h] = log.dataHora.split(' ');
-                const [dd, mm, aa] = d.split('-');
-                return new Date(aa, mm-1, dd) <= new Date(fim + 'T23:59:59');
-            });
-        }
-        if (usuario) {
-            logs = logs.filter(log => log.usuarioId === usuario);
-        }
-        if (acao) {
-            logs = logs.filter(log => log.acao === acao);
-        }
-        
+        if (inicio) logs = logs.filter(log => new Date(log.dataHora.split(' ')[0].split('-')[2], log.dataHora.split(' ')[0].split('-')[1]-1, log.dataHora.split(' ')[0].split('-')[0]) >= new Date(inicio+'T00:00:00'));
+        if (fim) logs = logs.filter(log => new Date(log.dataHora.split(' ')[0].split('-')[2], log.dataHora.split(' ')[0].split('-')[1]-1, log.dataHora.split(' ')[0].split('-')[0]) <= new Date(fim+'T23:59:59'));
+        if (usuario) logs = logs.filter(log => log.usuarioId === usuario);
+        if (acao) logs = logs.filter(log => log.acao === acao);
         logs.sort((a, b) => b.dataHora.localeCompare(a.dataHora));
         renderizarTabelaLogs(logs);
     });
@@ -2052,12 +1750,10 @@ function filtrarLogs() {
 function renderizarTabelaLogs(logs) {
     const tbody = document.querySelector('#tabelaLogs tbody');
     if (!tbody) return;
-    
     if (logs.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="5" class="empty-table-message"><i class="fas fa-inbox"></i> Nenhum log encontrado</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="5" class="empty-table-message"><i class="fas fa-inbox"></i> Nenhum log</td></tr>';
         return;
     }
-    
     tbody.innerHTML = logs.map(log => `
         <tr>
             <td>${log.dataHora}</td>
@@ -2077,41 +1773,6 @@ function carregarUsuariosFiltroLogs() {
         sel.innerHTML = '<option value="">Todos os Usuários</option>' +
             Object.entries(usuarios).map(([key, u]) => `<option value="${key}">${sanitizar(u.nome)}</option>`).join('');
     });
-}
-
-// ============================================
-// EXPORTAR EXCEL (CSV)
-// ============================================
-function exportarExcel() {
-    // Usa os mesmos filtros do histórico
-    const inicio = document.getElementById('filtroDataInicio')?.value;
-    const fim = document.getElementById('filtroDataFim')?.value;
-    const status = document.getElementById('filtroStatus')?.value;
-    const tipo = document.getElementById('filtroTipo')?.value;
-    const texto = document.getElementById('filtroTexto')?.value?.trim().toLowerCase();
-    
-    let registros = Object.values(acompanhantes);
-    if (status) registros = registros.filter(a => a.status === status);
-    if (tipo) registros = registros.filter(a => a.tipo === tipo);
-    if (inicio) registros = registros.filter(a => new Date(a.dataEntrada.split('-')[2], a.dataEntrada.split('-')[1]-1, a.dataEntrada.split('-')[0]) >= new Date(inicio+'T00:00:00'));
-    if (fim) registros = registros.filter(a => new Date(a.dataEntrada.split('-')[2], a.dataEntrada.split('-')[1]-1, a.dataEntrada.split('-')[0]) <= new Date(fim+'T23:59:59'));
-    if (texto) registros = registros.filter(a => ['nomeAcompanhante','documento','nomePaciente','setor','leito','parentesco','observacao'].some(c => a[c] && a[c].toLowerCase().includes(texto)));
-    
-    // Criar CSV
-    let csv = 'Tipo;Nome;Documento;Parentesco;Paciente;Setor;Leito;Entrada;Saída;Status\n';
-    registros.forEach(ac => {
-        csv += `${ac.tipo};"${ac.nomeAcompanhante}";"${ac.documento||''}";"${ac.parentesco}";"${ac.nomePaciente}";"${ac.setor}";"${ac.leito||''}";"${ac.dataEntrada} ${ac.horaEntrada}";"${ac.dataSaida?ac.dataSaida+' '+ac.horaSaida:''}";"${ac.status}"\n`;
-    });
-    
-    // Download
-    const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = `HRPI_export_${dataHoje()}.csv`;
-    link.click();
-    URL.revokeObjectURL(url);
-    toast(`${registros.length} registro(s) exportado(s)!`);
 }
 
 console.log('✅ HRPI - Sistema carregado!');
