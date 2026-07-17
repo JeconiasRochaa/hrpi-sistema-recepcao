@@ -2,7 +2,27 @@
 // HRPI - SISTEMA DE CONTROLE DE RECEPÇÃO
 // script.js - VERSÃO CORRIGIDA E COMPLETA
 // ============================================
+// Configuração temporária
+const firebaseConfig = {
+    apiKey: "AIzaSyDcUK7ZwpxX7voL5vGr71ltW0WclRm8NJ8",
+    authDomain: "hrpi-sistema-recepcao.firebaseapp.com",
+    databaseURL: "https://hrpi-sistema-recepcao-default-rtdb.firebaseio.com",
+    projectId: "hrpi-sistema-recepcao",
+    storageBucket: "hrpi-sistema-recepcao.firebasestorage.app",
+    messagingSenderId: "233408674656",
+    appId: "1:233408674656:web:45805b396a7cd7d6e1bc05"
+};
 
+try { 
+    firebase.initializeApp(firebaseConfig); 
+    console.log('✅ Firebase inicializado com sucesso!'); 
+} catch (error) { 
+    console.error('❌ Erro ao inicializar Firebase:', error); 
+}
+
+const db = firebase.database();
+
+// ... resto do código
 // Inicializar Firebase
 try { 
     firebase.initializeApp(firebaseConfig); 
