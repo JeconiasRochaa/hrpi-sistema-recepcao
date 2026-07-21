@@ -760,13 +760,14 @@ function atualizarDashboard() {
         // Saídas hoje (TODAS - inclui altas, fim de visita, desistência, etc.)
         if (ac.dataSaida === hoje && ac.status === 'saiu') saidasHoje++;
         
-        // Altas hoje (APENAS saídas por alta do paciente)
-        if (ac.dataSaida === hoje && 
-            ac.status === 'saiu' && 
-            ac.observacao && 
-            ac.observacao.toLowerCase().includes('alta do paciente')) {
-            altasHoje++;
-        }
+        // ✅ Código corrigido (exclui saídas automáticas)
+if (ac.dataSaida === hoje && 
+    ac.status === 'saiu' && 
+    ac.observacao && 
+    ac.observacao.toLowerCase().includes('alta do paciente') &&
+    !ac.observacao.toLowerCase().includes('saída automática')) {
+    altasHoje++;
+}
         
         // Contagem semanal e mensal
         const [d, m, a] = ac.dataEntrada.split('-');
@@ -2497,10 +2498,13 @@ function gerarRelatorio(tipo) {
         if (ac.status === 'saiu') totalSaidas++;
         if (ac.status === 'trocado') totalTrocas++;
         
-        // Altas (saídas por alta do paciente)
-        if (ac.status === 'saiu' && ac.observacao && ac.observacao.toLowerCase().includes('alta do paciente')) {
-            totalAltas++;
-        }
+        // ✅ Código corrigido
+if (ac.status === 'saiu' && 
+    ac.observacao && 
+    ac.observacao.toLowerCase().includes('alta do paciente') &&
+    !ac.observacao.toLowerCase().includes('saída automática')) {
+    totalAltas++;
+}
         
         // Agrupar por setor
         if (ac.setor) {
