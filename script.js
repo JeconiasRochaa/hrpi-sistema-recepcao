@@ -2409,7 +2409,7 @@ function imprimirCracha() {
 }
 
 // ============================================
-// RELATÓRIOS EM PDF
+// RELATÓRIOS EM PDF - COM RESUMO E CONTADORES
 // ============================================
 function gerarRelatorio(tipo) {
     if (typeof window.jspdf === 'undefined') {
@@ -2464,6 +2464,62 @@ function gerarRelatorio(tipo) {
     const strInicio = formatar(dataInicio);
     const strFim = formatar(dataFim);
     
+    // Filtrar dados
+    let dados = Object.values(acompanhantes).filter(ac => {
+        const [d, m, a] = ac.dataEntrada.split('-');
+        const dataRegistro = new Date(a, m - 1, d);
+        return dataRegistro >= dataInicio && dataRegistro <= dataFim;
+    });
+    
+    // ============================================
+    // CALCULAR ESTATÍSTICAS
+    // ============================================
+    let totalAcompanhantes = 0;
+    let totalVisitas = 0;
+    let totalEntradas = dados.length;
+    let totalSaidas = 0;
+    let totalAltas = 0;
+    let totalTrocas = 0;
+    let acompanhantesAtivos = 0;
+    let visitasAtivas = 0;
+    
+    // Agrupar por setor
+    const setoresMap = {};
+    
+    dados.forEach(ac => {
+        // Contagem por tipo
+        if (ac.tipo === 'acompanhante') totalAcompanhantes++;
+        if (ac.tipo === 'visita') totalVisitas++;
+        
+        // Status
+        if (ac.status === 'presente' && ac.tipo === 'acompanhante') acompanhantesAtivos++;
+        if (ac.status === 'presente' && ac.tipo === 'visita') visitasAtivas++;
+        if (ac.status === 'saiu') totalSaidas++;
+        if (ac.status === 'trocado') totalTrocas++;
+        
+        // Altas (saídas por alta do paciente)
+        if (ac.status === 'saiu' && ac.observacao && ac.observacao.toLowerCase().includes('alta do paciente')) {
+            totalAltas++;
+        }
+        
+        // Agrupar por setor
+        if (ac.setor) {
+            if (!setoresMap[ac.setor]) {
+                setoresMap[ac.setor] = { entradas: 0, saidas: 0, ativos: 0 };
+            }
+            setoresMap[ac.setor].entradas++;
+            if (ac.status === 'saiu') setoresMap[ac.setor].saidas++;
+            if (ac.status === 'presente') setoresMap[ac.setor].ativos++;
+        }
+    });
+    
+    // Ordenar dados por data
+    dados.sort((a, b) => {
+        const da = new Date(a.dataEntrada.split('-')[2], a.dataEntrada.split('-')[1] - 1, a.dataEntrada.split('-')[0]);
+        const db = new Date(b.dataEntrada.split('-')[2], b.dataEntrada.split('-')[1] - 1, b.dataEntrada.split('-')[0]);
+        return db - da || b.horaEntrada.localeCompare(a.horaEntrada);
+    });
+    
     // Tentar carregar a logo
     db.ref('configuracoes/logoHospital').once('value').then(snapLogo => {
         if (snapLogo.val()) {
@@ -2483,34 +2539,111 @@ function gerarRelatorio(tipo) {
         doc.setFontSize(11);
         doc.setTextColor(100);
         doc.setFont('helvetica', 'normal');
-        doc.text('Sistema de Controle de Recepção', 148, 22, { align: 'center' });
+        doc.text('Sistema de Controle de Recepção - Relatório ' + titulo, 148, 22, { align: 'center' });
         
-        doc.setFontSize(13);
-        doc.setTextColor(0);
-        doc.text(`Relatório ${titulo}: ${strInicio} a ${strFim}`, 148, 30, { align: 'center' });
-        
-        // Filtrar dados
-        let dados = Object.values(acompanhantes).filter(ac => {
-            const [d, m, a] = ac.dataEntrada.split('-');
-            const dataRegistro = new Date(a, m - 1, d);
-            return dataRegistro >= dataInicio && dataRegistro <= dataFim;
-        });
-        
-        // Ordenar
-        dados.sort((a, b) => {
-            const da = new Date(a.dataEntrada.split('-')[2], a.dataEntrada.split('-')[1] - 1, a.dataEntrada.split('-')[0]);
-            const db = new Date(b.dataEntrada.split('-')[2], b.dataEntrada.split('-')[1] - 1, b.dataEntrada.split('-')[0]);
-            return db - da || b.horaEntrada.localeCompare(a.horaEntrada);
-        });
+        doc.setFontSize(10);
+        doc.text(`Período: ${strInicio} a ${strFim}`, 148, 28, { align: 'center' });
         
         // Linha separadora
         doc.setDrawColor(26, 107, 122);
-        doc.setLineWidth(0.3);
-        doc.line(14, 34, 283, 34);
+        doc.setLineWidth(0.5);
+        doc.line(14, 31, 283, 31);
         
-        // Tabela
+        // ============================================
+        // RESUMO COM INDICADORES
+        // ============================================
+        let yAtual = 38;
+        
+        doc.setFontSize(12);
+        doc.setTextColor(26, 107, 122);
+        doc.setFont('helvetica', 'bold');
+        doc.text('RESUMO DO PERÍODO', 14, yAtual);
+        
+        yAtual += 8;
+        doc.setFontSize(9);
+        doc.setTextColor(50);
+        doc.setFont('helvetica', 'normal');
+        
+        // Linha 1
+        doc.text(`Total de Registros: ${totalEntradas}`, 14, yAtual);
+        doc.text(`Acompanhantes: ${totalAcompanhantes}`, 80, yAtual);
+        doc.text(`Visitas: ${totalVisitas}`, 150, yAtual);
+        doc.text(`Ativos no Momento: ${acompanhantesAtivos + visitasAtivas}`, 220, yAtual);
+        
+        yAtual += 7;
+        
+        // Linha 2
+        doc.text(`Saídas Totais: ${totalSaidas}`, 14, yAtual);
+        doc.text(`Altas de Pacientes: ${totalAltas}`, 80, yAtual);
+        doc.text(`Trocas de Acompanhante: ${totalTrocas}`, 150, yAtual);
+        doc.text(`Acomp. Ativos: ${acompanhantesAtivos} | Visitas Ativas: ${visitasAtivas}`, 220, yAtual);
+        
+        yAtual += 10;
+        
+        // ============================================
+        // RESUMO POR SETOR
+        // ============================================
+        if (Object.keys(setoresMap).length > 0) {
+            doc.setFontSize(11);
+            doc.setTextColor(26, 107, 122);
+            doc.setFont('helvetica', 'bold');
+            doc.text('MOVIMENTAÇÃO POR SETOR', 14, yAtual);
+            
+            yAtual += 7;
+            
+            // Cabeçalho da tabela de setores
+            doc.setFillColor(26, 107, 122);
+            doc.setTextColor(255);
+            doc.setFontSize(8);
+            doc.setFont('helvetica', 'bold');
+            doc.rect(14, yAtual, 70, 6, 'F');
+            doc.rect(84, yAtual, 40, 6, 'F');
+            doc.rect(124, yAtual, 40, 6, 'F');
+            doc.rect(164, yAtual, 40, 6, 'F');
+            
+            doc.setTextColor(255);
+            doc.text('Setor', 16, yAtual + 4);
+            doc.text('Entradas', 86, yAtual + 4);
+            doc.text('Saídas', 126, yAtual + 4);
+            doc.text('Ativos', 166, yAtual + 4);
+            
+            yAtual += 7;
+            
+            // Dados dos setores
+            Object.entries(setoresMap).sort().forEach(([setor, dados], index) => {
+                if (index % 2 === 0) {
+                    doc.setFillColor(245, 250, 252);
+                    doc.rect(14, yAtual, 70, 5, 'F');
+                    doc.rect(84, yAtual, 40, 5, 'F');
+                    doc.rect(124, yAtual, 40, 5, 'F');
+                    doc.rect(164, yAtual, 40, 5, 'F');
+                }
+                
+                doc.setTextColor(50);
+                doc.setFont('helvetica', 'normal');
+                doc.text(setor, 16, yAtual + 3.5);
+                doc.text(String(dados.entradas), 95, yAtual + 3.5, { align: 'center' });
+                doc.text(String(dados.saidas), 135, yAtual + 3.5, { align: 'center' });
+                doc.text(String(dados.ativos), 175, yAtual + 3.5, { align: 'center' });
+                
+                yAtual += 6;
+            });
+            
+            yAtual += 8;
+        }
+        
+        // ============================================
+        // TABELA DETALHADA
+        // ============================================
+        doc.setFontSize(11);
+        doc.setTextColor(26, 107, 122);
+        doc.setFont('helvetica', 'bold');
+        doc.text('REGISTROS DETALHADOS', 14, yAtual);
+        
+        yAtual += 2;
+        
         doc.autoTable({
-            startY: 38,
+            startY: yAtual,
             head: [['Tipo', 'Nome', 'Documento', 'Parentesco', 'Paciente', 'Setor', 'Leito', 'Entrada', 'Saída', 'Status']],
             body: dados.map(ac => [
                 ac.tipo === 'visita' ? 'Visita' : 'Acomp.',
@@ -2531,12 +2664,13 @@ function gerarRelatorio(tipo) {
         });
         
         // Rodapé
-        const total = dados.length;
         const finalY = doc.lastAutoTable.finalY + 10;
         doc.setFontSize(8);
         doc.setTextColor(128);
         doc.setFont('helvetica', 'italic');
-        doc.text(`Gerado em: ${new Date().toLocaleString('pt-BR')} — Total de registros: ${total}`, 148, finalY, { align: 'center' });
+        doc.text(`Gerado em: ${new Date().toLocaleString('pt-BR')}`, 14, finalY);
+        doc.text(`Total de registros: ${totalEntradas} | Gerado por: ${usuarioLogado?.nome || 'Sistema'}`, 148, finalY, { align: 'center' });
+        doc.text('Hospital Regional de Palmeira dos Índios', 283, finalY, { align: 'right' });
         
         // Salvar
         doc.save(`HRPI_Relatorio_${titulo}_${formatar(agora)}.pdf`);
