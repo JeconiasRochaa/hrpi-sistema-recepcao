@@ -760,12 +760,13 @@ function atualizarDashboard() {
         // Saídas hoje (TODAS - inclui altas, fim de visita, desistência, etc.)
         if (ac.dataSaida === hoje && ac.status === 'saiu') saidasHoje++;
         
-        // ✅ Código corrigido (exclui saídas automáticas)
+        // ✅ CÓDIGO CORRIGIDO:
 if (ac.dataSaida === hoje && 
     ac.status === 'saiu' && 
     ac.observacao && 
     ac.observacao.toLowerCase().includes('alta do paciente') &&
-    !ac.observacao.toLowerCase().includes('saída automática')) {
+    !ac.observacao.toLowerCase().includes('saída automática') &&
+    !ac.observacao.toLowerCase().includes('fim do horário')) {
     altasHoje++;
 }
         
@@ -2498,11 +2499,13 @@ function gerarRelatorio(tipo) {
         if (ac.status === 'saiu') totalSaidas++;
         if (ac.status === 'trocado') totalTrocas++;
         
-        // ✅ Código corrigido
+       // ✅ CÓDIGO CORRIGIDO:
 if (ac.status === 'saiu' && 
     ac.observacao && 
     ac.observacao.toLowerCase().includes('alta do paciente') &&
-    !ac.observacao.toLowerCase().includes('saída automática')) {
+    !ac.observacao.toLowerCase().includes('saída automática') &&
+    !ac.observacao.toLowerCase().includes('fim do horário') &&
+    !ac.observacao.toLowerCase().includes('desistência')) {
     totalAltas++;
 }
         
