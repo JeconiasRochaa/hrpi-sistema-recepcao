@@ -2344,22 +2344,46 @@ function inicializarBuscaGlobal() {
 }
 
 function selecionarItemBusca(id) {
+    // Fechar a lista de resultados
     document.getElementById('searchResults').style.display = 'none';
     document.getElementById('globalSearchInput').value = '';
-    
+
     const ac = acompanhantes[id];
-    if (ac) {
-        navegarPara('historico');
+    if (!ac) return;
+
+    // Se for um acompanhante presente, leva para a troca já com ele selecionado
+    if (ac.status === 'presente' && ac.tipo === 'acompanhante') {
+        navegarPara('registroTroca');
+        // Pequeno delay para garantir que a página e os selects estejam prontos
         setTimeout(() => {
-            const campoTexto = document.getElementById('filtroTexto');
-            if (campoTexto) {
-                campoTexto.value = ac.nomeAcompanhante;
-                filtrarHistorico();
+            const selTroca = document.getElementById('trocaAcompanhanteAtual');
+            if (selTroca) {
+                // Atualiza a lista de opções primeiro (pode ter mudado)
+                atualizarSelects();
+                // Tenta selecionar o acompanhante
+                selTroca.value = id;
+                // Se o valor não foi aceito (ex.: não está mais presente), avisa
+                if (selTroca.value !== id) {
+                    toast('Este acompanhante não está mais presente.', 'error');
+                } else {
+                    // Dispara o evento de change para exibir as informações
+                    selTroca.dispatchEvent(new Event('change'));
+                }
             }
         }, 300);
+        return;
     }
-}
 
+    // Para visitantes ou acompanhantes que já saíram, vai para o histórico
+    navegarPara('historico');
+    setTimeout(() => {
+        const campoTexto = document.getElementById('filtroTexto');
+        if (campoTexto) {
+            campoTexto.value = ac.nomeAcompanhante;
+            filtrarHistorico();
+        }
+    }, 300);
+}
 // ============================================
 // CRACHÁ
 // ============================================
