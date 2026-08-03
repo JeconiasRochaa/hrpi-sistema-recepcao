@@ -905,16 +905,16 @@ function atualizarGraficoSemanal() {
                 { 
                     label: 'Entradas', 
                     data: entradas, 
-                    backgroundColor: '#10b981', borderRadius: 6 }, 
-                    borderColor: '#10b981', 
+                    backgroundColor: 'rgba(45,139,78,0.7)', 
+                    borderColor: '#2d8b4e', 
                     borderWidth: 1, 
                     borderRadius: 6 
                 },
                 { 
                     label: 'Saídas', 
                     data: saidas, 
-                    backgroundColor: '#ef4444', borderRadius: 6 }, 
-                    borderColor: '#ef4444', 
+                    backgroundColor: 'rgba(192,57,43,0.7)', 
+                    borderColor: '#c0392b', 
                     borderWidth: 1, 
                     borderRadius: 6 
                 }
