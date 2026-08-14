@@ -4,8 +4,12 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="description" content="Sistema de Controle de Recepção do Hospital Regional de Palmeira dos Índios — controle de entrada e saída de acompanhantes e visitantes.">
+    <meta name="referrer" content="strict-origin-when-cross-origin">
+    <meta name="robots" content="noindex, nofollow">
     <title>Controle de Recepção - HRPI</title>
-    
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='20' fill='%231a6b7a'/%3E%3Cpath d='M50 22v56M22 50h56' stroke='white' stroke-width='14' stroke-linecap='round'/%3E%3C/svg%3E">
+
     <!-- Font Awesome 6 -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     
@@ -14,11 +18,11 @@
     
     <!-- Firebase Compat -->
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
     
-    <!-- Sua config do Firebase -->
+    <!-- Configuração do Firebase -->
     <script>
-    // Configuração do Firebase DIRETO no HTML
     const firebaseConfig = {
         apiKey: "AIzaSyDcUK7ZwpxX7voL5vGr71ltW0WclRm8NJ8",
         authDomain: "hrpi-sistema-recepcao.firebaseapp.com",
@@ -28,7 +32,7 @@
         messagingSenderId: "233408674656",
         appId: "1:233408674656:web:45805b396a7cd7d6e1bc05"
     };
-</script>>
+    </script>
     
     <!-- jsPDF e autotable -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
@@ -44,7 +48,8 @@
             <div id="loginLogo" class="logo-container">
                 <span class="default-logo"><i class="fas fa-hospital-alt"></i></span>
             </div>
-            <p class="subtitle">Controle de Recepção</p>
+            <h1 class="login-hospital-name">Hospital Regional de Palmeira dos Índios</h1>
+            <p class="subtitle">Sistema de Controle de Recepção</p>
             
             <form id="loginForm" autocomplete="off">
                 <div class="input-group">
@@ -54,6 +59,7 @@
                 <div class="input-group">
                     <i class="fas fa-lock"></i>
                     <input type="password" id="password" placeholder="Senha" required autocomplete="off">
+                    <button type="button" id="btnTogglePassword" class="btn-toggle-password" tabindex="-1" aria-label="Mostrar senha"><i class="fas fa-eye"></i></button>
                 </div>
                 <button type="submit" class="btn-login">
                     <i class="fas fa-sign-in-alt"></i> Entrar
@@ -68,7 +74,7 @@
         </div>
     </div>
 
-    <!-- MODAL PRIMEIRO ACESSO (TROCA DE SENHA) -->
+    <!-- MODAL PRIMEIRO ACESSO -->
     <div id="firstAccessModal" class="modal-overlay" style="display: none;">
         <div class="modal" style="max-width: 450px;">
             <button class="modal-close" onclick="document.getElementById('firstAccessModal').style.display='none'">&times;</button>
@@ -132,56 +138,56 @@
                 <div id="sidebarLogo" class="sidebar-logo">
                     <i class="fas fa-hospital-alt"></i>
                 </div>
-                <div class="logo-text">
-                    <small>Controle de Recepção</small>
-                </div>
             </div>
             
-           <nav class="sidebar-nav">
-    <div class="nav-section">Principal</div>
-    <a data-page="dashboard" class="active">
-        <i class="fas fa-chart-pie"></i> Painel
-    </a>
-    <a data-page="entradaAcompanhante">
-        <i class="fas fa-user-plus"></i> Entrada Acompanhante
-    </a>
-    <a data-page="registroVisita">
-        <i class="fas fa-clock"></i> Registro de Visita
-    </a>
-    <a data-page="registroTroca">
-        <i class="fas fa-exchange-alt"></i> Troca de Acompanhante
-    </a>
-    <a data-page="registroSaida">
-        <i class="fas fa-sign-out-alt"></i> Registro de Saída
-    </a>
-    <a data-page="acompanhantesAtivos">
-        <i class="fas fa-users"></i> Acompanhantes Ativos
-    </a>
-    <a data-page="historico">
-        <i class="fas fa-history"></i> Histórico
-    </a>
-    
-    <!-- BLOQUEIOS E RELATÓRIOS (Serviço Social, Supervisor e Admin) -->
-    <div class="nav-section social-admin" style="display: none;">Ferramentas</div>
-    <a data-page="bloqueios" class="social-admin" style="display: none;">
-        <i class="fas fa-ban"></i> Bloqueios visitas
-    </a>
-    <a data-page="relatorios" class="social-admin" style="display: none;">
-        <i class="fas fa-file-pdf"></i> Relatórios
-    </a>
-    
-    <!-- EXCLUSIVO ADMIN/SUPERVISOR -->
-    <div class="nav-section admin-exclusive" style="display: none;">Administração Avançada</div>
-    <a data-page="usuarios" class="admin-exclusive" style="display: none;">
-        <i class="fas fa-user-cog"></i> Usuários
-    </a>
-    <a data-page="configuracoes" class="admin-exclusive" style="display: none;">
-        <i class="fas fa-cog"></i> Configurações
-    </a>
-    <a data-page="logs" class="admin-exclusive" style="display: none;">
-        <i class="fas fa-clipboard-list"></i> Logs
-    </a>
-</nav>
+            <nav class="sidebar-nav">
+                <div class="nav-section">Principal</div>
+                <a data-page="dashboard" class="active">
+                    <i class="fas fa-chart-pie"></i> Painel
+                </a>
+                <a data-page="entradaAcompanhante">
+                    <i class="fas fa-user-plus"></i> Entrada Acompanhante
+                </a>
+                <a data-page="registroVisita">
+                    <i class="fas fa-clock"></i> Registro de Visita
+                </a>
+                <a data-page="registroTroca">
+                    <i class="fas fa-exchange-alt"></i> Troca de Acompanhante
+                </a>
+                <a data-page="registroSaida">
+                    <i class="fas fa-sign-out-alt"></i> Registro de Saída
+                </a>
+                <a data-page="acompanhantesAtivos">
+                    <i class="fas fa-users"></i> Acompanhantes Ativos
+                </a>
+                <a data-page="historico">
+                    <i class="fas fa-history"></i> Histórico
+                </a>
+                
+                <!-- FERRAMENTAS (Serviço Social, Supervisor e Admin) -->
+                <div class="nav-section social-admin" style="display: none;">Ferramentas</div>
+                <a data-page="bloqueios" class="social-admin" style="display: none;">
+                    <i class="fas fa-ban"></i> Bloqueios visitas
+                </a>
+                <a data-page="relatorios" class="social-admin" style="display: none;">
+                    <i class="fas fa-file-pdf"></i> Relatórios
+                </a>
+                
+                <!-- ADMIN AVANÇADO -->
+                <div class="nav-section admin-exclusive" style="display: none;">Administração Avançada</div>
+                <a data-page="usuarios" class="admin-exclusive" style="display: none;">
+                    <i class="fas fa-user-cog"></i> Usuários
+                </a>
+                <a data-page="configuracoes" class="admin-exclusive" style="display: none;">
+                    <i class="fas fa-cog"></i> Configurações
+                </a>
+                <a data-page="logs" class="admin-exclusive" style="display: none;">
+                    <i class="fas fa-clipboard-list"></i> Logs
+                </a>
+                <a data-page="diagnostico" class="admin-exclusive" style="display: none;">
+                    <i class="fas fa-stethoscope"></i> Diagnóstico de Dados
+                </a>
+            </nav>
             
             <div class="sidebar-footer">
                 <button id="themeToggleBtn" class="theme-toggle-btn" title="Alternar Tema">
@@ -194,6 +200,7 @@
                 <button id="logoutBtn" class="btn-logout">
                     <i class="fas fa-sign-out-alt"></i> Sair
                 </button>
+                <div class="sidebar-version">HRPI Recepção · v2.7</div>
             </div>
         </aside>
 
@@ -211,120 +218,250 @@
                 </div>
             </header>
 
-            <!-- DASHBOARD -->
+            <!-- ============================================ -->
+            <!-- DASHBOARD GERENCIAL REFORMULADO -->
+            <!-- ============================================ -->
             <div id="dashboard" class="page active">
                 <div class="page-header">
-                    <h1><i class="fas fa-chart-pie"></i> Painel</h1>
+                    <h1><i class="fas fa-chart-pie"></i> Painel Gerencial</h1>
+                    <p class="breadcrumb" id="dashboardPeriodoLabel">Dados completos do mês atual</p>
                 </div>
-                
-                <div class="cards-row">
-    <!-- Acompanhantes Ativos -->
-    <div class="stat-card presente">
-        <div class="icon-circle"><i class="fas fa-user-check"></i></div>
-        <div class="info">
-            <div class="number" id="countAcompanhantesPresentes">0</div>
-            <div class="label">Acomp. Presentes</div>
-        </div>
-    </div>
-    
-    <!-- Visitas Ativas -->
-    <div class="stat-card visita">
-        <div class="icon-circle"><i class="fas fa-clock"></i></div>
-        <div class="info">
-            <div class="number" id="countVisitasAtivas">0</div>
-            <div class="label">Visitas Ativas</div>
-        </div>
-    </div>
-    
-    <!-- Entradas Hoje -->
-    <div class="stat-card entrada">
-        <div class="icon-circle"><i class="fas fa-sign-in-alt"></i></div>
-        <div class="info">
-            <div class="number" id="countEntradasHoje">0</div>
-            <div class="label">Entradas Hoje</div>
-        </div>
-    </div>
-    
-    <!-- Saídas Hoje (TODAS) -->
-    <div class="stat-card saida">
-        <div class="icon-circle"><i class="fas fa-sign-out-alt"></i></div>
-        <div class="info">
-            <div class="number" id="countSaidasHoje">0</div>
-            <div class="label">Saídas Hoje</div>
-        </div>
-    </div>
-    
-    <!-- Trocas Hoje -->
-    <div class="stat-card troca">
-        <div class="icon-circle"><i class="fas fa-exchange-alt"></i></div>
-        <div class="info">
-            <div class="number" id="countTrocasHoje">0</div>
-            <div class="label">Trocas Hoje</div>
-        </div>
-    </div>
-    
-    <!-- Altas Hoje -->
-    <div class="stat-card saida">
-        <div class="icon-circle"><i class="fas fa-procedures"></i></div>
-        <div class="info">
-            <div class="number" id="countAltasHoje">0</div>
-            <div class="label">Altas de Pacientes</div>
-        </div>
-    </div>
-    
-    <!-- Visitantes Hoje -->
-    <div class="stat-card visita">
-        <div class="icon-circle"><i class="fas fa-user-clock"></i></div>
-        <div class="info">
-            <div class="number" id="countVisitantesHoje">0</div>
-            <div class="label">Visitantes Hoje</div>
-        </div>
-    </div>
-</div>
-                
-                <!-- Indicadores Avançados (admin/supervisor) -->
-                <div id="indicadoresAvancados" class="cards-row" style="display: none; margin-top: 0;">
-                    <div class="stat-card entrada">
-                        <div class="icon-circle">
-                            <i class="fas fa-calendar-week"></i></div>
-                            <div class="info">
-                                <div class="number" id="countEntradasSemana">0</div>
-                            <div class="label">Entradas (Semana)</div></div></div>
-                    <div class="stat-card saida">
-                        <div class="icon-circle">
-                            <i class="fas fa-calendar-week"></i></div>
-                            <div class="info">
-                                <div class="number" id="countSaidasSemana">0</div>
-                            <div class="label">Saídas (Semana)</div></div></div>
-                    <div class="stat-card entrada">
-                        <div class="icon-circle">
-                            <i class="fas fa-calendar-month"></i></div>
-                            <div class="info">
-                                <div class="number" id="countEntradasMes">0</div>
-                            <div class="label">Entradas (Mês)</div></div></div>
-                    <div class="stat-card saida">
-                        <div class="icon-circle">
-                            <i class="fas fa-calendar-month"></i></div>
-                            <div class="info">
-                                <div class="number" id="countSaidasMes">0</div>
-                            <div class="label">Saídas (Mês)</div></div></div>
-                </div>
-                
-                <!-- GRÁFICOS (admin/supervisor) -->
-                <div class="charts-row" id="chartsRow" style="display: none;">
-                    <div class="card"><div class="card-header"><h3><i class="fas fa-chart-bar"></i> Movimentação Semanal</h3><small style="color: var(--text-light);">Últimos 7 dias</small></div><div class="chart-container"><canvas id="graficoSemanal"></canvas></div></div>
-                    <div class="card"><div class="card-header"><h3><i class="fas fa-chart-pie"></i> Por Setor</h3><small style="color: var(--text-light);">Acompanhantes presentes</small></div><div class="chart-container chart-container--center"><canvas id="graficoSetores"></canvas></div></div>
-                </div>
-                <div class="card" id="tendenciaCard" style="display: none; margin-bottom: 24px;"><div class="card-header"><h3><i class="fas fa-chart-line"></i> Tendência de Visitas (30 dias)</h3><small style="color: var(--text-light);">Entradas de visitas por dia</small></div><div class="chart-container" style="height:220px;"><canvas id="graficoTendencia"></canvas></div></div>
 
-                <!-- Últimos Registros -->
-                <div class="card"><div class="card-header"><h3><i class="fas fa-list"></i> Últimos Registros</h3></div><div class="table-container"><table id="tabelaUltimosRegistros"><thead><tr><th>Tipo</th><th>Acompanhante</th><th>Paciente</th><th>Setor/Leito</th><th>Entrada</th><th>Status</th></tr></thead><tbody><tr><td colspan="6" class="empty-table-message"><i class="fas fa-inbox"></i> Carregando...</td></tr></tbody></table></div></div>
+                <!-- ALERTA DE ACOMPANHANTE DUPLICADO (mais de 1 por paciente) -->
+                <div id="alertaDuplicidade" class="alert-banner" style="display:none;">
+                    <i class="fas fa-clone"></i>
+                    <span id="alertaDuplicidadeTexto"></span>
+                    <a href="javascript:void(0)" onclick="resolverDuplicidades()" class="alert-banner-link">Resolver agora</a>
+                </div>
+
+                <!-- ALERTA DE CONFIRMAÇÃO DE PRESENÇA (nutrição depende deste dado) -->
+                <div id="alertaPresencaPendente" class="alert-banner warning" style="display:none;">
+                    <i class="fas fa-exclamation-triangle"></i>
+                    <span id="alertaPresencaTexto"></span>
+                    <a href="javascript:void(0)" onclick="navegarPara('acompanhantesAtivos')" class="alert-banner-link">Ver e confirmar</a>
+                </div>
+
+                <!-- CARDS DE INDICADORES -->
+                <div class="dashboard-section-title">Presença Agora</div>
+                <div class="cards-row" id="cardsGerenciais">
+                    <div class="stat-card presentes-acompanhantes">
+                        <div class="icon-circle"><i class="fas fa-user-friends"></i></div>
+                        <div class="info">
+                            <div class="number" id="cardAcompanhantesPresentes">0</div>
+                            <div class="label">Acompanhantes Presentes</div>
+                            <div class="sublabel" id="cardPacientesAcompanhadosSub">para 0 pacientes</div>
+                        </div>
+                    </div>
+                    <div class="stat-card presentes-visitantes">
+                        <div class="icon-circle"><i class="fas fa-walking"></i></div>
+                        <div class="info">
+                            <div class="number" id="cardVisitantesPresentes">0</div>
+                            <div class="label">Visitantes Presentes</div>
+                            <div class="sublabel">saída automática em 1h</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="dashboard-section-title">Movimentação de Hoje</div>
+                <div class="cards-row">
+                    <div class="stat-card dual entradas-acompanhantes">
+                        <div class="dual-title"><i class="fas fa-sign-in-alt"></i> Entradas Hoje</div>
+                        <div class="dual-row">
+                            <div class="dual-col"><div class="number" id="cardEntradasAcompanhantesHoje">0</div><div class="label">Acompanhantes</div></div>
+                            <div class="dual-divider"></div>
+                            <div class="dual-col"><div class="number" id="cardEntradasVisitantesHoje">0</div><div class="label">Visitantes</div></div>
+                        </div>
+                    </div>
+                    <div class="stat-card dual saidas-dual saidas-acompanhantes">
+                        <div class="dual-title"><i class="fas fa-sign-out-alt"></i> Saídas Hoje</div>
+                        <div class="dual-row">
+                            <div class="dual-col"><div class="number" id="cardSaidasAcompanhantesHoje">0</div><div class="label">Acompanhantes</div></div>
+                            <div class="dual-divider"></div>
+                            <div class="dual-col"><div class="number" id="cardSaidasVisitantesHoje">0</div><div class="label">Visitantes</div></div>
+                        </div>
+                    </div>
+                    <div class="stat-card trocas">
+                        <div class="icon-circle"><i class="fas fa-exchange-alt"></i></div>
+                        <div class="info">
+                            <div class="number" id="cardTrocasHoje">0</div>
+                            <div class="label">Trocas de Acompanhante</div>
+                        </div>
+                    </div>
+                    <div class="stat-card altas">
+                        <div class="icon-circle"><i class="fas fa-heartbeat"></i></div>
+                        <div class="info">
+                            <div class="number" id="cardAltasHoje">0</div>
+                            <div class="label">Altas de Pacientes</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="dashboard-section-title">Totais do Período</div>
+                <div class="cards-row">
+                    <div class="stat-card dual periodo-semana">
+                        <div class="dual-title"><i class="fas fa-calendar-week"></i> Últimos 7 Dias</div>
+                        <div class="dual-row">
+                            <div class="dual-col"><div class="number" id="cardAcompanhantesSemana">0</div><div class="label">Acompanhantes</div></div>
+                            <div class="dual-divider"></div>
+                            <div class="dual-col"><div class="number" id="cardVisitantesSemana">0</div><div class="label">Visitantes</div></div>
+                        </div>
+                    </div>
+                    <div class="stat-card dual periodo-mes">
+                        <div class="dual-title"><i class="fas fa-calendar-alt"></i> Mês Atual</div>
+                        <div class="dual-row">
+                            <div class="dual-col"><div class="number" id="cardAcompanhantesMes">0</div><div class="label">Acompanhantes</div></div>
+                            <div class="dual-divider"></div>
+                            <div class="dual-col"><div class="number" id="cardVisitantesMes">0</div><div class="label">Visitantes</div></div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="dashboard-section-title admin-exclusive" style="display:none;">Indicadores do Mês</div>
+                <div class="cards-row admin-exclusive" style="display:none;">
+                    <div class="stat-card media-visitas">
+                        <div class="icon-circle"><i class="fas fa-chart-line"></i></div>
+                        <div class="info">
+                            <div class="number" id="cardMediaVisitas">0</div>
+                            <div class="label">Média Diária de Visitas</div>
+                        </div>
+                    </div>
+                    <div class="stat-card permanencia">
+                        <div class="icon-circle"><i class="fas fa-hourglass-half"></i></div>
+                        <div class="info">
+                            <div class="number" id="cardPermanenciaMedia">0h</div>
+                            <div class="label">Permanência Média (Acompanhantes)</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- PAINEL DE INSIGHTS -->
+                <div class="card painel-insights">
+                    <div class="card-header">
+                        <h3><i class="fas fa-lightbulb"></i> Insights Automáticos</h3>
+                    </div>
+                    <div class="insights-grid" id="insightsContainer">
+                        <div class="insight-item">Carregando insights...</div>
+                    </div>
+                </div>
+
+                <!-- LINHA 1: Movimentação Semanal + Distribuição por Setor -->
+                <div class="charts-row">
+                    <div class="card">
+                        <div class="card-header">
+                            <h3><i class="fas fa-chart-bar"></i> Entradas da Semana por Tipo</h3>
+                        </div>
+                        <div class="chart-container">
+                            <canvas id="graficoSemanal"></canvas>
+                        </div>
+                    </div>
+                    <div class="card">
+                        <div class="card-header">
+                            <h3><i class="fas fa-chart-pie"></i> Acompanhantes Presentes por Setor</h3>
+                        </div>
+                        <div class="setor-pie-wrapper">
+                            <div class="chart-container chart-container--center">
+                                <canvas id="graficoSetores"></canvas>
+                            </div>
+                            <div class="tabela-setores" id="tabelaSetores"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- LINHA 2: Tendência de Visitas + Trocas por Dia -->
+                <div class="charts-row">
+                    <div class="card">
+                        <div class="card-header">
+                            <h3><i class="fas fa-chart-line"></i> Tendência de Visitas (30 dias)</h3>
+                        </div>
+                        <div class="chart-container">
+                            <canvas id="graficoTendencia"></canvas>
+                        </div>
+                    </div>
+                    <div class="card">
+                        <div class="card-header">
+                            <h3><i class="fas fa-exchange-alt"></i> Trocas por Dia</h3>
+                        </div>
+                        <div class="chart-container">
+                            <canvas id="graficoTrocasDiarias"></canvas>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- LINHA 3: Horário de Maior Movimento + Ranking de Setores -->
+                <div class="charts-row">
+                    <div class="card">
+                        <div class="card-header">
+                            <h3><i class="fas fa-clock"></i> Horário de Maior Movimento</h3>
+                        </div>
+                        <div class="chart-container">
+                            <canvas id="graficoHorarioMovimento"></canvas>
+                        </div>
+                    </div>
+                    <div class="card">
+                        <div class="card-header">
+                            <h3><i class="fas fa-trophy"></i> Ranking de Setores</h3>
+                        </div>
+                        <div class="chart-container">
+                            <canvas id="graficoRankingSetores"></canvas>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- LINHA 4: Permanência Média por Setor + Fluxo Diário -->
+                <div class="charts-row">
+                    <div class="card">
+                        <div class="card-header">
+                            <h3><i class="fas fa-hourglass-half"></i> Permanência Média por Setor</h3>
+                        </div>
+                        <div class="chart-container">
+                            <canvas id="graficoPermanenciaSetor"></canvas>
+                        </div>
+                    </div>
+                    <div class="card">
+                        <div class="card-header">
+                            <h3><i class="fas fa-stream"></i> Fluxo Diário</h3>
+                        </div>
+                        <div class="chart-container">
+                            <canvas id="graficoFluxoDiario"></canvas>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ÚLTIMOS REGISTROS -->
+                <div class="card" id="cardUltimosRegistros">
+                    <div class="card-header">
+                        <h3><i class="fas fa-list"></i> Últimos Registros</h3>
+                    </div>
+                    <div class="table-container">
+                        <table id="tabelaUltimosRegistros">
+                            <thead>
+                                <tr>
+                                    <th>Tipo</th>
+                                    <th>Nome</th>
+                                    <th>Paciente</th>
+                                    <th>Setor/Leito</th>
+                                    <th>Entrada</th>
+                                    <th>Status</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr><td colspan="6" class="empty-table-message"><i class="fas fa-inbox"></i> Nenhum registro recente</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
             </div>
 
             <!-- ENTRADA DE ACOMPANHANTE -->
             <div id="entradaAcompanhante" class="page">
-                <div class="page-header"><h1><i class="fas fa-user-plus"></i> Entrada de Acompanhante</h1><p class="breadcrumb">Registrar novo acompanhante no sistema</p></div>
-                <div class="card"><div class="card-header"><h3><i class="fas fa-clipboard-list"></i> Formulário de Entrada</h3></div>
+                <div class="page-header">
+                    <h1><i class="fas fa-user-plus"></i> Entrada de Acompanhante</h1>
+                    <p class="breadcrumb">Registrar novo acompanhante no sistema</p>
+                </div>
+                <div class="card">
+                    <div class="card-header">
+                        <h3><i class="fas fa-clipboard-list"></i> Formulário de Entrada</h3>
+                    </div>
                     <form id="formEntradaAcompanhante">
                         <div class="form-grid">
                             <div class="form-group"><label>Nome do Acompanhante <span class="required">*</span></label><input type="text" id="acNome" placeholder="Nome completo" required></div>
@@ -336,7 +473,7 @@
                                 <input type="text" id="acPaciente" placeholder="Nome do paciente" required autocomplete="off">
                                 <div class="sugestoes-paciente" id="sugestoesAcPaciente"></div>
                             </div>
-                            <div class="form-group"><label>Setor <span class="required">*</span></label><select id="acSetor" required><option value="">Selecione...</option><option>Oncologia I</option><option>Oncologia II</option><option>UTI I</option><option>UTI II</option><option>Clínica Médica I</option><option>Clínica Médica II</option><option>Clínica Cirúrgica</option><option>Pediatria</option><option>Saúde Mental</option></select></div>
+                            <div class="form-group"><label>Setor <span class="required">*</span></label><select id="acSetor" required><option value="">Selecione...</option><option>Oncologia I</option><option>Oncologia II</option><option>Clínica Médica I</option><option>Clínica Médica II</option><option>Clínica Cirúrgica</option><option>Pediatria</option><option>Saúde Mental</option></select><small style="color: var(--text-light); display:block; margin-top:4px;">UTI I e UTI II não aparecem aqui — esses setores permitem apenas visita (veja "Registro de Visita").</small></div>
                             <div class="form-group"><label>Leito</label><input type="text" id="acLeito" placeholder="Número do leito"></div>
                             <div class="form-group"><label>Observação</label><textarea id="acObservacao" rows="2" placeholder="Informações adicionais..."></textarea></div>
                         </div>
@@ -347,8 +484,14 @@
 
             <!-- REGISTRO DE VISITA -->
             <div id="registroVisita" class="page">
-                <div class="page-header"><h1><i class="fas fa-clock"></i> Registro de Visita</h1><p class="breadcrumb">Registrar visita de curta duração</p></div>
-                <div class="card"><div class="card-header"><h3><i class="fas fa-clipboard-list"></i> Formulário de Visita</h3></div>
+                <div class="page-header">
+                    <h1><i class="fas fa-clock"></i> Registro de Visita</h1>
+                    <p class="breadcrumb">Registrar visita de curta duração</p>
+                </div>
+                <div class="card">
+                    <div class="card-header">
+                        <h3><i class="fas fa-clipboard-list"></i> Formulário de Visita</h3>
+                    </div>
                     <form id="formVisita">
                         <div class="form-grid">
                             <div class="form-group"><label>Nome do Visitante <span class="required">*</span></label><input type="text" id="visNome" placeholder="Nome completo" required></div>
@@ -360,26 +503,16 @@
                                 <input type="text" id="visPaciente" placeholder="Nome do paciente" required autocomplete="off">
                                 <div class="sugestoes-paciente" id="sugestoesVisPaciente"></div>
                             </div>
-                            <div class="form-group">
-                                <label>Setor <span class="required">*</span></label>
-                                <select id="visSetor" required>
-                                    <option value="">Selecione...</option>
-                                    <option>Oncologia I</option>
-                                    <option>Oncologia II</option>
-                                    <option>UTI I</option>
-                                    <option>UTI II</option>
-                                    <option>Clínica Médica I</option>
-                                    <option>Clínica Médica II</option>
-                                    <option>Clínica Cirúrgica</option>
-                                    <option>Pediatria</option>
-                                    <option>Saúde Mental</option>
-                                </select>
-                            </div>
+                            <div class="form-group"><label>Setor <span class="required">*</span></label><select id="visSetor" required><option value="">Selecione...</option><option>Oncologia I</option><option>Oncologia II</option><option>UTI I</option><option>UTI II</option><option>Clínica Médica I</option><option>Clínica Médica II</option><option>Clínica Cirúrgica</option><option>Pediatria</option><option>Saúde Mental</option></select></div>
                             <div class="form-group"><label>Leito</label><input type="text" id="visLeito" placeholder="Número do leito"></div>
                             <div class="form-group">
-                                <label>Duração (minutos) <span class="required">*</span></label>
-                                <input type="number" id="visDuracao" placeholder="Ex: 30" min="1" max="480" value="60" required></div>
+                                <label>Duração da Visita</label>
+                                <input type="text" value="1 hora (saída automática)" disabled style="background:var(--surface-alt,#f4f6f7);color:var(--text-muted);cursor:not-allowed;">
+                            </div>
                         </div>
+                        <p style="margin: -6px 20px 14px; font-size: 12px; color: var(--text-muted);">
+                            <i class="fas fa-info-circle"></i> A saída de visitantes é registrada automaticamente pelo sistema 1 hora após a entrada. Não é necessário (nem possível) dar baixa manual na tela de Saída.
+                        </p>
                         <div class="form-actions"><button type="submit" class="btn btn-primary"><i class="fas fa-save"></i> Registrar Visita</button></div>
                     </form>
                 </div>
@@ -391,16 +524,29 @@
                     <div><h1><i class="fas fa-ban"></i> Bloqueios de Visitas</h1><p class="breadcrumb">Gerenciar bloqueios de visitas para pacientes</p></div>
                     <button id="btnNovoBloqueio" class="btn btn-primary"><i class="fas fa-plus"></i> Novo Bloqueio</button>
                 </div>
-                <div class="card"><div class="table-container"><table id="tabelaBloqueios"><thead><tr><th>Paciente</th><th>Setor</th><th>Leito</th><th>Motivo</th><th>Solicitante</th><th>Data Bloqueio</th><th>Ações</th></tr></thead><tbody><tr><td colspan="7" class="empty-table-message"><i class="fas fa-inbox"></i> Nenhum bloqueio ativo</td></tr></tbody></table></div></div>
+                <div class="card">
+                    <div class="table-container">
+                        <table id="tabelaBloqueios">
+                            <thead><tr><th>Paciente</th><th>Setor</th><th>Leito</th><th>Motivo</th><th>Solicitante</th><th>Data Bloqueio</th><th>Ações</th></tr></thead>
+                            <tbody><tr><td colspan="7" class="empty-table-message"><i class="fas fa-inbox"></i> Nenhum bloqueio ativo</td></tr></tbody>
+                        </table>
+                    </div>
+                </div>
             </div>
 
             <!-- TROCA DE ACOMPANHANTE -->
             <div id="registroTroca" class="page">
                 <div class="page-header"><h1><i class="fas fa-exchange-alt"></i> Troca de Acompanhante</h1><p class="breadcrumb">Substituir acompanhante atual por um novo</p></div>
-                <div class="card"><div class="card-header"><h3><i class="fas fa-clipboard-list"></i> Registrar Troca</h3></div>
+                <div class="card">
+                    <div class="card-header"><h3><i class="fas fa-clipboard-list"></i> Registrar Troca</h3></div>
                     <form id="formTroca">
-                        <div class="form-group" style="margin-bottom: 14px; padding: 0 20px;"><label>Acompanhante Atual <span class="required">*</span></label><select id="trocaAcompanhanteAtual" required><option value="">Selecione o acompanhante...</option></select></div>
-                        <div id="trocaInfoAtual" class="info-box" style="display: none;"><p><strong>Paciente:</strong> <span id="trocaPaciente"></span></p><p><strong>Setor:</strong> <span id="trocaSetor"></span></p><p><strong>Leito:</strong> <span id="trocaLeito"></span></p></div>
+                        <div style="position: relative; margin-bottom: 4px; padding: 0 20px;">
+                            <label>Acompanhante Atual <span class="required">*</span></label>
+                            <input type="text" id="buscaTrocaAtual" placeholder="Digite o nome do acompanhante atual ou do paciente..." autocomplete="off" class="form-control" style="width: 100%; padding: 12px 16px; border: 2px solid var(--border); border-radius: 8px; font-size: 15px; margin-top: 6px;">
+                            <div id="resultadosBuscaTroca" class="search-results" style="display: none; position: absolute; width: calc(100% - 40px);"></div>
+                            <input type="hidden" id="trocaAcompanhanteAtual">
+                        </div>
+                        <div id="trocaInfoAtual" class="info-box" style="display: none; margin: 16px 20px 0;"><p><strong>Paciente:</strong> <span id="trocaPaciente"></span></p><p><strong>Setor:</strong> <span id="trocaSetor"></span></p><p><strong>Leito:</strong> <span id="trocaLeito"></span></p></div>
                         <h4 style="margin: 16px 20px 12px; font-size: 14px; color: var(--text);">Dados do Novo Acompanhante</h4>
                         <div class="form-grid">
                             <div class="form-group"><label>Nome <span class="required">*</span></label><input type="text" id="trocaNovoNome" placeholder="Nome completo" required></div>
@@ -408,49 +554,129 @@
                             <div class="form-group"><label>Telefone</label><input type="tel" id="trocaNovoTelefone" placeholder="(00) 00000-0000"></div>
                             <div class="form-group"><label>Parentesco <span class="required">*</span></label><select id="trocaNovoParentesco" required><option value="">Selecione...</option><option>Filho(a)</option><option>Pai/Mãe</option><option>Cônjuge</option><option>Irmão/Irmã</option><option>Neto(a)</option><option>Sobrinho(a)</option><option>Amigo(a)</option><option>Cuidador(a)</option><option>Outro</option></select></div>
                         </div>
-                        <div class="form-actions"><button type="submit" class="btn btn-accent"><i class="fas fa-exchange-alt"></i> Registrar Troca</button></div>
+                        <div class="form-actions"><button type="submit" id="btnRegistrarTroca" class="btn btn-accent" disabled><i class="fas fa-exchange-alt"></i> Registrar Troca</button></div>
                     </form>
                 </div>
             </div>
 
             <!-- REGISTRO DE SAÍDA -->
-            <div id="registroSaida" class="page">
-                <div class="page-header"><h1><i class="fas fa-sign-out-alt"></i> Registro de Saída</h1><p class="breadcrumb">Registrar saída de acompanhante ou visitante</p></div>
-                <div class="card"><div class="card-header"><h3><i class="fas fa-clipboard-list"></i> Registrar Saída</h3></div>
-                    <form id="formSaida">
-                        <div class="form-group" style="margin-bottom: 14px; padding: 0 20px;"><label>Selecione Acompanhante/Visitante <span class="required">*</span></label><select id="saidaAcompanhante" required><option value="">Selecione...</option></select></div>
-                        <div id="saidaInfo" class="info-box" style="display: none;"><p><strong>Paciente:</strong> <span id="saidaPaciente"></span></p><p><strong>Setor:</strong> <span id="saidaSetor"></span></p><p><strong>Data/Hora Entrada:</strong> <span id="saidaEntrada"></span></p></div>
-                        <div class="form-group" style="margin-bottom: 14px; padding: 0 20px;"><label>Motivo da Saída <span class="required">*</span></label><select id="saidaMotivo" required><option value="">Selecione o motivo...</option><option>Alta do paciente</option><option>Fim do horário de visita</option><option>Desistência</option><option>Outro</option></select></div>
-                        <div class="form-actions"><button type="submit" class="btn btn-danger"><i class="fas fa-sign-out-alt"></i> Registrar Saída</button></div>
-                    </form>
-                </div>
+<div id="registroSaida" class="page">
+    <div class="page-header">
+        <h1><i class="fas fa-sign-out-alt"></i> Registro de Saída</h1>
+        <p class="breadcrumb">Busque o acompanhante para registrar a saída (visitantes saem automaticamente 1h após a entrada)</p>
+    </div>
+    <div class="card">
+        <div class="card-header">
+            <h3><i class="fas fa-search"></i> Buscar Acompanhante/Visitante</h3>
+        </div>
+        <form id="formSaida">
+            <div style="position: relative; margin-bottom: 4px; padding: 0 20px;">
+                <label>Nome, documento ou paciente <span class="required">*</span></label>
+                <input type="text" id="buscaSaidaRapida"
+                       placeholder="Digite para buscar entre os acompanhantes presentes..."
+                       autocomplete="off"
+                       class="form-control"
+                       style="width: 100%; padding: 12px 16px; border: 2px solid var(--border); border-radius: 8px; font-size: 15px; margin-top: 6px;">
+                <div id="resultadosBuscaSaida" class="search-results" style="display: none; position: absolute; width: calc(100% - 40px);"></div>
+                <input type="hidden" id="saidaAcompanhante">
             </div>
+
+            <div id="saidaInfo" class="info-box" style="display: none; margin: 16px 20px 0;">
+                <p><strong>Paciente:</strong> <span id="saidaPaciente"></span></p>
+                <p><strong>Setor:</strong> <span id="saidaSetor"></span></p>
+                <p><strong>Data/Hora Entrada:</strong> <span id="saidaEntrada"></span></p>
+            </div>
+
+            <div class="form-group" style="margin: 16px 0 14px; padding: 0 20px;">
+                <label>Motivo da Saída <span class="required">*</span></label>
+                <select id="saidaMotivo" required>
+                    <option value="" selected>Selecione o motivo...</option>
+                    <option>Alta do paciente</option>
+                    <option>Desistência</option>
+                    <option>Outro</option>
+                </select>
+            </div>
+            <div class="form-actions">
+                <button type="submit" id="btnSaidaRapida" class="btn btn-danger" disabled>
+                    <i class="fas fa-sign-out-alt"></i> Registrar Saída
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
 
             <!-- ACOMPANHANTES ATIVOS -->
             <div id="acompanhantesAtivos" class="page">
-                <div class="page-header"><h1><i class="fas fa-users"></i> Acompanhantes Ativos</h1><p class="breadcrumb">Lista de acompanhantes e visitas ativas no momento</p></div>
-                <div class="card"><div class="table-container"><table id="tabelaAtivos"><thead><tr><th>Tipo</th><th>Nome</th><th>Documento</th><th>Parentesco</th><th>Paciente</th><th>Setor</th><th>Leito</th><th>Entrada</th><th>Tempo Restante</th><th>Ações</th></tr></thead><tbody><tr><td colspan="10" class="empty-table-message"><i class="fas fa-inbox"></i> Nenhum acompanhante ativo</td></tr></tbody></table></div></div>
+                <div class="page-header">
+                    <h1><i class="fas fa-users"></i> Acompanhantes Ativos</h1>
+                    <p class="breadcrumb">Lista de acompanhantes e visitas ativas no momento</p>
+                </div>
+                <div class="card">
+                    <div style="padding: 16px 20px 0; display: flex; justify-content: flex-end; gap: 10px; flex-wrap: wrap;">
+                        <button class="btn btn-outline btn-sm" onclick="exportarListaNutricao()" title="Exporta uma lista simples (setor, leito, paciente, acompanhante) de quem está presente agora">
+                            <i class="fas fa-utensils"></i> Lista para Nutrição
+                        </button>
+                        <button class="btn btn-outline btn-sm" onclick="confirmarTodasPresencas()" title="Confirma que todos os acompanhantes listados ainda estão presentes hoje">
+                            <i class="fas fa-check-double"></i> Confirmar Presença de Todos
+                        </button>
+                    </div>
+                    <div class="table-container">
+                        <table id="tabelaAtivos">
+                            <thead><tr><th>Tipo</th><th>Nome</th><th>Documento</th><th>Parentesco</th><th>Paciente</th><th>Setor</th><th>Leito</th><th>Entrada</th><th>Situação</th><th>Ações</th></tr></thead>
+                            <tbody><tr><td colspan="10" class="empty-table-message"><i class="fas fa-inbox"></i> Nenhum acompanhante ativo</td></tr></tbody>
+                        </table>
+                    </div>
+                </div>
             </div>
 
             <!-- HISTÓRICO -->
             <div id="historico" class="page">
                 <div class="page-header"><h1><i class="fas fa-history"></i> Histórico Completo</h1><p class="breadcrumb">Todos os registros de acompanhantes e visitas</p></div>
-                <div class="card"><div class="card-header"><h3><i class="fas fa-filter"></i> Filtros</h3></div>
+                <div class="card">
+                    <div class="card-header"><h3><i class="fas fa-filter"></i> Filtros</h3></div>
                     <div class="filter-row" style="margin-bottom: 16px;">
-                        <input type="date" id="filtroDataInicio" title="Data Início"><input type="date" id="filtroDataFim" title="Data Fim">
+                        <input type="date" id="filtroDataInicio" title="Data Início">
+                        <input type="date" id="filtroDataFim" title="Data Fim">
                         <select id="filtroStatus"><option value="">Todos os Status</option><option value="presente">Presente</option><option value="saiu">Saiu</option><option value="trocado">Trocado</option></select>
                         <select id="filtroTipo"><option value="">Todos os Tipos</option><option value="acompanhante">Acompanhante</option><option value="visita">Visita</option></select>
                         <input type="text" id="filtroTexto" placeholder="Buscar por nome, documento, paciente..." style="flex: 1; min-width: 200px;">
                         <button id="btnFiltrar" class="btn btn-outline btn-sm"><i class="fas fa-search"></i> Filtrar</button>
                         <button id="btnExportarExcel" class="btn btn-outline btn-sm"><i class="fas fa-file-excel"></i> Exportar Excel</button>
                     </div>
-                    <div class="table-container"><table id="tabelaHistorico"><thead><tr><th>Tipo</th><th>Nome</th><th>Documento</th><th>Parentesco</th><th>Paciente</th><th>Setor</th><th>Leito</th><th>Entrada</th><th>Saída</th><th>Status</th><th>Ações</th></tr></thead><tbody><tr><td colspan="11" class="empty-table-message"><i class="fas fa-inbox"></i> Nenhum registro encontrado</td></tr></tbody></table></div>
+                    <div class="table-container">
+                        <table id="tabelaHistorico">
+                            <thead><tr><th>Tipo</th><th>Nome</th><th>Documento</th><th>Parentesco</th><th>Paciente</th><th>Setor</th><th>Leito</th><th>Entrada</th><th>Saída</th><th>Status</th><th>Ações</th></tr></thead>
+                            <tbody><tr><td colspan="11" class="empty-table-message"><i class="fas fa-inbox"></i> Nenhum registro encontrado</td></tr></tbody>
+                        </table>
+                    </div>
                 </div>
             </div>
 
             <!-- RELATÓRIOS -->
             <div id="relatorios" class="page">
                 <div class="page-header"><h1><i class="fas fa-file-pdf"></i> Relatórios em PDF</h1><p class="breadcrumb">Gerar relatórios para impressão</p></div>
+
+                <div class="dashboard-section-title">Totais do Período</div>
+                <div class="cards-row">
+                    <div class="stat-card dual periodo-semana">
+                        <div class="dual-title"><i class="fas fa-calendar-week"></i> Últimos 7 Dias</div>
+                        <div class="dual-row">
+                            <div class="dual-col"><div class="number" id="cardAcompanhantesSemanaRel">0</div><div class="label">Acompanhantes</div></div>
+                            <div class="dual-divider"></div>
+                            <div class="dual-col"><div class="number" id="cardVisitantesSemanaRel">0</div><div class="label">Visitantes</div></div>
+                        </div>
+                    </div>
+                    <div class="stat-card dual periodo-mes">
+                        <div class="dual-title"><i class="fas fa-calendar-alt"></i> Mês Atual</div>
+                        <div class="dual-row">
+                            <div class="dual-col"><div class="number" id="cardAcompanhantesMesRel">0</div><div class="label">Acompanhantes</div></div>
+                            <div class="dual-divider"></div>
+                            <div class="dual-col"><div class="number" id="cardVisitantesMesRel">0</div><div class="label">Visitantes</div></div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="dashboard-section-title">Gerar PDF</div>
                 <div class="reports-grid">
                     <div class="report-card"><i class="fas fa-calendar-day"></i><h4>Relatório Diário</h4><p>Registros do dia atual</p><button class="btn btn-primary btn-sm" onclick="gerarRelatorio('diario')"><i class="fas fa-file-pdf"></i> Gerar PDF</button></div>
                     <div class="report-card"><i class="fas fa-calendar-week"></i><h4>Relatório Semanal</h4><p>Últimos 7 dias</p><button class="btn btn-primary btn-sm" onclick="gerarRelatorio('semanal')"><i class="fas fa-file-pdf"></i> Gerar PDF</button></div>
@@ -460,43 +686,106 @@
                 </div>
             </div>
 
-            <!-- USUÁRIOS (exclusivo admin) -->
+            <!-- USUÁRIOS -->
             <div id="usuarios" class="page">
                 <div class="page-header" style="display: flex; justify-content: space-between; align-items: center;">
                     <div><h1><i class="fas fa-user-cog"></i> Gerenciamento de Usuários</h1><p class="breadcrumb">Cadastrar e gerenciar usuários do sistema</p></div>
                     <button id="btnNovoUsuario" class="btn btn-primary"><i class="fas fa-plus"></i> Novo Usuário</button>
                 </div>
-                <div class="card"><div class="table-container"><table id="tabelaUsuarios"><thead><tr><th>Nome</th><th>Usuário</th><th>Cargo</th><th>Status</th><th>1º Acesso</th><th>Ações</th></tr></thead><tbody><tr><td colspan="6" class="empty-table-message"><i class="fas fa-inbox"></i> Carregando...</td></tr></tbody></table></div></div>
+                <div class="card">
+                    <div class="table-container">
+                        <table id="tabelaUsuarios">
+                            <thead><tr><th>Nome</th><th>Usuário</th><th>Cargo</th><th>Status</th><th>1º Acesso</th><th>Ações</th></tr></thead>
+                            <tbody><tr><td colspan="6" class="empty-table-message"><i class="fas fa-inbox"></i> Carregando...</td></tr></tbody>
+                        </table>
+                    </div>
+                </div>
             </div>
 
-            <!-- CONFIGURAÇÕES (exclusivo admin) -->
+            <!-- CONFIGURAÇÕES -->
             <div id="configuracoes" class="page">
                 <div class="page-header"><h1><i class="fas fa-cog"></i> Configurações do Sistema</h1><p class="breadcrumb">Personalizar aparência e gerenciar preferências</p></div>
                 <div class="config-grid">
                     <div class="config-card"><h4><i class="fas fa-image"></i> Logo do Hospital</h4><p>Aparece no menu lateral, login e relatórios</p><div class="form-group"><input type="file" id="uploadLogo" accept="image/*"></div><button id="btnRemoverLogo" class="btn btn-outline btn-sm" style="width: 100%;"><i class="fas fa-trash"></i> Remover Logo</button></div>
                     <div class="config-card"><h4><i class="fas fa-desktop"></i> Fundo da Tela de Login</h4><p>Imagem de fundo personalizada para o login</p><div class="form-group"><input type="file" id="uploadFundo" accept="image/*"></div><button id="btnRemoverFundo" class="btn btn-outline btn-sm" style="width: 100%;"><i class="fas fa-trash"></i> Remover Fundo</button></div>
                     <div class="config-card"><h4><i class="fas fa-key"></i> Resetar Senha de Usuário</h4><p>A senha será resetada para: <strong>123456</strong></p><div class="form-group"><select id="selectUsuarioReset"><option value="">Selecione um usuário...</option></select></div><button id="btnResetSenha" class="btn btn-warning btn-sm" style="width: 100%;"><i class="fas fa-key"></i> Resetar Senha</button></div>
-                    <div class="config-card"><h4><i class="fas fa-users-slash"></i> Limite de Acompanhantes</h4><p>Controlar múltiplos acompanhantes por paciente</p><label style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;"><input type="checkbox" id="bloqueioRigido" style="width: auto;">Bloqueio rígido (impedir múltiplos)</label><small style="color: var(--text-light);">Se desmarcado, apenas exibe um aviso.</small></div>
+                    <div class="config-card"><h4><i class="fas fa-users-slash"></i> Limite de Acompanhantes</h4><p>Regra fixa do sistema: <strong>cada paciente pode ter apenas um acompanhante ativo por vez</strong>. Não é possível desativar essa regra — se um acompanhante precisa ser substituído, use "Troca de Acompanhante".</p></div>
                 </div>
             </div>
 
-            <!-- LOGS (exclusivo admin) -->
+            <!-- LOGS -->
             <div id="logs" class="page">
                 <div class="page-header"><h1><i class="fas fa-clipboard-list"></i> Logs de Auditoria</h1><p class="breadcrumb">Registro de todas as ações do sistema</p></div>
-                <div class="card"><div class="card-header"><h3><i class="fas fa-filter"></i> Filtros</h3></div>
+                <div class="card">
+                    <div class="card-header"><h3><i class="fas fa-filter"></i> Filtros</h3></div>
                     <div class="filter-row" style="margin-bottom: 16px;">
-                        <input type="date" id="filtroLogDataInicio" title="Data Início"><input type="date" id="filtroLogDataFim" title="Data Fim">
+                        <input type="date" id="filtroLogDataInicio" title="Data Início">
+                        <input type="date" id="filtroLogDataFim" title="Data Fim">
                         <select id="filtroLogUsuario"><option value="">Todos os Usuários</option></select>
                         <select id="filtroLogAcao"><option value="">Todas as Ações</option><option value="login">Login</option><option value="logout">Logout</option><option value="criar">Criação</option><option value="editar">Edição</option><option value="excluir">Exclusão</option><option value="troca">Troca de Acompanhante</option><option value="saida">Registro de Saída</option><option value="usuario">Gerenciamento de Usuários</option><option value="config">Configurações</option></select>
                         <button id="btnFiltrarLogs" class="btn btn-outline btn-sm"><i class="fas fa-search"></i> Filtrar</button>
+                        <button id="btnLimparLogs" class="btn btn-danger btn-sm admin-exclusive" style="display:none;" onclick="limparLogs()"><i class="fas fa-trash-alt"></i> Limpar Logs</button>
                     </div>
-                    <div class="table-container"><table id="tabelaLogs"><thead><tr><th>Data/Hora</th><th>Usuário</th><th>Ação</th><th>Descrição</th><th>Registro ID</th></tr></thead><tbody><tr><td colspan="5" class="empty-table-message"><i class="fas fa-inbox"></i> Nenhum log encontrado</td></tr></tbody></table></div>
+                    <div class="table-container">
+                        <table id="tabelaLogs">
+                            <thead><tr><th>Data/Hora</th><th>Usuário</th><th>Ação</th><th>Descrição</th><th>Registro ID</th></tr></thead>
+                            <tbody><tr><td colspan="5" class="empty-table-message"><i class="fas fa-inbox"></i> Nenhum log encontrado</td></tr></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- DIAGNÓSTICO DE DADOS -->
+            <div id="diagnostico" class="page">
+                <div class="page-header"><h1><i class="fas fa-stethoscope"></i> Diagnóstico de Dados</h1><p class="breadcrumb">Encontra registros "presente" há tempo demais — provável esquecimento de saída pela recepção</p></div>
+
+                <div class="card">
+                    <div class="card-header"><h3><i class="fas fa-sliders-h"></i> Critérios</h3></div>
+                    <div class="filter-row" style="margin-bottom: 14px;">
+                        <div class="form-group" style="min-width:240px;">
+                            <label>Acompanhante presente há mais de (dias)</label>
+                            <input type="number" id="diagLimiteAcompanhanteDias" value="15" min="1" style="width:100%;">
+                        </div>
+                        <div class="form-group" style="min-width:240px;">
+                            <label>Visitante presente há mais de (horas)</label>
+                            <input type="number" id="diagLimiteVisitanteHoras" value="2" min="1" style="width:100%;">
+                        </div>
+                    </div>
+                    <p style="font-size:12px; color: var(--text-light); margin: 0 0 14px;">Visitante já deveria ter saído sozinho em 1h — acima de 2h é sinal de falha na saída automática.</p>
+                    <button id="btnAnalisarDiagnostico" class="btn btn-primary btn-sm" onclick="rodarDiagnostico()"><i class="fas fa-search"></i> Analisar</button>
+                </div>
+
+                <div class="card" id="diagResultadoCard" style="display:none;">
+                    <div class="card-header">
+                        <h3><i class="fas fa-list-check"></i> Registros suspeitos (<span id="diagContador">0</span>)</h3>
+                    </div>
+                    <div class="filter-row" style="margin-bottom: 18px; align-items: flex-end;">
+                        <div class="form-group" style="flex:1; min-width:280px;">
+                            <label>Motivo aplicado às saídas registradas nesta tela</label>
+                            <input type="text" id="diagMotivoLote" placeholder="Motivo da correção..." value="Correção de registro — saída não computada no sistema" style="width:100%;">
+                        </div>
+                        <button id="btnDarSaidaLote" class="btn btn-danger btn-sm" onclick="darSaidaLoteDiagnostico()" disabled><i class="fas fa-sign-out-alt"></i> Registrar Saída dos Selecionados</button>
+                    </div>
+                    <div class="table-container">
+                        <table id="tabelaDiagnostico">
+                            <thead><tr>
+                                <th style="width:34px;"><input type="checkbox" id="diagSelecionarTodos" onclick="toggleSelecionarTodosDiagnostico(this)"></th>
+                                <th>Tipo</th><th>Nome</th><th>Paciente</th><th>Setor</th><th>Entrada</th><th>Tempo Presente</th><th>Ação</th>
+                            </tr></thead>
+                            <tbody id="diagTbody"><tr><td colspan="8" class="empty-table-message"><i class="fas fa-inbox"></i> Nenhum registro analisado ainda</td></tr></tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <div class="card" id="diagVazioCard" style="display:none;">
+                    <div class="card-header"><h3><i class="fas fa-check-circle" style="color: var(--stat-entradas-acomp);"></i> Nenhum registro suspeito</h3></div>
+                    <p style="padding: 0 20px 20px; color: var(--text-light);">Todos os registros "presente" estão dentro do tempo esperado. A diferença entre o Painel e os Relatórios provavelmente já foi resolvida pela correção de cálculo — gere um novo relatório para conferir.</p>
                 </div>
             </div>
         </main>
     </div>
 
-     <!-- TOAST -->
+    <!-- TOAST -->
     <div id="toast" class="toast">
         <i id="toastIcon" class="fas fa-check-circle"></i>
         <span id="toastMessage"></span>
