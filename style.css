@@ -333,6 +333,119 @@ body {
     left: 0;
 }
 
+/* Layout renovado da tela de acesso */
+.login-overlay {
+    background: linear-gradient(135deg, #e8f4f5 0%, #f7fbfc 52%, #dcecef 100%);
+    padding: 30px;
+}
+
+.login-overlay::before { display: none; }
+
+.login-shell {
+    position: relative;
+    z-index: 1;
+    width: min(1180px, 100%);
+    min-height: 700px;
+    display: grid;
+    grid-template-columns: 1.15fr 0.85fr;
+    overflow: hidden;
+    border: 1px solid rgba(255, 255, 255, 0.85);
+    border-radius: 28px;
+    background: rgba(255, 255, 255, 0.62);
+    box-shadow: 0 24px 60px rgba(15, 63, 74, 0.18);
+    backdrop-filter: blur(12px);
+    animation: loginSlideUp 0.5s ease;
+}
+
+.welcome-panel {
+    position: relative;
+    isolation: isolate;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    padding: clamp(28px, 4vw, 52px);
+    color: #fff;
+    background: linear-gradient(145deg, #083d4a 0%, #0f6b7c 62%, #15899a 100%);
+}
+
+.brand-row { display: flex; align-items: center; gap: 14px; }
+.brand-badge {
+    width: 52px;
+    height: 52px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    border-radius: 15px;
+    color: #0b5362;
+    background: #fff;
+    font-size: 25px;
+}
+.brand-badge img { width: 100%; height: 100%; padding: 11%; object-fit: contain; }
+.brand-copy { display: flex; flex-direction: column; gap: 3px; }
+.brand-copy strong { font-size: 1.18rem; font-weight: 800; letter-spacing: 0.5px; }
+.brand-copy span { color: rgba(255,255,255,0.7); font-size: 0.68rem; font-weight: 700; letter-spacing: 1.3px; text-transform: uppercase; }
+
+.welcome-content { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 20px 10px; text-align: center; }
+.welcome-logo {
+    width: 178px;
+    height: 178px;
+    max-width: none;
+    max-height: none;
+    margin: 0;
+    overflow: hidden;
+    border-radius: 25px;
+    color: #0b5362;
+    background: rgba(255,255,255,0.96);
+    box-shadow: 0 18px 38px rgba(0,0,0,0.18);
+    font-size: 76px;
+}
+.welcome-logo img { width: 100%; height: 100%; padding: 16%; object-fit: contain; }
+.welcome-content h1 { max-width: 510px; margin-top: 22px; font-size: clamp(2rem, 3vw, 3.1rem); line-height: 1.08; }
+.welcome-content p { max-width: 500px; margin-top: 14px; color: rgba(255,255,255,0.78); line-height: 1.7; }
+.welcome-footer { display: flex; flex-wrap: wrap; justify-content: center; gap: 12px; }
+.pill { display: inline-flex; align-items: center; gap: 8px; padding: 10px 14px; border-radius: 999px; background: rgba(255,255,255,0.12); color: rgba(255,255,255,0.92); font-size: 0.72rem; font-weight: 700; letter-spacing: 0.6px; text-transform: uppercase; }
+.welcome-ecg { position: absolute; z-index: -1; left: 0; right: 0; bottom: 28px; width: 100%; height: 48px; opacity: 0.2; pointer-events: none; }
+.welcome-ecg path { fill: none; stroke: #9ce3ed; stroke-width: 3; stroke-linecap: round; stroke-linejoin: round; stroke-dasharray: 900; animation: welcomeEcg 5s linear infinite; }
+@keyframes welcomeEcg { from { stroke-dashoffset: 900; } to { stroke-dashoffset: 0; } }
+
+.login-panel { display: flex; align-items: center; justify-content: center; padding: clamp(28px, 4vw, 54px); background: rgba(255,255,255,0.96); }
+.login-card { width: min(100%, 390px); padding: 32px 28px; text-align: left; }
+.eyebrow { display: inline-flex; align-items: center; gap: 8px; margin-bottom: 20px; padding: 8px 12px; border-radius: 999px; background: var(--primary-light); color: var(--primary-dark); font-size: 0.7rem; font-weight: 800; letter-spacing: 0.8px; text-transform: uppercase; }
+.login-card h1 { margin-bottom: 8px; color: var(--text); font-size: clamp(1.8rem, 2vw, 2.3rem); }
+.login-card .subtitle { margin-bottom: 24px; color: var(--text-light); font-size: 0.92rem; line-height: 1.6; }
+.login-card .input-group { margin-bottom: 18px; text-align: left; }
+.input-group label { display: block; margin-bottom: 8px; color: var(--text-light); font-size: 0.72rem; font-weight: 700; letter-spacing: 0.4px; text-transform: uppercase; }
+.input-wrap { position: relative; }
+.login-card .input-group > .input-wrap > i { position: absolute; left: 14px; top: 50%; z-index: 2; transform: translateY(-50%); color: #8da0a7; font-size: 14px; pointer-events: none; }
+.login-card input { padding: 13px 42px; border: 1.5px solid var(--border); border-radius: 10px; background: #f7fafb; }
+.login-card input:focus { border-color: var(--primary); box-shadow: 0 0 0 4px rgba(15,107,124,0.12); background: #fff; }
+.login-card .input-wrap .btn-toggle-password { left: auto; right: 9px; top: 50%; width: 30px; height: 30px; padding: 6px; border-radius: 7px; transform: translateY(-50%); color: #6f858d; }
+.login-card .input-wrap .btn-toggle-password i { position: static; transform: none; color: inherit; font-size: 14px; pointer-events: none; }
+.login-card .input-wrap .btn-toggle-password:hover { background: var(--primary-light); color: var(--primary-dark); }
+.btn-login { margin-top: 4px; border-radius: 10px !important; background: linear-gradient(135deg, var(--primary), var(--primary-dark)) !important; box-shadow: 0 12px 26px rgba(15,107,124,0.22); }
+.btn-login .spinner { display: none; }
+.btn-login:disabled .spinner { display: inline-block; }
+.login-hint { display: flex; align-items: center; justify-content: center; gap: 6px; margin-top: 18px; color: var(--text-muted); font-size: 0.72rem; text-align: center; }
+.login-footer { position: relative; bottom: auto; left: auto; width: auto; margin-top: 18px; color: rgba(24, 73, 83, 0.65); }
+
+@media (max-width: 900px) {
+    .login-overlay { padding: 18px; }
+    .login-shell { grid-template-columns: 1fr; min-height: auto; }
+    .welcome-panel { min-height: 460px; }
+}
+
+@media (max-width: 480px) {
+    .login-overlay { padding: 12px; }
+    .welcome-panel { min-height: 430px; padding: 22px 18px; }
+    .login-panel { padding: 16px; }
+    .login-card { padding: 22px 8px; }
+    .welcome-logo { width: 142px; height: 142px; font-size: 60px; }
+    .welcome-content h1 { font-size: 1.9rem; }
+    .welcome-footer { gap: 8px; }
+    .pill { padding: 8px 10px; font-size: 0.64rem; }
+}
+
 /* ============================================ */
 /* SPINNER */
 /* ============================================ */
