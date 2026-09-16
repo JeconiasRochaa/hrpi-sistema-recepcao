@@ -1,0 +1,29 @@
+<!-- ============================================
+     partials/ativos.html
+     Lista de acompanhantes/visitas ativos no momento
+     Parte do sistema HRPI — injetada em #pagesContainer por js/00-partials-loader.js
+     ============================================ -->
+            <div id="acompanhantesAtivos" class="page">
+                <div class="page-header">
+                    <h1><i class="fas fa-users"></i> Acompanhantes Ativos</h1>
+                    <p class="breadcrumb">Lista de acompanhantes e visitas ativas no momento</p>
+                </div>
+                <div class="card">
+                    <div style="padding: 16px 20px 0; display: flex; justify-content: flex-end; gap: 10px; flex-wrap: wrap;">
+                        <button class="btn btn-outline btn-sm" onclick="exportarListaNutricao()" title="Exporta uma lista simples (setor, leito, paciente, acompanhante) de quem está presente agora">
+                            <i class="fas fa-utensils"></i> Lista para Nutrição
+                        </button>
+                        <button class="btn btn-outline btn-sm" onclick="confirmarTodasPresencas()" title="Confirma que todos os acompanhantes listados ainda estão presentes hoje">
+                            <i class="fas fa-check-double"></i> Confirmar Presença de Todos
+                        </button>
+                    </div>
+                    <div class="table-container">
+                        <table id="tabelaAtivos">
+                            <thead><tr><th>Tipo</th><th>Nome</th><th>Documento</th><th>Parentesco</th><th>Paciente</th><th>Setor</th><th>Leito</th><th>Entrada</th><th>Situação</th><th>Ações</th></tr></thead>
+                            <tbody><tr><td colspan="10" class="empty-table-message"><i class="fas fa-inbox"></i> Nenhum acompanhante ativo</td></tr></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- HISTÓRICO -->

@@ -1,0 +1,30 @@
+<!-- ============================================
+     partials/troca.html
+     Troca de Acompanhante
+     Parte do sistema HRPI — injetada em #pagesContainer por js/00-partials-loader.js
+     ============================================ -->
+            <div id="registroTroca" class="page">
+                <div class="page-header"><h1><i class="fas fa-exchange-alt"></i> Troca de Acompanhante</h1><p class="breadcrumb">Substituir acompanhante atual por um novo</p></div>
+                <div class="card">
+                    <div class="card-header"><h3><i class="fas fa-clipboard-list"></i> Registrar Troca</h3></div>
+                    <form id="formTroca">
+                        <div style="position: relative; margin-bottom: 4px; padding: 0 20px;">
+                            <label>Acompanhante Atual <span class="required">*</span></label>
+                            <input type="text" id="buscaTrocaAtual" placeholder="Digite o nome do acompanhante atual ou do paciente..." autocomplete="off" class="form-control" style="width: 100%; padding: 12px 16px; border: 2px solid var(--border); border-radius: 8px; font-size: 15px; margin-top: 6px;">
+                            <div id="resultadosBuscaTroca" class="search-results" style="display: none; position: absolute; width: calc(100% - 40px);"></div>
+                            <input type="hidden" id="trocaAcompanhanteAtual">
+                        </div>
+                        <div id="trocaInfoAtual" class="info-box" style="display: none; margin: 16px 20px 0;"><p><strong>Paciente:</strong> <span id="trocaPaciente"></span></p><p><strong>Setor:</strong> <span id="trocaSetor"></span></p><p><strong>Leito:</strong> <span id="trocaLeito"></span></p></div>
+                        <h4 style="margin: 16px 20px 12px; font-size: 14px; color: var(--text);">Dados do Novo Acompanhante</h4>
+                        <div class="form-grid">
+                            <div class="form-group"><label>Nome <span class="required">*</span></label><input type="text" id="trocaNovoNome" placeholder="Nome completo" required></div>
+                            <div class="form-group"><label>Documento</label><input type="text" id="trocaNovoDocumento" placeholder="RG, CPF ou outro"></div>
+                            <div class="form-group"><label>Telefone</label><input type="tel" id="trocaNovoTelefone" placeholder="(00) 00000-0000"></div>
+                            <div class="form-group"><label>Parentesco <span class="required">*</span></label><select id="trocaNovoParentesco" required><option value="">Selecione...</option><option>Filho(a)</option><option>Pai/Mãe</option><option>Cônjuge</option><option>Irmão/Irmã</option><option>Neto(a)</option><option>Sobrinho(a)</option><option>Amigo(a)</option><option>Cuidador(a)</option><option>Outro</option></select></div>
+                        </div>
+                        <div class="form-actions"><button type="submit" id="btnRegistrarTroca" class="btn btn-accent" disabled><i class="fas fa-exchange-alt"></i> Registrar Troca</button></div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- REGISTRO DE SAÍDA -->

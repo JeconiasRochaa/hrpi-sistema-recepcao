@@ -1,0 +1,237 @@
+<!-- ============================================
+     partials/dashboard.html
+     Painel Gerencial (página inicial após login)
+     Parte do sistema HRPI — injetada em #pagesContainer por js/00-partials-loader.js
+     ============================================ -->
+            <div id="dashboard" class="page active">
+                <div class="page-header">
+                    <h1><i class="fas fa-chart-pie"></i> Painel Gerencial</h1>
+                    <p class="breadcrumb" id="dashboardPeriodoLabel">Dados completos do mês atual</p>
+                </div>
+
+                <!-- ALERTA DE ACOMPANHANTE DUPLICADO (mais de 1 por paciente) -->
+                <div id="alertaDuplicidade" class="alert-banner" style="display:none;">
+                    <i class="fas fa-clone"></i>
+                    <span id="alertaDuplicidadeTexto"></span>
+                    <a href="javascript:void(0)" onclick="resolverDuplicidades()" class="alert-banner-link">Resolver agora</a>
+                </div>
+
+                <!-- ALERTA DE CONFIRMAÇÃO DE PRESENÇA (nutrição depende deste dado) -->
+                <div id="alertaPresencaPendente" class="alert-banner warning" style="display:none;">
+                    <i class="fas fa-exclamation-triangle"></i>
+                    <span id="alertaPresencaTexto"></span>
+                    <a href="javascript:void(0)" onclick="navegarPara('acompanhantesAtivos')" class="alert-banner-link">Ver e confirmar</a>
+                </div>
+
+                <!-- CARDS DE INDICADORES -->
+                <div class="dashboard-section-title">Presença Agora</div>
+                <div class="cards-row" id="cardsGerenciais">
+                    <div class="stat-card presentes-acompanhantes">
+                        <div class="icon-circle"><i class="fas fa-user-friends"></i></div>
+                        <div class="info">
+                            <div class="number" id="cardAcompanhantesPresentes">0</div>
+                            <div class="label">Acompanhantes Presentes</div>
+                            <div class="sublabel" id="cardPacientesAcompanhadosSub">para 0 pacientes</div>
+                        </div>
+                    </div>
+                    <div class="stat-card presentes-visitantes">
+                        <div class="icon-circle"><i class="fas fa-walking"></i></div>
+                        <div class="info">
+                            <div class="number" id="cardVisitantesPresentes">0</div>
+                            <div class="label">Visitantes Presentes</div>
+                            <div class="sublabel">saída automática em 1h</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="dashboard-section-title">Movimentação de Hoje</div>
+                <div class="cards-row">
+                    <div class="stat-card dual entradas-acompanhantes">
+                        <div class="dual-title"><i class="fas fa-sign-in-alt"></i> Entradas Hoje</div>
+                        <div class="dual-row">
+                            <div class="dual-col"><div class="number" id="cardEntradasAcompanhantesHoje">0</div><div class="label">Acompanhantes</div></div>
+                            <div class="dual-divider"></div>
+                            <div class="dual-col"><div class="number" id="cardEntradasVisitantesHoje">0</div><div class="label">Visitantes</div></div>
+                        </div>
+                    </div>
+                    <div class="stat-card dual saidas-dual saidas-acompanhantes">
+                        <div class="dual-title"><i class="fas fa-sign-out-alt"></i> Saídas Hoje</div>
+                        <div class="dual-row">
+                            <div class="dual-col"><div class="number" id="cardSaidasAcompanhantesHoje">0</div><div class="label">Acompanhantes</div></div>
+                            <div class="dual-divider"></div>
+                            <div class="dual-col"><div class="number" id="cardSaidasVisitantesHoje">0</div><div class="label">Visitantes</div></div>
+                        </div>
+                    </div>
+                    <div class="stat-card trocas">
+                        <div class="icon-circle"><i class="fas fa-exchange-alt"></i></div>
+                        <div class="info">
+                            <div class="number" id="cardTrocasHoje">0</div>
+                            <div class="label">Trocas de Acompanhante</div>
+                        </div>
+                    </div>
+                    <div class="stat-card altas">
+                        <div class="icon-circle"><i class="fas fa-heartbeat"></i></div>
+                        <div class="info">
+                            <div class="number" id="cardAltasHoje">0</div>
+                            <div class="label">Altas de Pacientes</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="dashboard-section-title">Totais do Período</div>
+                <div class="cards-row">
+                    <div class="stat-card dual periodo-semana">
+                        <div class="dual-title"><i class="fas fa-calendar-week"></i> Últimos 7 Dias</div>
+                        <div class="dual-row">
+                            <div class="dual-col"><div class="number" id="cardAcompanhantesSemana">0</div><div class="label">Acompanhantes</div></div>
+                            <div class="dual-divider"></div>
+                            <div class="dual-col"><div class="number" id="cardVisitantesSemana">0</div><div class="label">Visitantes</div></div>
+                        </div>
+                    </div>
+                    <div class="stat-card dual periodo-mes">
+                        <div class="dual-title"><i class="fas fa-calendar-alt"></i> Mês Atual</div>
+                        <div class="dual-row">
+                            <div class="dual-col"><div class="number" id="cardAcompanhantesMes">0</div><div class="label">Acompanhantes</div></div>
+                            <div class="dual-divider"></div>
+                            <div class="dual-col"><div class="number" id="cardVisitantesMes">0</div><div class="label">Visitantes</div></div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="dashboard-section-title admin-exclusive" style="display:none;">Indicadores do Mês</div>
+                <div class="cards-row admin-exclusive" style="display:none;">
+                    <div class="stat-card media-visitas">
+                        <div class="icon-circle"><i class="fas fa-chart-line"></i></div>
+                        <div class="info">
+                            <div class="number" id="cardMediaVisitas">0</div>
+                            <div class="label">Média Diária de Visitas</div>
+                        </div>
+                    </div>
+                    <div class="stat-card permanencia">
+                        <div class="icon-circle"><i class="fas fa-hourglass-half"></i></div>
+                        <div class="info">
+                            <div class="number" id="cardPermanenciaMedia">0h</div>
+                            <div class="label">Permanência Média (Acompanhantes)</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- PAINEL DE INSIGHTS -->
+                <div class="card painel-insights">
+                    <div class="card-header">
+                        <h3><i class="fas fa-lightbulb"></i> Insights Automáticos</h3>
+                    </div>
+                    <div class="insights-grid" id="insightsContainer">
+                        <div class="insight-item">Carregando insights...</div>
+                    </div>
+                </div>
+
+                <!-- LINHA 1: Movimentação Semanal + Distribuição por Setor -->
+                <div class="charts-row">
+                    <div class="card">
+                        <div class="card-header">
+                            <h3><i class="fas fa-chart-bar"></i> Entradas da Semana por Tipo</h3>
+                        </div>
+                        <div class="chart-container">
+                            <canvas id="graficoSemanal"></canvas>
+                        </div>
+                    </div>
+                    <div class="card">
+                        <div class="card-header">
+                            <h3><i class="fas fa-chart-pie"></i> Acompanhantes Presentes por Setor</h3>
+                        </div>
+                        <div class="setor-pie-wrapper">
+                            <div class="chart-container chart-container--center">
+                                <canvas id="graficoSetores"></canvas>
+                            </div>
+                            <div class="tabela-setores" id="tabelaSetores"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- LINHA 2: Tendência de Visitas + Trocas por Dia -->
+                <div class="charts-row">
+                    <div class="card">
+                        <div class="card-header">
+                            <h3><i class="fas fa-chart-line"></i> Tendência de Visitas (30 dias)</h3>
+                        </div>
+                        <div class="chart-container">
+                            <canvas id="graficoTendencia"></canvas>
+                        </div>
+                    </div>
+                    <div class="card">
+                        <div class="card-header">
+                            <h3><i class="fas fa-exchange-alt"></i> Trocas por Dia</h3>
+                        </div>
+                        <div class="chart-container">
+                            <canvas id="graficoTrocasDiarias"></canvas>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- LINHA 3: Horário de Maior Movimento + Ranking de Setores -->
+                <div class="charts-row">
+                    <div class="card">
+                        <div class="card-header">
+                            <h3><i class="fas fa-clock"></i> Horário de Maior Movimento</h3>
+                        </div>
+                        <div class="chart-container">
+                            <canvas id="graficoHorarioMovimento"></canvas>
+                        </div>
+                    </div>
+                    <div class="card">
+                        <div class="card-header">
+                            <h3><i class="fas fa-trophy"></i> Ranking de Setores</h3>
+                        </div>
+                        <div class="chart-container">
+                            <canvas id="graficoRankingSetores"></canvas>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- LINHA 4: Permanência Média por Setor + Fluxo Diário -->
+                <div class="charts-row">
+                    <div class="card">
+                        <div class="card-header">
+                            <h3><i class="fas fa-hourglass-half"></i> Permanência Média por Setor</h3>
+                        </div>
+                        <div class="chart-container">
+                            <canvas id="graficoPermanenciaSetor"></canvas>
+                        </div>
+                    </div>
+                    <div class="card">
+                        <div class="card-header">
+                            <h3><i class="fas fa-stream"></i> Fluxo Diário</h3>
+                        </div>
+                        <div class="chart-container">
+                            <canvas id="graficoFluxoDiario"></canvas>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ÚLTIMOS REGISTROS -->
+                <div class="card" id="cardUltimosRegistros">
+                    <div class="card-header">
+                        <h3><i class="fas fa-list"></i> Últimos Registros</h3>
+                    </div>
+                    <div class="table-container">
+                        <table id="tabelaUltimosRegistros">
+                            <thead>
+                                <tr>
+                                    <th>Tipo</th>
+                                    <th>Nome</th>
+                                    <th>Paciente</th>
+                                    <th>Setor/Leito</th>
+                                    <th>Entrada</th>
+                                    <th>Status</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr><td colspan="6" class="empty-table-message"><i class="fas fa-inbox"></i> Nenhum registro recente</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ENTRADA DE ACOMPANHANTE -->

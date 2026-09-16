@@ -1,0 +1,41 @@
+<!-- ============================================
+     partials/visita.html
+     Formulário de Registro de Visita
+     Parte do sistema HRPI — injetada em #pagesContainer por js/00-partials-loader.js
+     ============================================ -->
+            <div id="registroVisita" class="page">
+                <div class="page-header">
+                    <h1><i class="fas fa-clock"></i> Registro de Visita</h1>
+                    <p class="breadcrumb">Registrar visita de curta duração</p>
+                </div>
+                <div class="card">
+                    <div class="card-header">
+                        <h3><i class="fas fa-clipboard-list"></i> Formulário de Visita</h3>
+                    </div>
+                    <form id="formVisita">
+                        <div class="form-grid">
+                            <div class="form-group"><label>Nome do Visitante <span class="required">*</span></label><input type="text" id="visNome" placeholder="Nome completo" required></div>
+                            <div class="form-group"><label>Documento</label><input type="text" id="visDocumento" placeholder="RG, CPF ou outro"></div>
+                            <div class="form-group"><label>Telefone</label><input type="tel" id="visTelefone" placeholder="(00) 00000-0000"></div>
+                            <div class="form-group"><label>Parentesco <span class="required">*</span></label><select id="visParentesco" required><option value="">Selecione...</option><option>Filho(a)</option><option>Pai/Mãe</option><option>Cônjuge</option><option>Irmão/Irmã</option><option>Neto(a)</option><option>Sobrinho(a)</option><option>Amigo(a)</option><option>Cuidador(a)</option><option>Outro</option></select></div>
+                            <div class="form-group" style="position: relative;">
+                                <label>Nome do Paciente <span class="required">*</span></label>
+                                <input type="text" id="visPaciente" placeholder="Nome do paciente" required autocomplete="off">
+                                <div class="sugestoes-paciente" id="sugestoesVisPaciente"></div>
+                            </div>
+                            <div class="form-group"><label>Setor <span class="required">*</span></label><select id="visSetor" required><option value="">Selecione...</option><option>Oncologia I</option><option>Oncologia II</option><option>UTI I</option><option>UTI II</option><option>Clínica Médica I</option><option>Clínica Médica II</option><option>Clínica Cirúrgica</option><option>Pediatria</option><option>Saúde Mental</option></select></div>
+                            <div class="form-group"><label>Leito</label><input type="text" id="visLeito" placeholder="Número do leito"></div>
+                            <div class="form-group">
+                                <label>Duração da Visita</label>
+                                <input type="text" value="1 hora (saída automática)" disabled style="background:var(--surface-alt,#f4f6f7);color:var(--text-muted);cursor:not-allowed;">
+                            </div>
+                        </div>
+                        <p style="margin: -6px 20px 14px; font-size: 12px; color: var(--text-muted);">
+                            <i class="fas fa-info-circle"></i> A saída de visitantes é registrada automaticamente pelo sistema 1 hora após a entrada. Não é necessário (nem possível) dar baixa manual na tela de Saída.
+                        </p>
+                        <div class="form-actions"><button type="submit" class="btn btn-primary"><i class="fas fa-save"></i> Registrar Visita</button></div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- BLOQUEIOS DE VISITAS -->

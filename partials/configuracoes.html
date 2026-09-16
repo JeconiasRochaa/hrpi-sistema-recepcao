@@ -1,0 +1,16 @@
+<!-- ============================================
+     partials/configuracoes.html
+     Configurações do sistema (logo, fundo, tema)
+     Parte do sistema HRPI — injetada em #pagesContainer por js/00-partials-loader.js
+     ============================================ -->
+            <div id="configuracoes" class="page">
+                <div class="page-header"><h1><i class="fas fa-cog"></i> Configurações do Sistema</h1><p class="breadcrumb">Personalizar aparência e gerenciar preferências</p></div>
+                <div class="config-grid">
+                    <div class="config-card"><h4><i class="fas fa-image"></i> Logo do Hospital</h4><p>Aparece no menu lateral, login e relatórios</p><div class="form-group"><input type="file" id="uploadLogo" accept="image/*"></div><button id="btnRemoverLogo" class="btn btn-outline btn-sm" style="width: 100%;"><i class="fas fa-trash"></i> Remover Logo</button></div>
+                    <div class="config-card"><h4><i class="fas fa-desktop"></i> Fundo da Tela de Login</h4><p>Imagem de fundo personalizada para o login</p><div class="form-group"><input type="file" id="uploadFundo" accept="image/*"></div><button id="btnRemoverFundo" class="btn btn-outline btn-sm" style="width: 100%;"><i class="fas fa-trash"></i> Remover Fundo</button></div>
+                    <div class="config-card"><h4><i class="fas fa-key"></i> Resetar Senha de Usuário</h4><p>A senha será resetada para: <strong>123456</strong></p><div class="form-group"><select id="selectUsuarioReset"><option value="">Selecione um usuário...</option></select></div><button id="btnResetSenha" class="btn btn-warning btn-sm" style="width: 100%;"><i class="fas fa-key"></i> Resetar Senha</button></div>
+                    <div class="config-card"><h4><i class="fas fa-users-slash"></i> Limite de Acompanhantes</h4><p>Regra fixa do sistema: <strong>cada paciente pode ter apenas um acompanhante ativo por vez</strong>. Não é possível desativar essa regra — se um acompanhante precisa ser substituído, use "Troca de Acompanhante".</p></div>
+                </div>
+            </div>
+
+            <!-- LOGS -->

@@ -1,0 +1,21 @@
+<!-- ============================================
+     partials/usuarios.html
+     Gerenciamento de usuários do sistema
+     Parte do sistema HRPI — injetada em #pagesContainer por js/00-partials-loader.js
+     ============================================ -->
+            <div id="usuarios" class="page">
+                <div class="page-header" style="display: flex; justify-content: space-between; align-items: center;">
+                    <div><h1><i class="fas fa-user-cog"></i> Gerenciamento de Usuários</h1><p class="breadcrumb">Cadastrar e gerenciar usuários do sistema</p></div>
+                    <button id="btnNovoUsuario" class="btn btn-primary"><i class="fas fa-plus"></i> Novo Usuário</button>
+                </div>
+                <div class="card">
+                    <div class="table-container">
+                        <table id="tabelaUsuarios">
+                            <thead><tr><th>Nome</th><th>Usuário</th><th>Cargo</th><th>Status</th><th>1º Acesso</th><th>Ações</th></tr></thead>
+                            <tbody><tr><td colspan="6" class="empty-table-message"><i class="fas fa-inbox"></i> Carregando...</td></tr></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- CONFIGURAÇÕES -->

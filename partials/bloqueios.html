@@ -1,0 +1,21 @@
+<!-- ============================================
+     partials/bloqueios.html
+     Bloqueios de Visita por paciente
+     Parte do sistema HRPI — injetada em #pagesContainer por js/00-partials-loader.js
+     ============================================ -->
+            <div id="bloqueios" class="page">
+                <div class="page-header" style="display: flex; justify-content: space-between; align-items: center;">
+                    <div><h1><i class="fas fa-ban"></i> Bloqueios de Visitas</h1><p class="breadcrumb">Gerenciar bloqueios de visitas para pacientes</p></div>
+                    <button id="btnNovoBloqueio" class="btn btn-primary"><i class="fas fa-plus"></i> Novo Bloqueio</button>
+                </div>
+                <div class="card">
+                    <div class="table-container">
+                        <table id="tabelaBloqueios">
+                            <thead><tr><th>Paciente</th><th>Setor</th><th>Leito</th><th>Motivo</th><th>Solicitante</th><th>Data Bloqueio</th><th>Ações</th></tr></thead>
+                            <tbody><tr><td colspan="7" class="empty-table-message"><i class="fas fa-inbox"></i> Nenhum bloqueio ativo</td></tr></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- TROCA DE ACOMPANHANTE -->

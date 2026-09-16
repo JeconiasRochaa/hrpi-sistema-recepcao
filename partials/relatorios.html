@@ -1,0 +1,40 @@
+<!-- ============================================
+     partials/relatorios.html
+     Relatórios em PDF (inclui o Relatório por Setor)
+     Parte do sistema HRPI — injetada em #pagesContainer por js/00-partials-loader.js
+     ============================================ -->
+            <div id="relatorios" class="page">
+                <div class="page-header"><h1><i class="fas fa-file-pdf"></i> Relatórios em PDF</h1><p class="breadcrumb">Gerar relatórios para impressão</p></div>
+
+                <div class="dashboard-section-title">Totais do Período</div>
+                <div class="cards-row">
+                    <div class="stat-card dual periodo-semana">
+                        <div class="dual-title"><i class="fas fa-calendar-week"></i> Últimos 7 Dias</div>
+                        <div class="dual-row">
+                            <div class="dual-col"><div class="number" id="cardAcompanhantesSemanaRel">0</div><div class="label">Acompanhantes</div></div>
+                            <div class="dual-divider"></div>
+                            <div class="dual-col"><div class="number" id="cardVisitantesSemanaRel">0</div><div class="label">Visitantes</div></div>
+                        </div>
+                    </div>
+                    <div class="stat-card dual periodo-mes">
+                        <div class="dual-title"><i class="fas fa-calendar-alt"></i> Mês Atual</div>
+                        <div class="dual-row">
+                            <div class="dual-col"><div class="number" id="cardAcompanhantesMesRel">0</div><div class="label">Acompanhantes</div></div>
+                            <div class="dual-divider"></div>
+                            <div class="dual-col"><div class="number" id="cardVisitantesMesRel">0</div><div class="label">Visitantes</div></div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="dashboard-section-title">Gerar PDF</div>
+                <div class="reports-grid">
+                    <div class="report-card"><i class="fas fa-calendar-day"></i><h4>Relatório Diário</h4><p>Registros do dia atual</p><button class="btn btn-primary btn-sm" onclick="gerarRelatorio('diario')"><i class="fas fa-file-pdf"></i> Gerar PDF</button></div>
+                    <div class="report-card"><i class="fas fa-calendar-week"></i><h4>Relatório Semanal</h4><p>Últimos 7 dias</p><button class="btn btn-primary btn-sm" onclick="gerarRelatorio('semanal')"><i class="fas fa-file-pdf"></i> Gerar PDF</button></div>
+                    <div class="report-card"><i class="fas fa-calendar-month"></i><h4>Relatório Mensal</h4><p>Mês atual</p><button class="btn btn-primary btn-sm" onclick="gerarRelatorio('mensal')"><i class="fas fa-file-pdf"></i> Gerar PDF</button></div>
+                    <div class="report-card"><i class="fas fa-calendar-alt"></i><h4>Período Personalizado</h4><p>Escolha as datas abaixo</p><input type="date" id="dataInicioPersonalizado"><input type="date" id="dataFimPersonalizado"><button class="btn btn-primary btn-sm" onclick="gerarRelatorio('personalizado')"><i class="fas fa-file-pdf"></i> Gerar PDF</button></div>
+                    <div class="report-card"><i class="fas fa-hospital-user"></i><h4>Relatório por Setor</h4><p>Só os dados do setor escolhido — útil para repassar a um coordenador de setor</p><select id="relSetorSelecionado"><option value="">Selecione o setor...</option><option>Oncologia I</option><option>Oncologia II</option><option>UTI I</option><option>UTI II</option><option>Clínica Médica I</option><option>Clínica Médica II</option><option>Clínica Cirúrgica</option><option>Pediatria</option><option>Saúde Mental</option></select><select id="relSetorPeriodo"><option value="mes">Mês atual</option><option value="semana">Últimos 7 dias</option><option value="personalizado">Período personalizado</option></select><div id="relSetorDatasPersonalizado" style="display:none;"><input type="date" id="relSetorDataInicio"><input type="date" id="relSetorDataFim"></div><button class="btn btn-primary btn-sm" onclick="gerarRelatorioSetor()"><i class="fas fa-file-pdf"></i> Gerar PDF</button></div>
+                    <div class="report-card"><i class="fas fa-file-excel"></i><h4>Exportar Dados</h4><p>Baixar registros em formato CSV</p><button class="btn btn-primary btn-sm" onclick="exportarExcel()"><i class="fas fa-download"></i> Exportar CSV</button></div>
+                </div>
+            </div>
+
+            <!-- USUÁRIOS -->

@@ -1,0 +1,51 @@
+<!-- ============================================
+     partials/saida.html
+     Registro de Saída
+     Parte do sistema HRPI — injetada em #pagesContainer por js/00-partials-loader.js
+     ============================================ -->
+<div id="registroSaida" class="page">
+    <div class="page-header">
+        <h1><i class="fas fa-sign-out-alt"></i> Registro de Saída</h1>
+        <p class="breadcrumb">Busque o acompanhante para registrar a saída (visitantes saem automaticamente 1h após a entrada)</p>
+    </div>
+    <div class="card">
+        <div class="card-header">
+            <h3><i class="fas fa-search"></i> Buscar Acompanhante/Visitante</h3>
+        </div>
+        <form id="formSaida">
+            <div style="position: relative; margin-bottom: 4px; padding: 0 20px;">
+                <label>Nome, documento ou paciente <span class="required">*</span></label>
+                <input type="text" id="buscaSaidaRapida"
+                       placeholder="Digite para buscar entre os acompanhantes presentes..."
+                       autocomplete="off"
+                       class="form-control"
+                       style="width: 100%; padding: 12px 16px; border: 2px solid var(--border); border-radius: 8px; font-size: 15px; margin-top: 6px;">
+                <div id="resultadosBuscaSaida" class="search-results" style="display: none; position: absolute; width: calc(100% - 40px);"></div>
+                <input type="hidden" id="saidaAcompanhante">
+            </div>
+
+            <div id="saidaInfo" class="info-box" style="display: none; margin: 16px 20px 0;">
+                <p><strong>Paciente:</strong> <span id="saidaPaciente"></span></p>
+                <p><strong>Setor:</strong> <span id="saidaSetor"></span></p>
+                <p><strong>Data/Hora Entrada:</strong> <span id="saidaEntrada"></span></p>
+            </div>
+
+            <div class="form-group" style="margin: 16px 0 14px; padding: 0 20px;">
+                <label>Motivo da Saída <span class="required">*</span></label>
+                <select id="saidaMotivo" required>
+                    <option value="" selected>Selecione o motivo...</option>
+                    <option>Alta do paciente</option>
+                    <option>Desistência</option>
+                    <option>Outro</option>
+                </select>
+            </div>
+            <div class="form-actions">
+                <button type="submit" id="btnSaidaRapida" class="btn btn-danger" disabled>
+                    <i class="fas fa-sign-out-alt"></i> Registrar Saída
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+            <!-- ACOMPANHANTES ATIVOS -->

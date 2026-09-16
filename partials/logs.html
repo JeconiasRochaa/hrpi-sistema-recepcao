@@ -1,0 +1,27 @@
+<!-- ============================================
+     partials/logs.html
+     Logs de auditoria
+     Parte do sistema HRPI — injetada em #pagesContainer por js/00-partials-loader.js
+     ============================================ -->
+            <div id="logs" class="page">
+                <div class="page-header"><h1><i class="fas fa-clipboard-list"></i> Logs de Auditoria</h1><p class="breadcrumb">Registro de todas as ações do sistema</p></div>
+                <div class="card">
+                    <div class="card-header"><h3><i class="fas fa-filter"></i> Filtros</h3></div>
+                    <div class="filter-row" style="margin-bottom: 16px;">
+                        <input type="date" id="filtroLogDataInicio" title="Data Início">
+                        <input type="date" id="filtroLogDataFim" title="Data Fim">
+                        <select id="filtroLogUsuario"><option value="">Todos os Usuários</option></select>
+                        <select id="filtroLogAcao"><option value="">Todas as Ações</option><option value="login">Login</option><option value="logout">Logout</option><option value="criar">Criação</option><option value="editar">Edição</option><option value="excluir">Exclusão</option><option value="troca">Troca de Acompanhante</option><option value="saida">Registro de Saída</option><option value="usuario">Gerenciamento de Usuários</option><option value="config">Configurações</option></select>
+                        <button id="btnFiltrarLogs" class="btn btn-outline btn-sm"><i class="fas fa-search"></i> Filtrar</button>
+                        <button id="btnLimparLogs" class="btn btn-danger btn-sm admin-exclusive" style="display:none;" onclick="limparLogs()"><i class="fas fa-trash-alt"></i> Limpar Logs</button>
+                    </div>
+                    <div class="table-container">
+                        <table id="tabelaLogs">
+                            <thead><tr><th>Data/Hora</th><th>Usuário</th><th>Ação</th><th>Descrição</th><th>Registro ID</th></tr></thead>
+                            <tbody><tr><td colspan="5" class="empty-table-message"><i class="fas fa-inbox"></i> Nenhum log encontrado</td></tr></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- DIAGNÓSTICO DE DADOS -->

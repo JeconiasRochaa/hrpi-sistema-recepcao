@@ -1,0 +1,28 @@
+<!-- ============================================
+     partials/historico.html
+     Histórico completo de registros
+     Parte do sistema HRPI — injetada em #pagesContainer por js/00-partials-loader.js
+     ============================================ -->
+            <div id="historico" class="page">
+                <div class="page-header"><h1><i class="fas fa-history"></i> Histórico Completo</h1><p class="breadcrumb">Todos os registros de acompanhantes e visitas</p></div>
+                <div class="card">
+                    <div class="card-header"><h3><i class="fas fa-filter"></i> Filtros</h3></div>
+                    <div class="filter-row" style="margin-bottom: 16px;">
+                        <input type="date" id="filtroDataInicio" title="Data Início">
+                        <input type="date" id="filtroDataFim" title="Data Fim">
+                        <select id="filtroStatus"><option value="">Todos os Status</option><option value="presente">Presente</option><option value="saiu">Saiu</option><option value="trocado">Trocado</option></select>
+                        <select id="filtroTipo"><option value="">Todos os Tipos</option><option value="acompanhante">Acompanhante</option><option value="visita">Visita</option></select>
+                        <input type="text" id="filtroTexto" placeholder="Buscar por nome, documento, paciente..." style="flex: 1; min-width: 200px;">
+                        <button id="btnFiltrar" class="btn btn-outline btn-sm"><i class="fas fa-search"></i> Filtrar</button>
+                        <button id="btnExportarExcel" class="btn btn-outline btn-sm"><i class="fas fa-file-excel"></i> Exportar Excel</button>
+                    </div>
+                    <div class="table-container">
+                        <table id="tabelaHistorico">
+                            <thead><tr><th>Tipo</th><th>Nome</th><th>Documento</th><th>Parentesco</th><th>Paciente</th><th>Setor</th><th>Leito</th><th>Entrada</th><th>Saída</th><th>Status</th><th>Ações</th></tr></thead>
+                            <tbody><tr><td colspan="11" class="empty-table-message"><i class="fas fa-inbox"></i> Nenhum registro encontrado</td></tr></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- RELATÓRIOS -->

@@ -1,0 +1,51 @@
+<!-- ============================================
+     partials/diagnostico.html
+     Diagnóstico de Dados
+     Parte do sistema HRPI — injetada em #pagesContainer por js/00-partials-loader.js
+     ============================================ -->
+            <div id="diagnostico" class="page">
+                <div class="page-header"><h1><i class="fas fa-stethoscope"></i> Diagnóstico de Dados</h1><p class="breadcrumb">Encontra registros "presente" há tempo demais — provável esquecimento de saída pela recepção</p></div>
+
+                <div class="card">
+                    <div class="card-header"><h3><i class="fas fa-sliders-h"></i> Critérios</h3></div>
+                    <div class="filter-row" style="margin-bottom: 14px;">
+                        <div class="form-group" style="min-width:240px;">
+                            <label>Acompanhante presente há mais de (dias)</label>
+                            <input type="number" id="diagLimiteAcompanhanteDias" value="15" min="1" style="width:100%;">
+                        </div>
+                        <div class="form-group" style="min-width:240px;">
+                            <label>Visitante presente há mais de (horas)</label>
+                            <input type="number" id="diagLimiteVisitanteHoras" value="2" min="1" style="width:100%;">
+                        </div>
+                    </div>
+                    <p style="font-size:12px; color: var(--text-light); margin: 0 0 14px;">Visitante já deveria ter saído sozinho em 1h — acima de 2h é sinal de falha na saída automática.</p>
+                    <button id="btnAnalisarDiagnostico" class="btn btn-primary btn-sm" onclick="rodarDiagnostico()"><i class="fas fa-search"></i> Analisar</button>
+                </div>
+
+                <div class="card" id="diagResultadoCard" style="display:none;">
+                    <div class="card-header">
+                        <h3><i class="fas fa-list-check"></i> Registros suspeitos (<span id="diagContador">0</span>)</h3>
+                    </div>
+                    <div class="filter-row" style="margin-bottom: 18px; align-items: flex-end;">
+                        <div class="form-group" style="flex:1; min-width:280px;">
+                            <label>Motivo aplicado às saídas registradas nesta tela</label>
+                            <input type="text" id="diagMotivoLote" placeholder="Motivo da correção..." value="Correção de registro — saída não computada no sistema" style="width:100%;">
+                        </div>
+                        <button id="btnDarSaidaLote" class="btn btn-danger btn-sm" onclick="darSaidaLoteDiagnostico()" disabled><i class="fas fa-sign-out-alt"></i> Registrar Saída dos Selecionados</button>
+                    </div>
+                    <div class="table-container">
+                        <table id="tabelaDiagnostico">
+                            <thead><tr>
+                                <th style="width:34px;"><input type="checkbox" id="diagSelecionarTodos" onclick="toggleSelecionarTodosDiagnostico(this)"></th>
+                                <th>Tipo</th><th>Nome</th><th>Paciente</th><th>Setor</th><th>Entrada</th><th>Tempo Presente</th><th>Ação</th>
+                            </tr></thead>
+                            <tbody id="diagTbody"><tr><td colspan="8" class="empty-table-message"><i class="fas fa-inbox"></i> Nenhum registro analisado ainda</td></tr></tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <div class="card" id="diagVazioCard" style="display:none;">
+                    <div class="card-header"><h3><i class="fas fa-check-circle" style="color: var(--stat-entradas-acomp);"></i> Nenhum registro suspeito</h3></div>
+                    <p style="padding: 0 20px 20px; color: var(--text-light);">Todos os registros "presente" estão dentro do tempo esperado. A diferença entre o Painel e os Relatórios provavelmente já foi resolvida pela correção de cálculo — gere um novo relatório para conferir.</p>
+                </div>
+            </div>

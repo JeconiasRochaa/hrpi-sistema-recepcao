@@ -7,18 +7,18 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
         :root {
-            --primary: #1a6b7a;
-            --primary-dark: #0f4c58;
-            --danger: #c0392b;
-            --success: #2d8b4e;
-            --bg: #f0f4f6;
+            --primary: #2f6fed;
+            --primary-dark: #1b4f9c;
+            --danger: #e5484d;
+            --success: #16a34a;
+            --bg: #f3f6fb;
             --surface: #ffffff;
-            --text: #2c3e50;
-            --text-light: #5a6c7d;
-            --border: #dde4e9;
-            --shadow-xl: 0 20px 60px rgba(0, 0, 0, 0.25);
-            --radius: 10px;
-            --radius-sm: 6px;
+            --text: #1b2430;
+            --text-light: #7c8797;
+            --border: #e6eaf2;
+            --shadow-xl: 0 20px 60px rgba(11, 35, 64, 0.2);
+            --radius: 12px;
+            --radius-sm: 8px;
         }
 
         * {
@@ -28,8 +28,8 @@
         }
 
         body {
-            font-family: 'Segoe UI', 'Inter', system-ui, sans-serif;
-            background: linear-gradient(135deg, #0d3b44 0%, #1a6b7a 40%, #1a7a8c 100%);
+            font-family: 'Inter', 'Segoe UI', system-ui, sans-serif;
+            background: linear-gradient(135deg, #0b2340 0%, #1b4f9c 40%, #2f6fed 100%);
             min-height: 100vh;
             display: flex;
             align-items: center;
@@ -74,19 +74,19 @@
         }
 
         .info-box {
-            background: #fff3cd;
-            border: 1px solid #ffc107;
+            background: #fef3e2;
+            border: 1px solid #f59e0b;
             border-radius: 8px;
             padding: 14px 16px;
             margin-bottom: 20px;
             text-align: left;
             font-size: 13px;
-            color: #856404;
+            color: #b45309;
         }
 
         .info-box i {
             margin-right: 8px;
-            color: #f39c12;
+            color: #f59e0b;
         }
 
         .form-group {
@@ -117,7 +117,7 @@
             left: 14px;
             top: 50%;
             transform: translateY(-50%);
-            color: #95a5a6;
+            color: #a6afbc;
             font-size: 14px;
         }
 
@@ -128,20 +128,20 @@
             border-radius: var(--radius-sm);
             font-size: 14px;
             transition: 0.2s;
-            background: #fafbfc;
+            background: #f3f6fb;
             outline: none;
             font-family: inherit;
         }
 
         .input-wrapper input:focus {
             border-color: var(--primary);
-            box-shadow: 0 0 0 3px rgba(26, 107, 122, 0.1);
+            box-shadow: 0 0 0 3px rgba(47, 111, 237, 0.15);
             background: #fff;
         }
 
         .password-strength {
             height: 4px;
-            background: #e0e0e0;
+            background: #e6eaf2;
             border-radius: 2px;
             margin-top: 6px;
             overflow: hidden;
@@ -181,7 +181,7 @@
         .btn-save:hover {
             background: var(--primary-dark);
             transform: translateY(-1px);
-            box-shadow: 0 6px 20px rgba(26, 107, 122, 0.3);
+            box-shadow: 0 6px 20px rgba(47, 111, 237, 0.3);
         }
 
         .btn-save:disabled {
@@ -207,7 +207,7 @@
             font-size: 13px;
             margin-top: 10px;
             padding: 10px 14px;
-            background: #e6f4ea;
+            background: #e6f7ec;
             border-radius: 6px;
             border: 1px solid rgba(45, 139, 78, 0.2);
             display: none;
@@ -244,7 +244,7 @@
         }
 
         .requirements .invalid {
-            color: #95a5a6;
+            color: #a6afbc;
         }
     </style>
 </head>
@@ -315,6 +315,30 @@
         firebase.initializeApp(firebaseConfig);
         const db = firebase.database();
 
+        // Mesmo esquema de hash usado no restante do sistema (script.js).
+        // BUG DE SEGURANÇA CORRIGIDO: esta página gravava a senha em texto
+        // puro (campo "senha") diretamente no banco, contornando por
+        // completo o sistema de hash+salt usado em todo o resto do
+        // sistema. Qualquer pessoa com acesso de leitura ao banco (ou às
+        // regras do Firebase, que já estiveram totalmente abertas — ver
+        // README) conseguia ler a senha de quem passasse por aqui. Esta
+        // página não é referenciada em nenhum lugar do sistema atual (o
+        // fluxo de primeiro acesso usa o modal dentro do próprio
+        // index.html, que já usa hash), mas como o arquivo continua
+        // publicado e acessível por URL direta, foi corrigida por
+        // segurança.
+        function gerarSalt() {
+            const arr = new Uint8Array(16);
+            crypto.getRandomValues(arr);
+            return Array.from(arr).map(b => b.toString(16).padStart(2, '0')).join('');
+        }
+        async function hashSenha(senha, salt) {
+            const encoder = new TextEncoder();
+            const data = encoder.encode(salt + ':' + senha);
+            const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+            return Array.from(new Uint8Array(hashBuffer)).map(b => b.toString(16).padStart(2, '0')).join('');
+        }
+
         // Pegar ID do usuário da URL
         const urlParams = new URLSearchParams(window.location.search);
         const userId = urlParams.get('id');
@@ -368,13 +392,13 @@
             bar.style.width = strength + '%';
 
             if (strength <= 30) {
-                bar.style.background = '#e74c3c';
+                bar.style.background = '#e5484d';
                 text.textContent = 'Senha fraca';
             } else if (strength <= 60) {
-                bar.style.background = '#f39c12';
+                bar.style.background = '#f59e0b';
                 text.textContent = 'Senha média';
             } else {
-                bar.style.background = '#27ae60';
+                bar.style.background = '#16a34a';
                 text.textContent = 'Senha forte';
             }
         });
@@ -395,7 +419,7 @@
         });
 
         // Submeter formulário
-        document.getElementById('changePasswordForm').addEventListener('submit', function(e) {
+        document.getElementById('changePasswordForm').addEventListener('submit', async function(e) {
             e.preventDefault();
 
             if (!userId) {
@@ -435,33 +459,37 @@
             btnSave.disabled = true;
             btnSave.innerHTML = '<span class="spinner"></span> Salvando...';
 
-            console.log('💾 Atualizando senha para ID:', userId);
+            try {
+                // Senha nunca é gravada em texto puro — gera um salt novo
+                // e grava só o hash, igual ao restante do sistema.
+                const salt = gerarSalt();
+                const senhaHash = await hashSenha(nova, salt);
 
-            // Atualizar no Firebase
-            db.ref('usuarios/' + userId).update({
-                senha: nova,
-                primeiroAcesso: false
-            }).then(() => {
-                console.log('✅ Senha atualizada com sucesso!');
+                await db.ref('usuarios/' + userId).update({
+                    senhaHash: senhaHash,
+                    salt: salt,
+                    senha: null,
+                    primeiroAcesso: false
+                });
 
                 // Mostrar sucesso
                 document.getElementById('successMessage').textContent = 'Senha alterada com sucesso! Redirecionando...';
                 document.getElementById('successMessage').style.display = 'block';
                 btnSave.innerHTML = '<i class="fas fa-check"></i> Senha Salva!';
-                btnSave.style.background = '#27ae60';
+                btnSave.style.background = 'var(--success)';
 
                 // Redirecionar para o sistema principal
                 setTimeout(() => {
                     window.location.href = 'index.html';
                 }, 1500);
 
-            }).catch(error => {
+            } catch (error) {
                 console.error('❌ Erro:', error);
                 errorEl.textContent = 'Erro ao salvar. Tente novamente.';
                 errorEl.style.display = 'block';
                 btnSave.disabled = false;
                 btnSave.innerHTML = '<i class="fas fa-save"></i> Salvar e Acessar';
-            });
+            }
         });
     </script>
 </body>
