@@ -1,2 +1,18 @@
+# ===== NUNCA SUBIR PARA O GITHUB =====
+.env
+.env.*
+!.env.example
+*.local
+serviceAccount*.json
+*-adminsdk-*.json
+*.pem
+*.key
+backup-*.json
+# ===== Gerados =====
+node_modules
+dist
+.firebase
+firebase-debug.log
+*.tsbuildinfo
 .DS_Store
 Thumbs.db
